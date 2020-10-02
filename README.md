@@ -18,9 +18,7 @@ for this whole guide unless explicitly stated otherwise.
 It will scale down the deployment\'s replicas if all of the following
 conditions are met:
 
--
-
-    current time is not part of the \"uptime\" schedule or current time is part of the \"downtime\" schedule. The schedules are evaluated in the following order:
+- current time is not part of the \"uptime\" schedule or current time is part of the \"downtime\" schedule. The schedules are evaluated in the following order:
 
     :   -   `downscaler/downscale-period` or `downscaler/downtime`
             annotation on the deployment/stateful set
@@ -36,19 +34,17 @@ conditions are met:
         -   `DOWNSCALE_PERIOD` or `DEFAULT_DOWNTIME` environment
             variable
 
--
-
-    the deployment\'s namespace is not part of the exclusion list:
+- the deployment\'s namespace is not part of the exclusion list:
 
     :   -   If you provide an exclusion list, it will be used in place
             of the default (which includes only kube-system).
 
--   the deployment\'s name is not part of the exclusion list
--   the deployment is not marked for exclusion (annotation
+- the deployment\'s name is not part of the exclusion list
+- the deployment is not marked for exclusion (annotation
     `downscaler/exclude: "true"` or
     `downscaler/exclude-until: "2024-04-05"`)
--   there are no active pods that force the whole cluster into uptime
-    (annotation `downscaler/force-uptime: "true"`)
+- there are no active pods that force the whole cluster into uptime
+  (annotation `downscaler/force-uptime: "true"`)
 
 The deployment by default will be scaled down to zero replicas. This can
 be configured with a deployment or its namespace\'s annotation of
