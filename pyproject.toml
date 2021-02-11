@@ -6,7 +6,7 @@ description = "Scale down Kubernetes deployments after work hours"
 authors = ["Henning Jacobs <henning@jacobs1.de>"]
 
 [tool.poetry.dependencies]
-python = ">=3.7"
+python = ">=3.8,<4"
 pykube-ng = "*"
 pytz = "*"
 

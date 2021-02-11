@@ -173,7 +173,11 @@ def scale_up(
         )
     if enable_events:
         helper.add_event(
-            resource, event_message, "ScaleUp", "Normal", dry_run,
+            resource,
+            event_message,
+            "ScaleUp",
+            "Normal",
+            dry_run,
         )
     resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] = None
 
@@ -206,7 +210,11 @@ def scale_down(
         )
     if enable_events:
         helper.add_event(
-            resource, event_message, "ScaleDown", "Normal", dry_run,
+            resource,
+            event_message,
+            "ScaleDown",
+            "Normal",
+            dry_run,
         )
     resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] = str(replicas)
 
