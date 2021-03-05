@@ -6,8 +6,23 @@ Kubernetes Downscaler
 [![Docker pulls](https://img.shields.io/docker/pulls/hjacobs/kube-downscaler.svg)](https://hub.docker.com/r/hjacobs/kube-downscaler)
 [![CalVer](https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg)](http://calver.org/)
 
-Scale down Kubernetes Deployments, StatefulSets, and/or
-HorizontalPodAutoscalers during non-work hours.
+Scale down / "pause" Kubernetes workload (Deployments, StatefulSets, and/or
+HorizontalPodAutoscalers and CronJobs too !) during non-work hours.
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Alternative logic, based on periods](#alternative-logic-based-on-periods)
+- [Command Line Options](#command-line-options)
+- [Namespace Defaults](#namespace-defaults)
+- [Contributing](#contributing)
+- [License](#license)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 
 Deployments are interchangeable by statefulsets/horizontalpodautoscalers
 for this whole guide unless explicitly stated otherwise.
@@ -50,6 +65,8 @@ be configured with a deployment or its namespace\'s annotation of
 `--downtime-replicas`. In case of HorizontalPodAutoscalers, the
 `minReplicas` field cannot be set to zero and thus
 `downscaler/downtime-replicas` should be at least `1`.
+
+Regarding `CronJobs`, their state will be defined to `suspend: true` as you might imagine.
 
 Example use cases:
 
