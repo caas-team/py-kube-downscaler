@@ -6,69 +6,98 @@ Kubernetes Downscaler
 [![Docker pulls](https://img.shields.io/docker/pulls/hjacobs/kube-downscaler.svg)](https://hub.docker.com/r/hjacobs/kube-downscaler)
 [![CalVer](https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg)](http://calver.org/)
 
-Scale down / "pause" Kubernetes workload (Deployments, StatefulSets, and/or
-HorizontalPodAutoscalers and CronJobs too !) during non-work hours.
+Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`, and/or
+`HorizontalPodAutoscalers` and `CronJobs` too !) during non-work hours.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
+- [Concepts](#concepts)
+  - [Algorithm](#algorithm)
+  - [Minimum replicas](#minimum-replicas)
+  - [Specific workload](#specific-workload)
+  - [Example use cases](#example-use-cases)
 - [Usage](#usage)
+  - [Deployment](#deployment)
+  - [Example configuration](#example-configuration)
+  - [Notes](#notes)
 - [Configuration](#configuration)
-- [Alternative logic, based on periods](#alternative-logic-based-on-periods)
-- [Command Line Options](#command-line-options)
-- [Namespace Defaults](#namespace-defaults)
+  - [Uptime / downtime spec](#uptime--downtime-spec)
+  - [Alternative logic, based on periods](#alternative-logic-based-on-periods)
+  - [Command Line Options](#command-line-options)
+  - [Namespace Defaults](#namespace-defaults)
 - [Contributing](#contributing)
 - [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
-Deployments are interchangeable by statefulsets/horizontalpodautoscalers
-for this whole guide unless explicitly stated otherwise.
+## Concepts
 
-It will scale down the deployment\'s replicas if all of the following
+> :memo: `Deployments` are interchangeable by any kind of _supported workload_ for this whole guide unless explicitly stated otherwise.
+>
+> The complete list of supported workload is defined [here](./kube_downscaler/scaler.py#9-14).
+
+### Algorithm
+
+`Kube-downscaler` will scale down the deployment\'s replicas if all of the following
 conditions are met:
 
-- current time is not part of the \"uptime\" schedule or current time is part of the \"downtime\" schedule. The schedules are evaluated in the following order:
+- **current time** is not part of the \"uptime\" schedule or is part of the \"downtime\" schedule.
 
-    :   -   `downscaler/downscale-period` or `downscaler/downtime`
-            annotation on the deployment/stateful set
-        -   `downscaler/upscale-period` or `downscaler/uptime`
-            annotation on the deployment/stateful set
-        -   `downscaler/downscale-period` or `downscaler/downtime`
-            annotation on the deployment/stateful set\'s namespace
-        -   `downscaler/upscale-period` or `downscaler/uptime`
-            annotation on the deployment/stateful set\'s namespace
-        -   `--upscale-period` or `--default-uptime` CLI argument
-        -   `--downscale-period` or `--default-downtime` CLI argument
-        -   `UPSCALE_PERIOD` or `DEFAULT_UPTIME` environment variable
-        -   `DOWNSCALE_PERIOD` or `DEFAULT_DOWNTIME` environment
+  If true, the schedules are evaluated in the following order:
+
+    -   `downscaler/downscale-period` or `downscaler/downtime`
+            annotation on the workload definition
+    -   `downscaler/upscale-period` or `downscaler/uptime`
+            annotation on the workload definition
+    -   `downscaler/downscale-period` or `downscaler/downtime`
+            annotation on the workload\'s namespace
+    -   `downscaler/upscale-period` or `downscaler/uptime`
+            annotation on the workload\'s namespace
+    -   `--upscale-period` or `--default-uptime` CLI argument
+    -   `--downscale-period` or `--default-downtime` CLI argument
+    -   `UPSCALE_PERIOD` or `DEFAULT_UPTIME` environment variable
+    -   `DOWNSCALE_PERIOD` or `DEFAULT_DOWNTIME` environment
             variable
 
-- the deployment\'s namespace is not part of the exclusion list:
+- The workload\'s **namespace** is not part of the exclusion list:
 
-    :   -   If you provide an exclusion list, it will be used in place
-            of the default (which includes only kube-system).
+    -   If you provide an exclusion list, it will be used in place
+        of the default (which includes only `kube-system`).
 
-- the deployment\'s name is not part of the exclusion list
-- the deployment is not marked for exclusion (annotation
+- The **workload\'s name** is not part of the exclusion list
+
+- The workload is not marked for exclusion (annotation
     `downscaler/exclude: "true"` or
     `downscaler/exclude-until: "2024-04-05"`)
-- there are no active pods that force the whole cluster into uptime
+
+- There are no active pods that force the whole cluster into uptime
   (annotation `downscaler/force-uptime: "true"`)
 
-The deployment by default will be scaled down to zero replicas. This can
-be configured with a deployment or its namespace\'s annotation of
-`downscaler/downtime-replicas` (e.g.
-`downscaler/downtime-replicas: "1"`) or via CLI with
-`--downtime-replicas`. In case of HorizontalPodAutoscalers, the
-`minReplicas` field cannot be set to zero and thus
+
+### Minimum replicas
+
+The deployment, by default, **will be scaled down to zero replicas**. This can
+be configured with a deployment or its namespace\'s annotation of `downscaler/downtime-replicas`
+or via CLI with `--downtime-replicas`.
+
+Ex: `downscaler/downtime-replicas: "1"`
+
+
+### Specific workload
+
+In case of `HorizontalPodAutoscalers`, the `minReplicas` field cannot be set to zero and thus
 `downscaler/downtime-replicas` should be at least `1`.
 
-Regarding `CronJobs`, their state will be defined to `suspend: true` as you might imagine.
+-> See later in [#Usage notes](#notes)
 
-Example use cases:
+
+Regarding `CronJobs`, their state will be defined to `suspend: true` as you might expect.
+
+
+### Example use cases
 
 -   Deploy the downscaler to a test (non-prod) cluster with a default
     uptime or downtime time range to scale down all deployments during
@@ -86,8 +115,10 @@ and the
 [kube-aws-autoscaler](https://github.com/hjacobs/kube-aws-autoscaler)
 were tested to work fine with the downscaler.
 
-Usage
------
+
+## Usage
+
+### Deployment
 
 Deploy the downscaler into your cluster via (also works with
 [kind](https://kind.sigs.k8s.io/) or
@@ -102,6 +133,9 @@ In case you are deploying `kube-downscaler` to another namespace than
 Make sure you change the `deploy/rbac.yaml` Service Account
 configuration `namespace: default` to the destination namespace
 `my-namespace`, instead of `default`.
+
+
+### Example configuration
 
 The example configuration uses the `--dry-run` as a safety flag to
 prevent downscaling \-\-- remove it to enable the downscaler, e.g. by
@@ -120,32 +154,38 @@ $ kubectl run nginx --image=nginx
 $ kubectl annotate deploy nginx 'downscaler/uptime=Mon-Fri 09:00-17:00 America/Buenos_Aires'
 ```
 
-Note that the default grace period of 15 minutes applies to the new
-nginx deployment, i.e. if the current time is not within Mon-Fri 9-17
-(Buenos Aires timezone), it will downscale not immediately, but after 15
-minutes. The downscaler will eventually log something like:
 
+### Notes
+
+Note that the _default grace period_ of 15 minutes applies to the new
+nginx deployment, i.e.
+* if the current time is not within `Mon-Fri 9-17 (Buenos Aires timezone)`,
+  it will downscale not immediately, but after 15 minutes. The downscaler
+  will eventually log something like:
+
+```
     INFO: Scaling down Deployment default/nginx from 1 to 0 replicas (uptime: Mon-Fri 09:00-17:00 America/Buenos_Aires, downtime: never)
+```
 
-Note that in cases where a HorizontalPodAutoscaler (HPA) is used along
+Note that in cases where a `HorizontalPodAutoscaler` (HPA) is used along
 with Deployments, consider the following:
 
 -   If downscale to 0 replicas is desired, the annotation should be
-    applied on the Deployment. This is a special case, since
+    applied on the `Deployment`. This is a special case, since
     `minReplicas` of 0 on HPA is not allowed. Setting Deployment
     replicas to 0 essentially disables the HPA. In such a case, the HPA
-    will emit events like \"failed to get memory utilization: unable to
+    will emit events like `failed to get memory utilization: unable to
     get metrics for resource memory: no metrics returned from resource
-    metrics API\" as there is no Pod to retrieve metrics from.
+    metrics API` as there is no Pod to retrieve metrics from.
 -   If downscale greater than 0 is desired, the annotation should be
     applied on the HPA. This allows for dynamic scaling of the Pods even
     during downtime based upon the external traffic as well as maintain
-    a lower `minReplicas` during downtime if there is no/low traffic. If
+    a lower `minReplicas` during downtime if there is no/low traffic. **If
     the Deployment is annotated instead of the HPA, it leads to a race
-    condition where kube-downscaler scales down the Deployment and HPA
+    condition** where `kube-downscaler` scales down the Deployment and HPA
     upscales it as its `minReplicas` is higher.
 
-To enable Downscaler on HPA with [\--downtime-replicas=1]{.title-ref},
+To enable Downscaler on HPA with `--downtime-replicas=1`,
 ensure to add the following annotations to Deployment and HPA.
 
 ``` {.sourceCode .bash}
@@ -154,8 +194,9 @@ $ kubectl annotate hpa nginx 'downscaler/downtime-replicas=1'
 $ kubectl annotate hpa nginx 'downscaler/uptime=Mon-Fri 09:00-17:00 America/Buenos_Aires'
 ```
 
-Configuration
--------------
+## Configuration
+
+### Uptime / downtime spec
 
 The downscaler is configured via command line args, environment
 variables and/or Kubernetes annotations.
@@ -185,8 +226,8 @@ Each time specification can be in one of two formats:
     where each `<TIME>` is an ISO 8601 date and time of the format
     `<YYYY>-<MM>-<DD>T<HH>:<MM>:<SS>[+-]<TZHH>:<TZMM>`.
 
-Alternative logic, based on periods
------------------------------------
+
+### Alternative logic, based on periods
 
 Instead of strict uptimes or downtimes, you can chose time periods for
 upscaling or downscaling. The time definitions are the same. In this
@@ -206,8 +247,8 @@ day 19:00-20:00.
 DOWNSCALE_PERIOD="Mon-Sun 19:00-20:00 Europe/Berlin"
 ```
 
-Command Line Options
---------------------
+
+### Command Line Options
 
 Available command line options:
 
@@ -304,12 +345,12 @@ Available command line options:
     Kubernetes\' `creationTimestamp`: `%Y-%m-%dT%H:%M:%SZ`. Recommended:
     set this annotation by your deployment tooling automatically.
 
-Namespace Defaults
-------------------
+
+### Namespace Defaults
 
 `DEFAULT_UPTIME`, `DEFAULT_DOWNTIME`, `FORCE_UPTIME` and exclusion can
-also be configured using Namespace annotations. Where configured these
-values supersede the other global default values.
+also be configured using Namespace annotations. **Where configured these
+values supersede the other global default values**.
 
 ``` {.sourceCode .yaml}
 apiVersion: v1
@@ -339,8 +380,8 @@ The following annotations are supported on the Namespace level:
 -   `downscaler/downtime-replicas`: overwrite the default target
     replicas to scale down to (default: zero)
 
-Contributing
-------------
+
+## Contributing
 
 Easiest way to contribute is to provide feedback! We would love to hear
 what you like and what you think is missing. Create an issue or [ping
@@ -348,8 +389,7 @@ try\_except\_ on Twitter](https://twitter.com/try_except_).
 
 PRs are welcome.
 
-License
--------
+## License
 
 This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
