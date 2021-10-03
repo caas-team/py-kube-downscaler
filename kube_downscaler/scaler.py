@@ -16,6 +16,7 @@ from pykube.objects import NamespacedAPIObject
 from kube_downscaler import helper
 from kube_downscaler.helper import matches_time_spec
 from kube_downscaler.resources.stack import Stack
+from kube_downscaler.resources.rollout import ArgoRollout
 
 ORIGINAL_REPLICAS_ANNOTATION = "downscaler/original-replicas"
 FORCE_UPTIME_ANNOTATION = "downscaler/force-uptime"
@@ -27,7 +28,7 @@ UPTIME_ANNOTATION = "downscaler/uptime"
 DOWNTIME_ANNOTATION = "downscaler/downtime"
 DOWNTIME_REPLICAS_ANNOTATION = "downscaler/downtime-replicas"
 
-RESOURCE_CLASSES = [Deployment, StatefulSet, Stack, CronJob, HorizontalPodAutoscaler]
+RESOURCE_CLASSES = [Deployment, StatefulSet, Stack, CronJob, HorizontalPodAutoscaler, ArgoRollout]
 
 TIMESTAMP_FORMATS = [
     "%Y-%m-%dT%H:%M:%SZ",
@@ -166,6 +167,11 @@ def scale_up(
         logger.info(
             f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
         )
+    elif resource.kind == "Rollout":
+        resource.obj["spec"]["replicas"] = original_replicas
+        logger.info(
+            f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} replicas (uptime: {uptime}, downtime: {downtime})"
+        )
     else:
         resource.replicas = original_replicas
         logger.info(
@@ -202,6 +208,11 @@ def scale_down(
         resource.obj["spec"]["minReplicas"] = target_replicas
         logger.info(
             f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
+        )
+    elif resource.kind == "Rollout":
+        resource.obj["spec"]["replicas"] = target_replicas
+        logger.info(
+            f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} replicas (uptime: {uptime}, downtime: {downtime})"
         )
     else:
         resource.replicas = target_replicas
@@ -464,6 +475,7 @@ def scale(
     include_resources: FrozenSet[str],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_deployments: FrozenSet[str],
+    exclude_rollouts: FrozenSet[str],
     dry_run: bool,
     grace_period: int,
     downtime_replicas: int = 0,
