@@ -19,6 +19,7 @@ from kube_downscaler.resources.stack import Stack
 
 ORIGINAL_REPLICAS_ANNOTATION = "downscaler/original-replicas"
 FORCE_UPTIME_ANNOTATION = "downscaler/force-uptime"
+FORCE_DOWNTIME_ANNOTATION = "downscaler/force-downtime"
 UPSCALE_PERIOD_ANNOTATION = "downscaler/upscale-period"
 DOWNSCALE_PERIOD_ANNOTATION = "downscaler/downscale-period"
 EXCLUDE_ANNOTATION = "downscaler/exclude"
@@ -81,6 +82,21 @@ def pods_force_uptime(api, namespace: str):
             continue
         if pod.annotations.get(FORCE_UPTIME_ANNOTATION, "").lower() == "true":
             logger.info(f"Forced uptime because of {pod.namespace}/{pod.name}")
+            return True
+    return False
+
+
+def pods_force_downtime(api, namespace: str):
+    """Return True if there are any running pods which require the deployments to be scaled back up."""
+    for pod in pykube.Pod.objects(api).filter(namespace=(namespace or pykube.all)):
+        if pod.obj.get("status", {}).get("phase") in ("Succeeded", "Failed"):
+            continue
+        # forced uptime beats forced downtime every time
+        if (
+            pod.annotations.get(FORCE_DOWNTIME_ANNOTATION, "").lower() == "true"
+            and pod.annotations.get(FORCE_UPTIME_ANNOTATION, "").lower() != "true"
+        ):
+            logger.info(f"Forced downtime because of {pod.namespace}/{pod.name}")
             return True
     return False
 
@@ -240,6 +256,7 @@ def autoscale_resource(
     default_uptime: str,
     default_downtime: str,
     forced_uptime: bool,
+    forced_downtime: bool,
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int = 0,
@@ -277,6 +294,10 @@ def autoscale_resource(
                 uptime = "forced"
                 downtime = "ignored"
                 is_uptime = True
+            elif forced_downtime and not (exclude and original_replicas):
+                uptime = "ignored"
+                downtime = "forced"
+                is_uptime = False
             elif upscale_period != "never" or downscale_period != "never":
                 uptime = upscale_period
                 downtime = downscale_period
@@ -370,6 +391,7 @@ def autoscale_resources(
     default_uptime: str,
     default_downtime: str,
     forced_uptime: bool,
+    forced_downtime: bool,
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int,
@@ -426,6 +448,9 @@ def autoscale_resources(
         forced_uptime_value_for_namespace = str(
             namespace_obj.annotations.get(FORCE_UPTIME_ANNOTATION, forced_uptime)
         )
+        forced_downtime_value_for_namespace = str(
+            namespace_obj.annotations.get(FORCE_UPTIME_ANNOTATION, forced_uptime)
+        )
         if forced_uptime_value_for_namespace.lower() == "true":
             forced_uptime_for_namespace = True
         elif forced_uptime_value_for_namespace.lower() == "false":
@@ -437,6 +462,17 @@ def autoscale_resources(
         else:
             forced_uptime_for_namespace = False
 
+        if forced_downtime_value_for_namespace.lower() == "true":
+            forced_downtime_for_namespace = True
+        elif forced_downtime_value_for_namespace.lower() == "false":
+            forced_downtime_for_namespace = False
+        elif forced_downtime_value_for_namespace:
+            forced_downtime_for_namespace = matches_time_spec(
+                now, forced_downtime_value_for_namespace
+            )
+        else:
+            forced_downtime_for_namespace = False
+
         for resource in resources:
             autoscale_resource(
                 resource,
@@ -445,6 +481,7 @@ def autoscale_resources(
                 default_uptime_for_namespace,
                 default_downtime_for_namespace,
                 forced_uptime_for_namespace,
+                forced_downtime_for_namespace,
                 dry_run,
                 now,
                 grace_period,
@@ -474,6 +511,7 @@ def scale(
 
     now = datetime.datetime.now(datetime.timezone.utc)
     forced_uptime = pods_force_uptime(api, namespace)
+    forced_downtime = pods_force_downtime(api, namespace)
 
     for clazz in RESOURCE_CLASSES:
         plural = clazz.endpoint
@@ -489,6 +527,7 @@ def scale(
                 default_uptime,
                 default_downtime,
                 forced_uptime,
+                forced_downtime,
                 dry_run,
                 now,
                 grace_period,
