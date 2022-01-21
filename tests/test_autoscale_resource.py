@@ -262,7 +262,7 @@ def test_forced_downtime(resource):
     now = datetime.strptime("2018-10-23T15:00:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
         tzinfo=timezone.utc
     )
-    resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
+    resource.metadata = {"creationTimestamp": "2018-10-23T14:59:00Z"}
     autoscale_resource(
         resource,
         upscale_period="never",
@@ -275,7 +275,7 @@ def test_forced_downtime(resource):
         now=now,
     )
     assert resource.replicas == 0
-    resource.update.assert_not_called()
+    resource.update.assert_called_once()
 
 
 def test_autoscale_bad_resource():
