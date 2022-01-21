@@ -86,21 +86,6 @@ def pods_force_uptime(api, namespace: str):
     return False
 
 
-def pods_force_downtime(api, namespace: str):
-    """Return True if there are any running pods which require the deployments to be scaled back up."""
-    for pod in pykube.Pod.objects(api).filter(namespace=(namespace or pykube.all)):
-        if pod.obj.get("status", {}).get("phase") in ("Succeeded", "Failed"):
-            continue
-        # forced uptime beats forced downtime every time
-        if (
-            pod.annotations.get(FORCE_DOWNTIME_ANNOTATION, "").lower() == "true"
-            and pod.annotations.get(FORCE_UPTIME_ANNOTATION, "").lower() != "true"
-        ):
-            logger.info(f"Forced downtime because of {pod.namespace}/{pod.name}")
-            return True
-    return False
-
-
 def is_stack_deployment(resource: NamespacedAPIObject) -> bool:
     if resource.kind == Deployment.kind and resource.version == Deployment.version:
         for owner_ref in resource.metadata.get("ownerReferences", []):
@@ -391,7 +376,6 @@ def autoscale_resources(
     default_uptime: str,
     default_downtime: str,
     forced_uptime: bool,
-    forced_downtime: bool,
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int,
@@ -449,7 +433,7 @@ def autoscale_resources(
             namespace_obj.annotations.get(FORCE_UPTIME_ANNOTATION, forced_uptime)
         )
         forced_downtime_value_for_namespace = str(
-            namespace_obj.annotations.get(FORCE_UPTIME_ANNOTATION, forced_uptime)
+            namespace_obj.annotations.get(FORCE_DOWNTIME_ANNOTATION, False)
         )
         if forced_uptime_value_for_namespace.lower() == "true":
             forced_uptime_for_namespace = True
@@ -511,7 +495,6 @@ def scale(
 
     now = datetime.datetime.now(datetime.timezone.utc)
     forced_uptime = pods_force_uptime(api, namespace)
-    forced_downtime = pods_force_downtime(api, namespace)
 
     for clazz in RESOURCE_CLASSES:
         plural = clazz.endpoint
@@ -527,7 +510,6 @@ def scale(
                 default_uptime,
                 default_downtime,
                 forced_uptime,
-                forced_downtime,
                 dry_run,
                 now,
                 grace_period,
