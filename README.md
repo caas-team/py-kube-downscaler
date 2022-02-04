@@ -371,6 +371,8 @@ The following annotations are supported on the Namespace level:
     namespace
 -   `downscaler/downtime`: set \"downtime\" for all resources in this
     namespace
+-   `downscaler/force-downtime`: force scaling down all resources in this
+    namespace - can be `true`/`false` or a period
 -   `downscaler/force-uptime`: force scaling up all resources in this
     namespace - can be `true`/`false` or a period
 -   `downscaler/exclude`: set to `true` to exclude all resources in the
