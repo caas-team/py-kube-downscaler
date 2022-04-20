@@ -37,14 +37,14 @@ def get_parser():
     parser.add_argument(
         "--include-resources",
         type=check_include_resources,
-        default="deployments",
+        default=os.getenv("INCLUDE_RESOURCES", "deployments"),
         help=f"Downscale resources of this kind as comma separated list. [{', '.join(sorted(VALID_RESOURCES))}] (default: deployments)",
     )
     parser.add_argument(
         "--grace-period",
         type=int,
         help="Grace period in seconds for deployments before scaling down (default: 15min)",
-        default=900,
+        default=os.getenv("GRACE_PERIOD", 900),
     )
     upscale_group.add_argument(
         "--upscale-period",
