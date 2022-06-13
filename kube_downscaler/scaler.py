@@ -18,6 +18,7 @@ from kube_downscaler.helper import matches_time_spec
 from kube_downscaler.resources.stack import Stack
 from kube_downscaler.resources.rollout import ArgoRollout
 from kube_downscaler.resources.keda import ScaledObject
+from kube_downscaler.resources.stack import Stack
 
 ORIGINAL_REPLICAS_ANNOTATION = "downscaler/original-replicas"
 FORCE_UPTIME_ANNOTATION = "downscaler/force-uptime"
