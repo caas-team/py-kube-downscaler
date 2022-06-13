@@ -12,3 +12,4 @@ scm-source.json
 htmlcov/
 .pytest_cache/
 .mypy_cache
+.vscode/

@@ -279,7 +279,7 @@ Available command line options:
 `--include-resources`
 
 :   Downscale resources of this kind as comma separated list.
-    \[deployments, statefulsets, stacks, horizontalpodautoscalers, rollouts\]
+    \[deployments, statefulsets, stacks, horizontalpodautoscalers, rollouts, scaledobjects\]
     (default: deployments)
 
 `--grace-period`
