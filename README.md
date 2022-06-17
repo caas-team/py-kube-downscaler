@@ -279,7 +279,7 @@ Available command line options:
 `--include-resources`
 
 :   Downscale resources of this kind as comma separated list.
-    \[deployments, statefulsets, stacks, horizontalpodautoscalers\]
+    \[deployments, statefulsets, stacks, horizontalpodautoscalers, rollouts\]
     (default: deployments)
 
 `--grace-period`
@@ -329,6 +329,14 @@ Available command line options:
     environment variable `EXCLUDE_DEPLOYMENTS`. Despite its name, this
     option will match the name of any included resource type
     (Deployment, StatefulSet, CronJob, ..).
+
+`--exclude-rollouts`
+
+:   Exclude specific argo-rollouts resources from downscaling
+    (default: kube-downscaler, downscaler), can also be configured via
+    environment variable `EXCLUDE_ROLLOUTS`. Despite its name, this
+    option will match the name of any included resource type
+    (Rollout).
 
 `--downtime-replicas`
 

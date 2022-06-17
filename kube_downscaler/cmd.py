@@ -2,7 +2,7 @@ import argparse
 import os
 
 VALID_RESOURCES = frozenset(
-    ["deployments", "statefulsets", "stacks", "cronjobs", "horizontalpodautoscalers"]
+    ["deployments", "statefulsets", "stacks", "cronjobs", "horizontalpodautoscalers", "rollouts"]
 )
 
 
@@ -75,6 +75,11 @@ def get_parser():
         "--exclude-deployments",
         help="Exclude specific deployments from downscaling (default: kube-downscaler,downscaler)",
         default=os.getenv("EXCLUDE_DEPLOYMENTS", "kube-downscaler,downscaler"),
+    )
+    parser.add_argument(
+        "--exclude-rollouts",
+        help="Exclude specific rollouts from downscaling (default: kube-downscaler,downscaler)",
+        default=os.getenv("EXCLUDE_ROLLOUTS", "kube-downscaler,downscaler"),
     )
     parser.add_argument(
         "--downtime-replicas",
