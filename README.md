@@ -330,14 +330,6 @@ Available command line options:
     option will match the name of any included resource type
     (Deployment, StatefulSet, CronJob, ..).
 
-`--exclude-rollouts`
-
-:   Exclude specific argo-rollouts resources from downscaling
-    (default: kube-downscaler, downscaler), can also be configured via
-    environment variable `EXCLUDE_ROLLOUTS`. Despite its name, this
-    option will match the name of any included resource type
-    (Rollout).
-
 `--downtime-replicas`
 
 :   Default value of replicas to downscale to, the annotation

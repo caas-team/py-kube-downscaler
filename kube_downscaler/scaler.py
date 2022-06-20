@@ -15,9 +15,8 @@ from pykube.objects import NamespacedAPIObject
 
 from kube_downscaler import helper
 from kube_downscaler.helper import matches_time_spec
-from kube_downscaler.resources.stack import Stack
-from kube_downscaler.resources.rollout import ArgoRollout
 from kube_downscaler.resources.keda import ScaledObject
+from kube_downscaler.resources.rollout import ArgoRollout
 from kube_downscaler.resources.stack import Stack
 
 ORIGINAL_REPLICAS_ANNOTATION = "downscaler/original-replicas"
@@ -31,7 +30,15 @@ UPTIME_ANNOTATION = "downscaler/uptime"
 DOWNTIME_ANNOTATION = "downscaler/downtime"
 DOWNTIME_REPLICAS_ANNOTATION = "downscaler/downtime-replicas"
 
-RESOURCE_CLASSES = [Deployment, StatefulSet, Stack, CronJob, HorizontalPodAutoscaler, ArgoRollout, ScaledObject]
+RESOURCE_CLASSES = [
+    Deployment,
+    StatefulSet,
+    Stack,
+    CronJob,
+    HorizontalPodAutoscaler,
+    ArgoRollout,
+    ScaledObject,
+]
 
 TIMESTAMP_FORMATS = [
     "%Y-%m-%dT%H:%M:%SZ",
@@ -509,7 +516,6 @@ def scale(
     include_resources: FrozenSet[str],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_deployments: FrozenSet[str],
-    exclude_rollouts: FrozenSet[str],
     dry_run: bool,
     grace_period: int,
     downtime_replicas: int = 0,
