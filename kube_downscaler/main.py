@@ -36,7 +36,6 @@ def main(args=None):
         args.default_downtime,
         args.exclude_namespaces,
         args.exclude_deployments,
-        args.exclude_rollouts,
         args.grace_period,
         args.interval,
         args.dry_run,
@@ -56,7 +55,6 @@ def run_loop(
     default_downtime,
     exclude_namespaces,
     exclude_deployments,
-    exclude_rollouts,
     grace_period,
     interval,
     dry_run,
@@ -78,7 +76,6 @@ def run_loop(
                     re.compile(pattern) for pattern in exclude_namespaces.split(",")
                 ),
                 exclude_deployments=frozenset(exclude_deployments.split(",")),
-                exclude_rollouts=frozenset(exclude_deployments.split(",")),
                 dry_run=dry_run,
                 grace_period=grace_period,
                 downtime_replicas=downtime_replicas,

@@ -59,6 +59,16 @@ rules:
   - update
   - patch
 - apiGroups:
+  - keda.sh
+  resources:
+  - scaledobjects
+  verbs:
+  - get
+  - watch
+  - list
+  - update
+  - patch
+- apiGroups:
   - zalando.org
   resources:
   - stacks
