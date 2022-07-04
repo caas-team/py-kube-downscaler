@@ -1,4 +1,4 @@
-FROM python:3.8-slim
+FROM python:3.10-slim
 
 WORKDIR /
 
@@ -10,12 +10,12 @@ COPY pyproject.toml /
 RUN poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-dev --no-ansi
 
-FROM python:3.8-slim
+FROM python:3.10-slim
 
 WORKDIR /
 
 # copy pre-built packages to this image
-COPY --from=0 /usr/local/lib/python3.8/site-packages /usr/local/lib/python3.8/site-packages
+COPY --from=0 /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 
 # now copy the actual code we will execute (poetry install above was just for dependencies)
 COPY kube_downscaler /kube_downscaler
