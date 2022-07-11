@@ -27,6 +27,10 @@ docker:
 	docker build --build-arg "VERSION=$(VERSION)" -t "$(IMAGE):$(TAG)" .
 	@echo 'Docker image $(IMAGE):$(TAG) can now be used.'
 
+	docker buildx create --use
+	docker buildx build --rm -t "$(IMAGE):$(TAG)" --platform linux/amd64,linux/arm64 --push .
+	@echo 'Docker image $(IMAGE):$(TAG) multi-arch can now be used.'
+
 push: docker
 	docker push "$(IMAGE):$(TAG)"
 	docker tag "$(IMAGE):$(TAG)" "$(IMAGE):latest"
