@@ -19,7 +19,6 @@ spec:
       serviceAccountName: kube-downscaler
       containers:
       - name: downscaler
-        # see https://github.com/hjacobs/kube-downscaler/releases
         image: hjacobs/kube-downscaler:22.7.0
         args:
           # dry run by default, remove to perform downscaling
