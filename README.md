@@ -67,6 +67,8 @@ conditions are met:
     -   If you provide an exclusion list, it will be used in place
         of the default (which includes only `kube-system`).
 
+- The workload\'s label does not match the labels list.
+
 - The **workload\'s name** is not part of the exclusion list
 
 - The workload is not marked for exclusion (annotation
@@ -345,6 +347,10 @@ Available command line options:
     Kubernetes\' `creationTimestamp`: `%Y-%m-%dT%H:%M:%SZ`. Recommended:
     set this annotation by your deployment tooling automatically.
 
+`--matching-labels`
+
+:   Optional: list of workload\'s labels which are covered by the kube-downscaler
+    scope. All workloads whose labels don't match any in the list are ignored.
 
 ### Namespace Defaults
 
