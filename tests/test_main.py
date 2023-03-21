@@ -74,3 +74,17 @@ def test_main_exclude_namespaces(kubeconfig, monkeypatch):
     assert mock_scale.call_args.kwargs["exclude_namespaces"] == frozenset(
         [re.compile("foo"), re.compile(".*-infra-.*")]
     )
+
+
+def test_main_matching_labels(kubeconfig, monkeypatch):
+    monkeypatch.setattr(os.path, "expanduser", lambda x: str(kubeconfig))
+
+    mock_scale = MagicMock()
+    monkeypatch.setattr("kube_downscaler.main.scale", mock_scale)
+
+    main(["--dry-run", "--once", "--matching-labels=foo=bar,.*-type-.*=db"])
+
+    mock_scale.assert_called_once()
+    assert mock_scale.call_args.kwargs["matching_labels"] == frozenset(
+        [re.compile("foo=bar"), re.compile(".*-type-.*=db")]
+    )
