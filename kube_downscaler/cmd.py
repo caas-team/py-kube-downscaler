@@ -99,4 +99,9 @@ def get_parser():
         help="Emit Kubernetes events for scale up/down",
         action="store_true",
     )
+    parser.add_argument(
+        "--matching-labels",
+        default=os.getenv("MATCHING_LABELS", ""),
+        help=""
+    )
     return parser

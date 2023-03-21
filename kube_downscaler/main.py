@@ -30,6 +30,7 @@ def main(args=None):
         args.once,
         args.namespace,
         args.include_resources,
+        args.matching_labels,
         args.upscale_period,
         args.downscale_period,
         args.default_uptime,
@@ -49,6 +50,7 @@ def run_loop(
     run_once,
     namespace,
     include_resources,
+    matching_labels,
     upscale_period,
     downscale_period,
     default_uptime,
@@ -74,6 +76,9 @@ def run_loop(
                 include_resources=frozenset(include_resources.split(",")),
                 exclude_namespaces=frozenset(
                     re.compile(pattern) for pattern in exclude_namespaces.split(",")
+                ),
+                matching_labels=frozenset(
+                    re.compile(pattern) for pattern in matching_labels.split(",")
                 ),
                 exclude_deployments=frozenset(exclude_deployments.split(",")),
                 dry_run=dry_run,
