@@ -1,7 +1,7 @@
 import collections
 import datetime
 import logging
-from typing import FrozenSet
+from typing import FrozenSet, MappingView
 from typing import Optional
 from typing import Pattern
 
@@ -105,6 +105,17 @@ def is_stack_deployment(resource: NamespacedAPIObject) -> bool:
             ):
                 return True
     return False
+
+
+def ignore_if_labels_dont_match(resource: NamespacedAPIObject, labels: FrozenSet[Pattern]) -> bool:
+    # Ignore resources whose labels do not match the set of input labels
+    resource_labels = [f"{key}={value}" for key, value in resource.labels.items()]
+    ignore = True
+    for label_pattern in labels:
+        if not ignore:
+            break
+        ignore = not any([label_pattern.fullmatch(resource_label) for resource_label in resource_labels])
+    return ignore
 
 
 def ignore_resource(resource: NamespacedAPIObject, now: datetime.datetime) -> bool:
@@ -273,6 +284,7 @@ def autoscale_resource(
     default_downtime: str,
     forced_uptime: bool,
     forced_downtime: bool,
+    matching_labels: FrozenSet[Pattern],
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int = 0,
@@ -282,7 +294,8 @@ def autoscale_resource(
     enable_events: bool = False,
 ):
     try:
-        exclude = namespace_excluded or ignore_resource(resource, now)
+        exclude = namespace_excluded or ignore_if_labels_dont_match(resource, matching_labels) or \
+                  ignore_resource(resource, now)
         original_replicas = get_annotation_value_as_int(
             resource, ORIGINAL_REPLICAS_ANNOTATION
         )
@@ -402,6 +415,7 @@ def autoscale_resources(
     namespace: str,
     exclude_namespaces: FrozenSet[Pattern],
     exclude_names: FrozenSet[str],
+    matching_labels: FrozenSet[Pattern],
     upscale_period: str,
     downscale_period: str,
     default_uptime: str,
@@ -497,6 +511,7 @@ def autoscale_resources(
                 default_downtime_for_namespace,
                 forced_uptime_for_namespace,
                 forced_downtime_for_namespace,
+                matching_labels,
                 dry_run,
                 now,
                 grace_period,
@@ -516,6 +531,7 @@ def scale(
     include_resources: FrozenSet[str],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_deployments: FrozenSet[str],
+    matching_labels: FrozenSet[str],
     dry_run: bool,
     grace_period: int,
     downtime_replicas: int = 0,
@@ -536,6 +552,7 @@ def scale(
                 namespace,
                 exclude_namespaces,
                 exclude_deployments,
+                matching_labels,
                 upscale_period,
                 downscale_period,
                 default_uptime,
