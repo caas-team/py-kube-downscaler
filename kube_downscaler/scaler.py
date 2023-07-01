@@ -1,7 +1,7 @@
 import collections
 import datetime
 import logging
-from typing import FrozenSet, MappingView
+from typing import FrozenSet
 from typing import Optional
 from typing import Pattern
 
@@ -107,14 +107,25 @@ def is_stack_deployment(resource: NamespacedAPIObject) -> bool:
     return False
 
 
-def ignore_if_labels_dont_match(resource: NamespacedAPIObject, labels: FrozenSet[Pattern]) -> bool:
+def ignore_if_labels_dont_match(
+    resource: NamespacedAPIObject, labels: FrozenSet[Pattern]
+) -> bool:
+    # For backwards compatibility, if there is no label filter, we don't ignore anything
+    if not labels:
+        return False
+
     # Ignore resources whose labels do not match the set of input labels
     resource_labels = [f"{key}={value}" for key, value in resource.labels.items()]
     ignore = True
     for label_pattern in labels:
         if not ignore:
             break
-        ignore = not any([label_pattern.fullmatch(resource_label) for resource_label in resource_labels])
+        ignore = not any(
+            [
+                label_pattern.fullmatch(resource_label)
+                for resource_label in resource_labels
+            ]
+        )
     return ignore
 
 
@@ -284,7 +295,6 @@ def autoscale_resource(
     default_downtime: str,
     forced_uptime: bool,
     forced_downtime: bool,
-    matching_labels: FrozenSet[Pattern],
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int = 0,
@@ -292,10 +302,14 @@ def autoscale_resource(
     namespace_excluded=False,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
+    matching_labels: FrozenSet[Pattern] = frozenset(),
 ):
     try:
-        exclude = namespace_excluded or ignore_if_labels_dont_match(resource, matching_labels) or \
-                  ignore_resource(resource, now)
+        exclude = (
+            namespace_excluded
+            or ignore_if_labels_dont_match(resource, matching_labels)
+            or ignore_resource(resource, now)
+        )
         original_replicas = get_annotation_value_as_int(
             resource, ORIGINAL_REPLICAS_ANNOTATION
         )
@@ -511,7 +525,6 @@ def autoscale_resources(
                 default_downtime_for_namespace,
                 forced_uptime_for_namespace,
                 forced_downtime_for_namespace,
-                matching_labels,
                 dry_run,
                 now,
                 grace_period,
@@ -519,6 +532,7 @@ def autoscale_resources(
                 namespace_excluded=excluded,
                 deployment_time_annotation=deployment_time_annotation,
                 enable_events=enable_events,
+                matching_labels=matching_labels,
             )
 
 
@@ -531,12 +545,12 @@ def scale(
     include_resources: FrozenSet[str],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_deployments: FrozenSet[str],
-    matching_labels: FrozenSet[str],
     dry_run: bool,
     grace_period: int,
     downtime_replicas: int = 0,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
+    matching_labels: FrozenSet[Pattern] = frozenset(),
 ):
     api = helper.get_kube_api()
 

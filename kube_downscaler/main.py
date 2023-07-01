@@ -77,15 +77,15 @@ def run_loop(
                 exclude_namespaces=frozenset(
                     re.compile(pattern) for pattern in exclude_namespaces.split(",")
                 ),
-                matching_labels=frozenset(
-                    re.compile(pattern) for pattern in matching_labels.split(",")
-                ),
                 exclude_deployments=frozenset(exclude_deployments.split(",")),
                 dry_run=dry_run,
                 grace_period=grace_period,
                 downtime_replicas=downtime_replicas,
                 deployment_time_annotation=deployment_time_annotation,
                 enable_events=enable_events,
+                matching_labels=frozenset(
+                    re.compile(pattern) for pattern in matching_labels.split(",")
+                ),
             )
         except Exception as e:
             logger.exception(f"Failed to autoscale: {e}")

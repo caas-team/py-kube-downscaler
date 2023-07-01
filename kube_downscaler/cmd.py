@@ -102,6 +102,6 @@ def get_parser():
     parser.add_argument(
         "--matching-labels",
         default=os.getenv("MATCHING_LABELS", ""),
-        help=""
+        help="Apply downscaling to resources with the supplied labels. This is a comma-separated list of regex patterns. This is optional, downscaling will be applied to all resources by default.",
     )
     return parser

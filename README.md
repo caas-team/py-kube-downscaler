@@ -351,6 +351,8 @@ Available command line options:
 
 :   Optional: list of workload\'s labels which are covered by the kube-downscaler
     scope. All workloads whose labels don't match any in the list are ignored.
+    For backwards compatibility, if this argument is not specified,
+    kube-downscaler will apply to all resources.
 
 ### Namespace Defaults
 

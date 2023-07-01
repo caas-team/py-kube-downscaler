@@ -2,7 +2,9 @@ import re
 from unittest.mock import MagicMock
 
 import pytest as pytest
-from pykube.objects import NamespacedAPIObject, Deployment
+from pykube.objects import Deployment
+from pykube.objects import NamespacedAPIObject
+
 from kube_downscaler.scaler import ignore_if_labels_dont_match
 
 
@@ -15,13 +17,24 @@ def resource():
     yield deployment
 
 
-def test_ignore_if_labels_match(resource):
-    assert not ignore_if_labels_dont_match(resource, frozenset([re.compile("labelkey=labelval")]))
+def test_dont_ignore_if_no_labels(resource):
+    # for backwards compatibility, if no labels are specified, don't ignore the resource
+    assert not ignore_if_labels_dont_match(resource, frozenset())
 
 
-def test_dont_ignore_if_labels_not_matching_value(resource):
-    assert ignore_if_labels_dont_match(resource, frozenset([re.compile("labelkey=labelval1")]))
+def test_dont_ignore_if_labels_match(resource):
+    assert not ignore_if_labels_dont_match(
+        resource, frozenset([re.compile("labelkey=labelval")])
+    )
 
 
-def test_dont_ignore_if_labels_not_matching_key(resource):
-    assert ignore_if_labels_dont_match(resource, frozenset([re.compile("labelkey1=labelval")]))
+def test_ignore_if_labels_not_matching_value(resource):
+    assert ignore_if_labels_dont_match(
+        resource, frozenset([re.compile("labelkey=labelval1")])
+    )
+
+
+def test_ignore_if_labels_not_matching_key(resource):
+    assert ignore_if_labels_dont_match(
+        resource, frozenset([re.compile("labelkey1=labelval")])
+    )
