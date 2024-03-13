@@ -13,8 +13,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    env:
-      LOWERCASE_REPOSITORY_OWNER: ${{ github.repository_owner.lowercase }}
 
     steps:
       - name: Check out the repo
@@ -23,14 +21,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Lowercase the repository owner
+        id: repo_owner
+        run: echo "REPOSITORY_OWNER_LOWERCASE=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ env.LOWERCASE_REPOSITORY_OWNER }}
+          username: ${{ env.REPOSITORY_OWNER_LOWERCASE }}
           password: ${{ secrets.CR_PAT }}
 
       - name: Extract tag name and convert to lowercase
+        id: tag_name
         run: echo "TAG_NAME=$(echo ${GITHUB_REF#refs/tags/} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Build and push Docker image
@@ -39,4 +42,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ env.LOWERCASE_REPOSITORY_OWNER }}/kube-downscaler:${{ env.TAG_NAME }}
+          tags: ghcr.io/${{ env.REPOSITORY_OWNER_LOWERCASE }}/kube-downscaler:${{ env.TAG_NAME }}
