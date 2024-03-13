@@ -1,3 +1,0 @@
-environment: production
-replicaCount: 2
-interval: 1800
