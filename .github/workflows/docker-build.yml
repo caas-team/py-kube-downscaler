@@ -13,6 +13,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      LOWERCASE_REPOSITORY_OWNER: ${{ github.repository_owner.lowercase }}
 
     steps:
       - name: Check out the repo
@@ -25,17 +27,16 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ env.LOWERCASE_REPOSITORY_OWNER }}
           password: ${{ secrets.CR_PAT }}
 
-      - name: Extract tag name
-        id: tag_name
-        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - name: Extract tag name and convert to lowercase
+        run: echo "TAG_NAME=$(echo ${GITHUB_REF#refs/tags/} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v2
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}/kube-downscaler:${{ env.TAG_NAME }}
+          tags: ghcr.io/${{ env.LOWERCASE_REPOSITORY_OWNER }}/kube-downscaler:${{ env.TAG_NAME }}
