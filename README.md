@@ -1,10 +1,12 @@
 Kubernetes Downscaler
 =====================
 
-[![Travis CI Build Status](https://travis-ci.org/hjacobs/kube-downscaler.svg?branch=master)](https://travis-ci.org/hjacobs/kube-downscaler)
-[![Code Coverage](https://coveralls.io/repos/github/hjacobs/kube-downscaler/badge.svg?branch=master;_=1)](https://coveralls.io/github/hjacobs/kube-downscaler?branch=master)
+This is a fork of [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler) which is no longer maintained. Here the original text of the kube-downscaler README:
+
+<!-- [![Travis CI Build Status](https://travis-ci.org/hjacobs/kube-downscaler.svg?branch=master)](https://travis-ci.org/hjacobs/kube-downscaler) -->
+<!-- [![Code Coverage](https://coveralls.io/repos/github/hjacobs/kube-downscaler/badge.svg?branch=master;_=1)](https://coveralls.io/github/hjacobs/kube-downscaler?branch=master)
 [![Docker pulls](https://img.shields.io/docker/pulls/hjacobs/kube-downscaler.svg)](https://hub.docker.com/r/hjacobs/kube-downscaler)
-[![CalVer](https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg)](http://calver.org/)
+[![CalVer](https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg)](http://calver.org/) -->
 
 Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`, and/or
 `HorizontalPodAutoscalers` and `CronJobs` too !) during non-work hours.
