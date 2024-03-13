@@ -1,0 +1,75 @@
+replicaCount: 1
+
+image:
+  # see https://github.com/hjacobs/kube-downscaler/releases
+  repository: mtr.devops.telekom.de/caas/kube-downscaler
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "23.2.0@sha256:4129e7e7551eb451ee2b43680ef818f3057304ad50888f79ec9722afab6c29ff"
+
+arguments:
+  - --interval=60
+  - --include-resources=deployments,statefulsets,horizontalpodautoscalers,scaledobjects
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  supplementalGroups: [1000]
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  privileged: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 900Mi
+  requests:
+    cpu: 200m
+    memory: 300Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Used to configure the env
+configMapName: kube-downscaler
+
+# Namespaces being excluded from the 'downscale for non-work hours'
+# DEFAULT_UPTIME: "Mon-Fri 07:30-20:30 CET"
+excludedNamespaces:
+  - kube-downscaler
+  - kube-system
