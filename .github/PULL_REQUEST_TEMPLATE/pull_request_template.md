@@ -11,7 +11,7 @@ especially important if they didn't participate in the discussion.
 
 <!--
 List the changes made to the code base. Per default, all commits are listed here.
-Please keep this description updated as you add new changes to the MR.
+Please keep this description updated as you add new changes to the PR.
 -->
 
 ## Tests done
@@ -22,4 +22,4 @@ List the tests that were done to verify the changes.
 
 ## TODO
 
-- [x] I've assigned myself to this MR
+- [x] I've assigned myself to this PR
