@@ -12,7 +12,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            mtr.devops.telekom.de/caas/py-kube-downscaler-dtag
+            mtr.devops.telekom.de/caas/kube-downscaler-dtag
             ghcr.io/caas-team/py-kube-downscaler
           tags: |
             type=ref,event=tag
@@ -47,7 +47,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            mtr.devops.telekom.de/caas/py-kube-downscaler-dtag:latest
+            mtr.devops.telekom.de/caas/kube-downscaler-dtag:latest
             ghcr.io/caas-team/py-kube-downscaler:latest
             ${{ steps.meta.outputs.tags }}
       - name: Sign Push
