@@ -7,32 +7,37 @@ assignees: ''
 
 ---
 
-## Motivation
-
 <!--
-Explain briefly what this change aims to achieve and why it is important to do so.
-Please keep this description updated with any discussion that takes place so
-that reviewers can understand your intent. Keeping the description updated is
-especially important if they didn't participate in the discussion.
+Use this issue template for pointing out a general issue.
+-->
+## Issue
+<!--
+Briefly describe the issue.
 -->
 
-## Changes
 
-<!--
-List the changes made to the code base. Per default, all commits are listed here.
-Please keep this description updated as you add new changes to the MR.
+### Problem to solve
+
+<!-- Include the following detail as necessary:
+* What product or feature(s) affected?
+* Any other ideas or requests?
 -->
 
-## Tests done
+### Further details
 
 <!--
-List the tests that were done to verify the changes.
+* Any concepts, procedures, reference info *
+* Include use cases, benefits, and/or goals for this work.
 -->
 
-## TODO
+### Proposal
 
-- [X] I've assigned myself to this MR
+<!-- Further specifics for how can we solve the problem. -->
 
-<!--
-This section is kept for work needed to approve the MR. Per default, you may leave it empty.
--->
+### Who can address the issue
+
+<!-- What if any special expertise is required to resolve this issue? -->
+
+### Other links/references
+
+<!-- E.g. related Github issues/MRs -->
