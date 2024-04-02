@@ -111,7 +111,7 @@ def ignore_if_labels_dont_match(
     resource: NamespacedAPIObject, labels: FrozenSet[Pattern]
 ) -> bool:
     # For backwards compatibility, if there is no label filter, we don't ignore anything
-    if not labels:
+    if not any(label.pattern for label in labels):
         return False
 
     # Ignore resources whose labels do not match the set of input labels
@@ -375,7 +375,6 @@ def autoscale_resource(
                 and original_replicas
                 and original_replicas > 0
             ):
-
                 scale_up(
                     resource,
                     replicas,
@@ -452,7 +451,6 @@ def autoscale_resources(
         resources_by_namespace[resource.namespace].append(resource)
 
     for current_namespace, resources in sorted(resources_by_namespace.items()):
-
         if any(
             [pattern.fullmatch(current_namespace) for pattern in exclude_namespaces]
         ):
