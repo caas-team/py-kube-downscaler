@@ -1,6 +1,7 @@
 import collections
 import datetime
 import logging
+import requests
 from typing import FrozenSet
 from typing import Optional
 from typing import Pattern
@@ -111,7 +112,7 @@ def ignore_if_labels_dont_match(
     resource: NamespacedAPIObject, labels: FrozenSet[Pattern]
 ) -> bool:
     # For backwards compatibility, if there is no label filter, we don't ignore anything
-    if not labels:
+    if not any(label.pattern for label in labels):
         return False
 
     # Ignore resources whose labels do not match the set of input labels
@@ -375,7 +376,6 @@ def autoscale_resource(
                 and original_replicas
                 and original_replicas > 0
             ):
-
                 scale_up(
                     resource,
                     replicas,
@@ -443,16 +443,23 @@ def autoscale_resources(
     enable_events: bool = False,
 ):
     resources_by_namespace = collections.defaultdict(list)
-    for resource in kind.objects(api, namespace=(namespace or pykube.all)):
-        if resource.name in exclude_names:
+    try:
+        for resource in kind.objects(api, namespace=(namespace or pykube.all)):
+            if resource.name in exclude_names:
+                logger.debug(
+                    f"{resource.kind} {resource.namespace}/{resource.name} was excluded (name matches exclusion list)"
+                )
+                continue
+            resources_by_namespace[resource.namespace].append(resource)
+    except requests.HTTPError as e:
+        if e.response.status_code == 404:
             logger.debug(
-                f"{resource.kind} {resource.namespace}/{resource.name} was excluded (name matches exclusion list)"
+                f"No {kind.endpoint} found in namespace {namespace} (404)"
             )
-            continue
-        resources_by_namespace[resource.namespace].append(resource)
+        else:
+            raise e
 
     for current_namespace, resources in sorted(resources_by_namespace.items()):
-
         if any(
             [pattern.fullmatch(current_namespace) for pattern in exclude_namespaces]
         ):
