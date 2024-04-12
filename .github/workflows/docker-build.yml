@@ -1,14 +1,24 @@
 name: Build and push Image
+
 on:
   push:
-    branches:
-      - main
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set tag
+        id: set-tag
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "::set-output name=tag::latest"
+          else
+            echo "::set-output name=tag::dev"
+          fi
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -20,27 +30,33 @@ jobs:
             type=ref,event=tag
             type=ref,event=branch
             type=ref,event=pr
-            type=raw,value=dev
+            type=raw,value=${{ steps.set-tag.outputs.tag }}
+
       - name: Install Cosign
         uses: sigstore/cosign-installer@main
         with:
           cosign-release: 'v2.2.0'
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Login to MTR
         uses: docker/login-action@v3
         with:
           registry: mtr.devops.telekom.de
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push
         uses: docker/build-push-action@v5
         id: build-push
@@ -48,13 +64,11 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            mtr.devops.telekom.de/caas/kube-downscaler-dtag:latest
-            ghcr.io/caas-team/py-kube-downscaler:latest
-            ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
+
       - name: Sign Push
         run: |
           cosign sign --key env://COSIGN_KEY --tlog-upload=false ghcr.io/caas-team/py-kube-downscaler@${{ steps.build-push.outputs.digest }}
-          cosign sign --key env://COSIGN_KEY --tlog-upload=false mtr.devops.telekom.de/caas/kube-downscaler-dtag@${{ steps.build-push.outputs.digest }}
+          cosign sign --key env://COSIGN_KEY --tlog-upload=false mtr.devops.telekom.de/caas/py-kube-downscaler@${{ steps.build-push.outputs.digest }}
         env:
-          COSIGN_KEY: ${{secrets.COSIGN_KEY}}
+          COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
