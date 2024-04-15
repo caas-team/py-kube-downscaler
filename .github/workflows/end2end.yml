@@ -1,7 +1,10 @@
 name: End-to-End Testing
 
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build and push Image"]
+    types:
+      - completed
 
 jobs:
   end2end:
