@@ -1,11 +1,9 @@
 replicaCount: 1
 
 image:
-  # see https://github.com/hjacobs/kube-downscaler/releases
-  repository: mtr.devops.telekom.de/caas/kube-downscaler
+  repository: ghcr.io/caas-team/py-kube-downscaler
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: "23.2.0@sha256:4129e7e7551eb451ee2b43680ef818f3057304ad50888f79ec9722afab6c29ff"
+  tag: "{{ .Values.image.tag | default .Chart.AppVersion }}"  # Dynamically set from CI
 
 arguments:
   - --interval=60
@@ -66,10 +64,10 @@ tolerations: []
 affinity: {}
 
 # Used to configure the env
-configMapName: kube-downscaler
+configMapName: py-kube-downscaler
 
 # Namespaces being excluded from the 'downscale for non-work hours'
 # DEFAULT_UPTIME: "Mon-Fri 07:30-20:30 CET"
 excludedNamespaces:
-  - kube-downscaler
+  - py-kube-downscaler
   - kube-system

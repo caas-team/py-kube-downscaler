@@ -2,21 +2,21 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    {{- include "kube-downscaler.labels" . | nindent 4 }}
-  name: {{ include "kube-downscaler.name" . }}
+    {{- include "py-kube-downscaler.labels" . | nindent 4 }}
+  name: {{ include "py-kube-downscaler.name" . }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "kube-downscaler.selectorLabels" . | nindent 6 }}
+      {{- include "py-kube-downscaler.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "kube-downscaler.selectorLabels" . | nindent 8 }}
+        {{- include "py-kube-downscaler.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: {{ include "kube-downscaler.serviceAccountName" . }}
+      serviceAccountName: {{ include "py-kube-downscaler.serviceAccountName" . }}
       containers:
       - name: {{ .Chart.Name }}
         image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
