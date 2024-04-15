@@ -43,17 +43,19 @@ jobs:
           set +e  # Disable exit on error
           helm upgrade -i py-kube-downscaler \
             --atomic \
-            --timeout 600s \
+            --timeout 30s \
             --set image.tag=${{ steps.version.outputs.value }} \
             ./chart
-          RESULT=$?  # Save exit code
+          RESULT=$?
           set -e  # Re-enable exit on error
           if [ $RESULT -ne 0 ]; then
-            echo "Helm deployment failed, collecting logs..."
+            echo "Helm deployment failed, collecting logs and events..."
             kubectl describe pods -l app.kubernetes.io/name=py-kube-downscaler
             kubectl logs -l app.kubernetes.io/name=py-kube-downscaler --tail=50
+            kubectl get events --all-namespaces --sort-by='.lastTimestamp'
             exit 1
           fi
+
 
 
       - name: Verify Deployment
