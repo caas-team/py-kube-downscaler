@@ -16,10 +16,18 @@ jobs:
         with:
           version: 'v1.26.9-k3s1'
 
+      - name: Secure Kubeconfig
+        run: |
+          chmod 600 /tmp/output/kubeconfig-v1.26.9-k3s1.yaml
+
       - name: Setup Helm
         run: |
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           helm version
+
+      - name: Install Metrics Server
+        run: |
+          kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 
       - name: Get Image Tag
         id: version
