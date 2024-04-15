@@ -36,7 +36,7 @@ jobs:
           tags: ${{ steps.set-tag.outputs.tags }}
 
       - name: Print Docker metadata
-        run: echo "Docker Tags:" ${{ steps.meta.outputs.tags }}
+        run: echo ${{ steps.meta.outputs.tags }}
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@main
