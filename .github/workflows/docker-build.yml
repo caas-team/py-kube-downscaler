@@ -35,6 +35,11 @@ jobs:
             ghcr.io/caas-team/py-kube-downscaler
           tags: |
             type=raw,value=${{ steps.set-tag.outputs.tags }}
+            - name: Print Docker metadata
+            run: echo "Docker Tags: ${{ steps.meta.outputs.tags }}"
+
+      - name: Print Docker metadata
+        run: echo "Docker Tags:" ${{ steps.meta.outputs.tags }}
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@main
