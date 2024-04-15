@@ -70,3 +70,7 @@ jobs:
           cosign sign --key env://COSIGN_KEY --tlog-upload=false mtr.devops.telekom.de/caas/py-kube-downscaler@${{ steps.build-push.outputs.digest }}
         env:
           COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
+
+  call-wf1:
+    uses: ./.github/workflows/end2end.yml
+    secrets: inherit

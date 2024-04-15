@@ -1,11 +1,8 @@
 name: End-to-End Testing
 
 on:
-  workflow_run:
-    workflows: ["Build and push Image"]
-    types:
-      - completed
-
+  workflow_call:
+    
 jobs:
   end2end:
     runs-on: ubuntu-latest
