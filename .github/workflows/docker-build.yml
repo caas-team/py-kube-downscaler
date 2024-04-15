@@ -71,6 +71,7 @@ jobs:
         env:
           COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
 
-  call-wf1:
+  call-e2e:
+    needs: build
     uses: ./.github/workflows/end2end.yml
     secrets: inherit
