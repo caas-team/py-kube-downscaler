@@ -14,11 +14,13 @@ jobs:
         id: set-tag
         run: |
           SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "::set-output name=tags::latest,commit-$SHORT_SHA"
+            echo "TAGS=latest\ncommit-$SHORT_SHA" >> $GITHUB_ENV
           else
-            echo "::set-output name=tags::dev,commit-$SHORT_SHA"
+            echo "TAGS=dev\ncommit-$SHORT_SHA" >> $GITHUB_ENV
           fi
+
 
       - name: Docker meta
         id: meta
