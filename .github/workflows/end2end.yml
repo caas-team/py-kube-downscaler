@@ -42,9 +42,15 @@ jobs:
         run: |
           helm upgrade -i py-kube-downscaler \
             --atomic \
-            --timeout 300s \
+            --timeout 600s \
             --set image.tag=${{ steps.version.outputs.value }} \
             ./chart
+          if [ $? -ne 0 ]; then
+            echo "Helm deployment failed, collecting logs..."
+            kubectl describe pods -l app.kubernetes.io/name=py-kube-downscaler
+            kubectl logs -l app.kubernetes.io/name=py-kube-downscaler --tail=50
+            exit 1
+          fi
 
       - name: Verify Deployment
         run: |
