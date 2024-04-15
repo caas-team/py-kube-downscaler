@@ -10,10 +10,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-
-      - name: Print github.ref
-        run: echo "Branch ref: ${{ github.ref }}"
-
       - name: Set tag
         id: set-tag
         run: |
@@ -24,8 +20,11 @@ jobs:
             echo "::set-output name=tags::dev,commit-$SHORT_SHA"
           fi
 
-      - name: Echo set tags
-        run: echo "Tags set: ${{ steps.set-tag.outputs.tags }}"
+      - name: Print tags
+        run: echo "Tags to be used:" ${{ steps.set-tag.outputs.tags }}
+
+      - name: Check GitHub Ref
+        run: echo "GitHub Ref:" ${{ github.ref }}
 
       - name: Docker meta
         id: meta
@@ -36,9 +35,6 @@ jobs:
             ghcr.io/caas-team/py-kube-downscaler
           tags: |
             type=raw,value=${{ steps.set-tag.outputs.tags }}
-
-      - name: Echo used tags
-        run: echo "Tags being used: ${{ steps.meta.outputs.tags }}"
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@main
