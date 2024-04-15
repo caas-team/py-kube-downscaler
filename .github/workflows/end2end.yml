@@ -1,0 +1,57 @@
+# This workflow installs 1 instance of sparrow and
+# verify the API output
+
+name: End2End Testing
+on:
+  push:
+  pull_request:
+
+jobs:
+  end2end:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v4
+    - name: Set up K3S
+      uses: debianmaster/actions-k3s@master
+      id: k3s
+      with:
+        version: 'v1.26.9-k3s1'
+    - name: Check Coredns Deployment
+      run: |
+        kubectl -n kube-system rollout status deployment/coredns --timeout=60s
+        STATUS=$(kubectl -n kube-system get deployment coredns -o jsonpath={.status.readyReplicas})
+        if [[ $STATUS  -ne  1 ]]
+        then
+          echo "Deployment coredns not ready"
+          kubectl -n kube-system get events
+          exit 1
+        else
+          echo "Deployment coredns OK"
+        fi
+    - name: Setup Helm
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        helm version
+    - name: Get Image Tag
+      id: version
+      run: echo "value=commit-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    - name: Install py-kube-downscaler
+      run: |
+        helm upgrade -i sparrow \
+          --atomic \
+          --timeout 300s \
+          --set image.tag=${{ steps.version.outputs.value }}  \
+          --set sparrowConfig.name=the-sparrow.com \
+          --set sparrowConfig.loader.type=file \
+          --set sparrowConfig.loader.interval=5s \
+          --set sparrowConfig.loader.file.path=/config/.sparrow.yaml \
+          --set checksConfig.health.interval=1s \
+          --set checksConfig.health.timeout=1s \
+          ./chart
+
+
+    - name: Wait for Sparrow
+      run: |
+        sleep 60
+        TODO: -> dynamisch mit kubectl befehl herausfinden
