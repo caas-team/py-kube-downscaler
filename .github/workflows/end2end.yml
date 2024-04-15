@@ -2,7 +2,7 @@ name: End-to-End Testing
 
 on:
   workflow_call:
-    
+
 jobs:
   end2end:
     runs-on: ubuntu-latest
@@ -42,7 +42,7 @@ jobs:
           set +e  # Disable exit on error
           helm upgrade -i py-kube-downscaler \
             --atomic \
-            --timeout 30s \
+            --timeout 180s \
             --set image.tag=${{ steps.version.outputs.value }} \
             ./chart
           RESULT=$?
@@ -54,8 +54,6 @@ jobs:
             kubectl get events --all-namespaces --sort-by='.lastTimestamp'
             exit 1
           fi
-
-
 
       - name: Verify Deployment
         run: |
