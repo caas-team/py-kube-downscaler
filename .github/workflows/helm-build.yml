@@ -24,6 +24,7 @@ jobs:
         env:
           DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
           DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+          MTR: mtr.devops.telekom.de
 
       - name: Helm Lint, Package, and Push
         run: |
