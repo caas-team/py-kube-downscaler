@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "kube-downscaler.name" -}}
+{{- define "py-kube-downscaler.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "kube-downscaler.fullname" -}}
+{{- define "py-kube-downscaler.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,30 +26,30 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "kube-downscaler.chart" -}}
+{{- define "py-kube-downscaler.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "kube-downscaler.labels" -}}
-application: {{ include "kube-downscaler.name" . }}
+{{- define "py-kube-downscaler.labels" -}}
+application: {{ include "py-kube-downscaler.name" . }}
 {{- end }}
 
 {{/*
 Selector labels
 */}}
-{{- define "kube-downscaler.selectorLabels" -}}
-application: {{ include "kube-downscaler.name" . }}
+{{- define "py-kube-downscaler.selectorLabels" -}}
+application: {{ include "py-kube-downscaler.name" . }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "kube-downscaler.serviceAccountName" -}}
+{{- define "py-kube-downscaler.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "kube-downscaler.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "py-kube-downscaler.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

@@ -1,0 +1,68 @@
+name: End-to-End Testing
+
+on:
+  workflow_call:
+
+jobs:
+  end2end:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Set up K3S
+        uses: debianmaster/actions-k3s@master
+        with:
+          version: 'v1.26.9-k3s1'
+
+      - name: Check Metricsserver Deployment
+        run: |
+          kubectl -n kube-system rollout status deployment/metrics-server --timeout=60s
+          STATUS=$(kubectl -n kube-system get deployment metrics-server -o jsonpath={.status.readyReplicas})
+          if [[ $STATUS  -ne  1 ]]
+          then
+            echo "Deployment metrics-server not ready"
+            kubectl -n kube-system get events
+            exit 1
+          else
+            echo "Deployment metrics-server OK"
+          fi
+
+      - name: Setup Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          helm version
+
+      - name: Get Image Tag
+        id: version
+        run: echo "value=commit-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Install py-kube-downscaler
+        run: |
+          set +e  # Disable exit on error
+          helm upgrade -i py-kube-downscaler \
+            --atomic \
+            --timeout 180s \
+            --set image.tag=${{ steps.version.outputs.value }} \
+            ./chart
+          RESULT=$?
+          set -e  # Re-enable exit on error
+          if [ $RESULT -ne 0 ]; then
+            echo "Helm deployment failed, collecting logs and events..."
+            kubectl describe pods -l app.kubernetes.io/name=py-kube-downscaler
+            kubectl logs -l app.kubernetes.io/name=py-kube-downscaler --tail=50
+            kubectl get events --all-namespaces --sort-by='.lastTimestamp'
+            exit 1
+          fi
+
+      - name: Verify Deployment
+        run: |
+          kubectl rollout status deployment/py-kube-downscaler --timeout=60s
+          STATUS=$(kubectl get deployment py-kube-downscaler -o jsonpath='{.status.readyReplicas}')
+          if [[ "$STATUS" -ne 1 ]]; then
+            echo "Deployment py-kube-downscaler not ready"
+            kubectl get events
+            exit 1
+          fi
+          echo "Deployment py-kube-downscaler OK"
+

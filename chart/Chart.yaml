@@ -1,6 +1,6 @@
 apiVersion: v2
-name: kube-downscaler
-description: A Helm chart for deploying kube-downscaler
+name: py-kube-downscaler
+description: A Helm chart for deploying py-kube-downscaler
 
 type: application
 version: 0.1.0
