@@ -15,9 +15,10 @@ jobs:
         id: set-tag
         run: |
           SHORT_SHA=$(git rev-parse --short HEAD)
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          TAG_VERSION=$(echo ${{ github.ref }} | sed 's,refs/tags/v,,g')
+          if [[ "${{ github.ref }}" == "refs/tags/v*" ]]; then
             echo "::set-output name=tag1::latest"
-            echo "::set-output name=tag2::commit-$SHORT_SHA"
+            echo "::set-output name=tag2::$TAG_VERSION"
           else
             echo "::set-output name=tag1::dev"
             echo "::set-output name=tag2::commit-$SHORT_SHA"
