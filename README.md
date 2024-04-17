@@ -1,7 +1,7 @@
 Kubernetes Downscaler
 =====================
 
-This is a fork of [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler) which is no longer maintained. Here the original text of the kube-downscaler README:
+This is a fork of [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler) which is no longer maintained.
 
 <!-- [![Travis CI Build Status](https://travis-ci.org/hjacobs/kube-downscaler.svg?branch=master)](https://travis-ci.org/hjacobs/kube-downscaler) -->
 <!-- [![Code Coverage](https://coveralls.io/repos/github/hjacobs/kube-downscaler/badge.svg?branch=master;_=1)](https://coveralls.io/github/hjacobs/kube-downscaler?branch=master)
@@ -15,22 +15,23 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`, and/or
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Concepts](#concepts)
-  - [Algorithm](#algorithm)
-  - [Minimum replicas](#minimum-replicas)
-  - [Specific workload](#specific-workload)
-  - [Example use cases](#example-use-cases)
-- [Usage](#usage)
-  - [Deployment](#deployment)
-  - [Example configuration](#example-configuration)
-  - [Notes](#notes)
-- [Configuration](#configuration)
-  - [Uptime / downtime spec](#uptime--downtime-spec)
-  - [Alternative logic, based on periods](#alternative-logic-based-on-periods)
-  - [Command Line Options](#command-line-options)
-  - [Namespace Defaults](#namespace-defaults)
-- [Contributing](#contributing)
-- [License](#license)
+- [Kubernetes Downscaler](#kubernetes-downscaler)
+  - [Concepts](#concepts)
+    - [Algorithm](#algorithm)
+    - [Minimum replicas](#minimum-replicas)
+    - [Specific workload](#specific-workload)
+    - [Example use cases](#example-use-cases)
+  - [Usage](#usage)
+    - [Helm Chart](#helm-chart)
+    - [Example configuration](#example-configuration)
+    - [Notes](#notes)
+  - [Configuration](#configuration)
+    - [Uptime / downtime spec](#uptime--downtime-spec)
+    - [Alternative logic, based on periods](#alternative-logic-based-on-periods)
+    - [Command Line Options](#command-line-options)
+    - [Namespace Defaults](#namespace-defaults)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -122,21 +123,9 @@ were tested to work fine with the downscaler.
 
 ## Usage
 
-### Deployment
+### Helm Chart
 
-Deploy the downscaler into your cluster via (also works with
-[kind](https://kind.sigs.k8s.io/) or
-[Minikube](https://github.com/kubernetes/minikube)):
-
-``` {.sourceCode .bash}
-$ kubectl apply -f deploy/
-```
-
-In case you are deploying `kube-downscaler` to another namespace than
-`default`, for example if your context is pointing to `my-namespace`.
-Make sure you change the `deploy/rbac.yaml` Service Account
-configuration `namespace: default` to the destination namespace
-`my-namespace`, instead of `default`.
+For detailed information on deploying the `kube-downscaler` using our Helm chart, please refer to the [Helm Chart README](./chart/README.md#Deploy-Kube-downscaler-using-Helm-chart) in the chart directory.
 
 
 ### Example configuration
