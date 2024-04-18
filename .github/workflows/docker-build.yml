@@ -24,12 +24,14 @@ jobs:
           SHORT_SHA=$(git rev-parse --short HEAD)
           TAG1="dev"
           TAG2="commit-$SHORT_SHA"
+
           if [[ "${{ steps.check-version.outputs.is_valid }}" == 'true' ]]; then
             TAG1="latest"
             TAG2="${{ steps.check-version.outputs.full_without_prefix }}"
           fi
-          echo "::set-output name=tag1::$TAG1"
-          echo "::set-output name=tag2::$TAG2"
+
+          echo "TAG1=$TAG1" >> $GITHUB_ENV
+          echo "TAG2=$TAG2" >> $GITHUB_ENV
 
       - name: Docker meta
         id: meta
