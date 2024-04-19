@@ -39,20 +39,20 @@ Below are instructions to quickly install and configure py-kube-downscaler.
 ```
 kubectl config current-context
 ```
-1. Before deploy make sure to update *values.yaml* in py-kube-downscaler chart depending on your cluster support for RBAC:
+2. Before deploy make sure to update *values.yaml* in py-kube-downscaler chart depending on your cluster support for RBAC:
 ```
 rbac:
   create: false
 ```
 Note: In case RBAC is active new service account will be created for py-kube-downscaler with certain privileges, otherwise 'default' one will be used.
 
-1. Deploy py-kube-downscaler:
+3. Deploy py-kube-downscaler:
 ```
 cd chart
 helm install . --namespace py-kube-downscaler --name py-kube-downscaler
 ```
 
-1. Check the deployed release status:
+4. Check the deployed release status:
 ```
 helm list -n py-kube-downscaler
 ```
@@ -62,7 +62,7 @@ py-kube-downscaler  1         Tue Sep 25 02:07:58 2018  DEPLOYED  py-kube-downsc
 
 ```
 
-1. Check py-kube-downscaler pod is up and running:
+5. Check py-kube-downscaler pod is up and running:
 ```
 kubectl get pods -n py-kube-downscaler
 ```
@@ -71,7 +71,7 @@ NAME                                                     READY     STATUS    RES
 py-kube-downscaler-py-kube-downscaler-7f58c6b5b7-rnglz   1/1       Running   0          6m
 ```
 
-1. Check Kubernetes event logs, to make sure of successful deployment of py-kube-downscaler:
+6. Check Kubernetes event logs, to make sure of successful deployment of py-kube-downscaler:
 ```
 kubectl get events -w
 ```
