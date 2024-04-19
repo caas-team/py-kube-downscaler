@@ -1,6 +1,6 @@
-# Kube Downscaler Helm Chart
+# Python Kubernetes Downscaler - Helm Chart
 
-This repository offers a Helm chart for the `kube-downscaler` [project](https://codeberg.org/hjacobs/kube-downscaler).
+This repository offers a Helm chart for the `py-kube-downscaler`.
 
 ## Important values
 
@@ -12,9 +12,9 @@ This repository offers a Helm chart for the `kube-downscaler` [project](https://
 
 
 
-# Deploy Kube-downscaler using Helm chart
+# Deploy py-kube-downscaler using Helm chart
 
-This directory contains tutorial to deploy Kube-downscaler.
+This directory contains tutorial to deploy py-kube-downscaler.
 
 ## Configuring your Deployment to downscale
 
@@ -24,56 +24,54 @@ metadata:
   annotations:
     downscaler/uptime: "Mon-Fri 07:00-19:00 US/Eastern"
 ```
-Note: For more configuration details please, refer [here](https://github.com/hjacobs/kube-downscaler#configuration).
+Note: For more configuration details please, refer [here](https://github.com/caas-team/py-kube-downscaler?tab=readme-ov-file#configuration).
 
 ## Architecture
-The diagram below depicts how a Kube-downscaler agent control applications.
-![Alt text](images/architecture.png?raw=true "Kube Kube-downscaler diagram")
+The diagram below depicts how a py-kube-downscaler agent controls applications.
+![Alt text](images/architecture.png?raw=true "Kube py-kube-downscaler diagram")
 
 ## Quick Start
-Below are instructions to quickly install and configure Kube-downscaler.
+Below are instructions to quickly install and configure py-kube-downscaler.
 
-### Installing Kube-downscaler
+### Installing py-kube-downscaler
 
 1. Make sure connected to right cluster:
 ```
 kubectl config current-context
 ```
-2. Set right environment depending on cluster:
-```
-export KDS_ENV='[minikube | testing | staging | production]'
-```
-3. Before deploy make sure to update *values.yaml* in Kube-downscaler chart depending on your cluster support for RBAC:
+1. Before deploy make sure to update *values.yaml* in py-kube-downscaler chart depending on your cluster support for RBAC:
 ```
 rbac:
   create: false
 ```
-Note: In case RBAC is active new service account will be created for Kube-downscaler with certain privileges, otherwise 'default' one will be used.
+Note: In case RBAC is active new service account will be created for py-kube-downscaler with certain privileges, otherwise 'default' one will be used.
 
-4. Deploy Kube-downscaler:
+1. Deploy py-kube-downscaler:
 ```
-helm install . --values "config/${KDS_ENV}.yaml" --namespace default  --name kube-downscaler
-```
-
-5. Check the deployed release status:
-```
-helm list
-```
-```
-NAME            	REVISION	UPDATED                 	STATUS  	CHART                	APP VERSION	NAMESPACE
-kube-downscaler      	1       	Tue Sep 25 02:07:58 2018	DEPLOYED	kube-downscaler-0.5.1	0.5.1      	default
+cd chart
+helm install . --namespace py-kube-downscaler --name py-kube-downscaler
 ```
 
-6. Check Kube-downscaler pod is up and running:
+1. Check the deployed release status:
 ```
-kubectl get pods
+helm list -n py-kube-downscaler
 ```
 ```
-NAME                                               READY     STATUS    RESTARTS   AGE
-kube-downscaler-kube-downscaler-7f58c6b5b7-rnglz   1/1       Running   0          6m
+NAME                REVISION  UPDATED                   STATUS    CHART                     APP VERSION  NAMESPACE
+py-kube-downscaler  1         Tue Sep 25 02:07:58 2018  DEPLOYED  py-kube-downscaler-0.5.1      0.5.1    py-kube-downscaler
+
 ```
 
-7. Check Kubernetes event logs, to make sure of successful deployment of Kube-downscaler:
+1. Check py-kube-downscaler pod is up and running:
+```
+kubectl get pods -n py-kube-downscaler
+```
+```
+NAME                                                     READY     STATUS    RESTARTS   AGE
+py-kube-downscaler-py-kube-downscaler-7f58c6b5b7-rnglz   1/1       Running   0          6m
+```
+
+1. Check Kubernetes event logs, to make sure of successful deployment of py-kube-downscaler:
 ```
 kubectl get events -w
 ```
