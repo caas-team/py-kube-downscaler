@@ -1,7 +1,7 @@
-Kubernetes Downscaler
+Python Kubernetes Downscaler
 =====================
 
-This is a fork of [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler) which is no longer maintained. Here the original text of the kube-downscaler README:
+This is a fork of [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler) which is no longer maintained.
 
 <!-- [![Travis CI Build Status](https://travis-ci.org/hjacobs/kube-downscaler.svg?branch=master)](https://travis-ci.org/hjacobs/kube-downscaler) -->
 <!-- [![Code Coverage](https://coveralls.io/repos/github/hjacobs/kube-downscaler/badge.svg?branch=master;_=1)](https://coveralls.io/github/hjacobs/kube-downscaler?branch=master)
@@ -15,22 +15,23 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`, and/or
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Concepts](#concepts)
-  - [Algorithm](#algorithm)
-  - [Minimum replicas](#minimum-replicas)
-  - [Specific workload](#specific-workload)
-  - [Example use cases](#example-use-cases)
-- [Usage](#usage)
-  - [Deployment](#deployment)
-  - [Example configuration](#example-configuration)
-  - [Notes](#notes)
-- [Configuration](#configuration)
-  - [Uptime / downtime spec](#uptime--downtime-spec)
-  - [Alternative logic, based on periods](#alternative-logic-based-on-periods)
-  - [Command Line Options](#command-line-options)
-  - [Namespace Defaults](#namespace-defaults)
-- [Contributing](#contributing)
-- [License](#license)
+- [Python Kubernetes Downscaler](#python-kubernetes-downscaler)
+  - [Concepts](#concepts)
+    - [Algorithm](#algorithm)
+    - [Minimum replicas](#minimum-replicas)
+    - [Specific workload](#specific-workload)
+    - [Example use cases](#example-use-cases)
+  - [Usage](#usage)
+    - [Helm Chart](#helm-chart)
+    - [Example configuration](#example-configuration)
+    - [Notes](#notes)
+  - [Configuration](#configuration)
+    - [Uptime / downtime spec](#uptime--downtime-spec)
+    - [Alternative logic, based on periods](#alternative-logic-based-on-periods)
+    - [Command Line Options](#command-line-options)
+    - [Namespace Defaults](#namespace-defaults)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -43,7 +44,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`, and/or
 
 ### Algorithm
 
-`Kube-downscaler` will scale down the deployment\'s replicas if all of the following
+`py-kube-downscaler` will scale down the deployment\'s replicas if all of the following
 conditions are met:
 
 - **current time** is not part of the \"uptime\" schedule or is part of the \"downtime\" schedule.
@@ -122,21 +123,9 @@ were tested to work fine with the downscaler.
 
 ## Usage
 
-### Deployment
+### Helm Chart
 
-Deploy the downscaler into your cluster via (also works with
-[kind](https://kind.sigs.k8s.io/) or
-[Minikube](https://github.com/kubernetes/minikube)):
-
-``` {.sourceCode .bash}
-$ kubectl apply -f deploy/
-```
-
-In case you are deploying `kube-downscaler` to another namespace than
-`default`, for example if your context is pointing to `my-namespace`.
-Make sure you change the `deploy/rbac.yaml` Service Account
-configuration `namespace: default` to the destination namespace
-`my-namespace`, instead of `default`.
+For detailed information on deploying the `py-kube-downscaler` using our Helm chart, please refer to the [Helm Chart README](./chart/README.md#Deploy-py-kube-downscaler-using-Helm-chart) in the chart directory.
 
 
 ### Example configuration
@@ -146,7 +135,7 @@ prevent downscaling \-\-- remove it to enable the downscaler, e.g. by
 editing the deployment:
 
 ``` {.sourceCode .bash}
-$ kubectl edit deploy kube-downscaler
+$ kubectl edit deploy py-kube-downscaler
 ```
 
 The example deployment manifests come with a configured uptime
@@ -186,7 +175,7 @@ with Deployments, consider the following:
     during downtime based upon the external traffic as well as maintain
     a lower `minReplicas` during downtime if there is no/low traffic. **If
     the Deployment is annotated instead of the HPA, it leads to a race
-    condition** where `kube-downscaler` scales down the Deployment and HPA
+    condition** where `py-kube-downscaler` scales down the Deployment and HPA
     upscales it as its `minReplicas` is higher.
 
 To enable Downscaler on HPA with `--downtime-replicas=1`,
@@ -276,7 +265,7 @@ Available command line options:
 
 :   Restrict the downscaler to work only in a single namespace (default:
     all namespaces). This is mainly useful for deployment scenarios
-    where the deployer of kube-downscaler only has access to a given
+    where the deployer of py-kube-downscaler only has access to a given
     namespace (instead of cluster access). If used simultaneously with
     `--exclude-namespaces`, none is applied.
 
@@ -329,7 +318,7 @@ Available command line options:
 `--exclude-deployments`
 
 :   Exclude specific deployments/statefulsets/cronjobs from downscaling
-    (default: kube-downscaler, downscaler), can also be configured via
+    (default: py-kube-downscaler, downscaler), can also be configured via
     environment variable `EXCLUDE_DEPLOYMENTS`. Despite its name, this
     option will match the name of any included resource type
     (Deployment, StatefulSet, CronJob, ..).
@@ -351,10 +340,10 @@ Available command line options:
 
 `--matching-labels`
 
-:   Optional: list of workload\'s labels which are covered by the kube-downscaler
+:   Optional: list of workload\'s labels which are covered by the py-kube-downscaler
     scope. All workloads whose labels don't match any in the list are ignored.
     For backwards compatibility, if this argument is not specified,
-    kube-downscaler will apply to all resources.
+    py-kube-downscaler will apply to all resources.
 
 ### Namespace Defaults
 

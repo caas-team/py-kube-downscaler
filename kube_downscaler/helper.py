@@ -107,7 +107,7 @@ def create_event(resource, message: str, reason: str, event_type: str, dry_run: 
         {
             "metadata": {
                 "namespace": resource.namespace,
-                "generateName": "kube-downscaler-",
+                "generateName": "py-kube-downscaler-",
             },
             "type": event_type,
             "count": 1,
@@ -124,7 +124,7 @@ def create_event(resource, message: str, reason: str, event_type: str, dry_run: 
                 "uid": resource.metadata.get("uid"),
             },
             "message": message,
-            "source": {"component": "kube-downscaler"},
+            "source": {"component": "py-kube-downscaler"},
         },
     )
     if not dry_run:
