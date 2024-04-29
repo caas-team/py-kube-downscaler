@@ -71,3 +71,10 @@ configMapName: py-kube-downscaler
 excludedNamespaces:
   - py-kube-downscaler
   - kube-system
+
+# Additional config in the configmap.
+# Add configmap lines via the multiline Operator |
+# e.g.:
+# extraConfig: |
+#   DOWNSCALE_PERIOD: "Mon-Sun 19:00-20:00 Europe/Berlin"
+extraConfig: ""
