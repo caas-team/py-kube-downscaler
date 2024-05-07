@@ -9,10 +9,11 @@ This repository offers a Helm chart for the `py-kube-downscaler`.
 | image.tag          | string | `"23.2.0@sha256:4129e7e7551eb451ee2b43680ef818f3057304ad50888f79ec9722afab6c29ff"`                    | Tag of the image to use                         |
 | arguments          | list   | `[--interval=60,--include-resources=deployments,statefulsets,horizontalpodautoscalers,scaledobjects]` | Arguments to pass to the kube-downscaler binary |
 | excludedNamespaces | list   | `["namespace-a", "namespace-b"]`                                                                      | Namespaces to exclude from downscaling          |
+| extraConfig        | string | `"DOWNSCALE_PERIOD: 'Mon-Sun 19:00-20:00 Europe/Berlin'"`                                              | Additional configuration in ConfigMap format    |
 
 # Deploy py-kube-downscaler using Helm chart
 
-This directory contains tutorial to deploy py-kube-downscaler.
+This directory contains a tutorial to deploy py-kube-downscaler.
 
 ## Configuring your Deployment to downscale
 
