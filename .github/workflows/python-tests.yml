@@ -2,14 +2,13 @@ name: Python Tests
 
 on:
   push:
-  pull_request:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.8, 3.9, 3.10]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -20,10 +19,14 @@ jobs:
       run: |
         pip install poetry
         poetry install
-    - name: Run pytest and generate HTML report
-      run: poetry run pytest --html=report.html --self-contained-html
-    - name: Upload HTML report
+    - name: Run pytest with coverage and generate report
+      run: poetry run pytest --cov=app --cov-report=term-missing:skip-covered tests/ | tee pytest-coverage.txt
+    - name: Upload pytest coverage report as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: pytest-report
-        path: report.html
+        name: pytest-coverage-report
+        path: pytest-coverage.txt
+    - name: Pytest coverage comment
+      uses: MishaKav/pytest-coverage-comment@main
+      with:
+        pytest-coverage-path: ./pytest-coverage.txt
