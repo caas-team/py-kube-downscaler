@@ -4,4 +4,7 @@ metadata:
   name: {{ include "py-kube-downscaler.name" . }}
 data:
   # downscale for non-work hours
-  EXCLUDE_NAMESPACES: "{{- join ", " .Values.excludedNamespaces }}"
+  EXCLUDE_NAMESPACES: '{{- join "," .Values.excludedNamespaces }}'
+  {{- if .Values.extraConfig }}
+  {{- tpl .Values.extraConfig . | nindent 2 }}
+  {{- end }}
