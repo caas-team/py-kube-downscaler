@@ -17,7 +17,7 @@ jobs:
         pip install poetry
         poetry install
     - name: Run pytest with coverage and generate report
-      run: poetry run pytest --cov=app --cov-report=term-missing:skip-covered tests/ | tee pytest-coverage.txt
+      run: poetry run pytest --cov=. --cov-report=term-missing:skip-covered tests/ | tee pytest-coverage.txt
     - name: Upload pytest coverage report as artifact
       uses: actions/upload-artifact@v4
       with:
