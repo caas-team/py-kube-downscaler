@@ -16,14 +16,20 @@ jobs:
       run: |
         pip install poetry
         poetry install
-    - name: Run pytest with coverage and generate report
-      run: poetry run pytest --cov=. --cov-report=term-missing:skip-covered tests/ | tee pytest-coverage.txt
+    - name: Test Python
+      if: hashFiles('**/*.py') != ''
+      uses: lvlcn-t/meta/.github/actions/test-python@main
+      with:
+        python_version: 3.8
+        use_pipenv: "false"
+        before_tests: ""
+        additional_args: "--cov=tests --cov-report=term-missing:skip-covered"
     - name: Upload pytest coverage report as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: pytest-coverage-report
-        path: pytest-coverage.txt
+        name: coverage-report
+        path: coverage.xml
     - name: Pytest coverage comment
       uses: MishaKav/pytest-coverage-comment@main
       with:
-        pytest-coverage-path: ./pytest-coverage.txt
+        pytest-coverage-path: ./coverage.xml
