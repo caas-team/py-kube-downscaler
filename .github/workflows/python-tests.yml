@@ -21,7 +21,7 @@ jobs:
       uses: lvlcn-t/meta/.github/actions/test-python@main
       with:
         python_version: 3.8
-        use_pipenv: "false"
+        use_pipenv: "true"
         before_tests: ""
         additional_args: "--cov=tests --cov-report=term-missing:skip-covered"
     - name: Upload pytest coverage report as artifact
