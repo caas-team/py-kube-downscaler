@@ -28,3 +28,4 @@ jobs:
       with:
         path: coverage.xml
         minimum_coverage: 70
+        skip_covered: false
