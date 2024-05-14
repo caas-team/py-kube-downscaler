@@ -17,7 +17,7 @@ jobs:
         pip install poetry
         poetry install
     - name: Run pytest with coverage and generate report
-      run: poetry run pytest --cov=tests --cov-report=term-missing:skip-covered --cov-report=xml tests/
+      run: poetry run pytest --cov=tests --cov-report=xml tests/
     - name: Upload coverage report as artifact
       uses: actions/upload-artifact@v4
       with:
@@ -28,7 +28,3 @@ jobs:
       with:
         path: coverage.xml
         minimum_coverage: 70
-    - name: Pytest coverage comment
-      uses: MishaKav/pytest-coverage-comment@main
-      with:
-        pytest-coverage-path: ./coverage.xml
