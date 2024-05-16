@@ -3,11 +3,6 @@ Python Kubernetes Downscaler
 
 This is a fork of [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler) which is no longer maintained.
 
-<!-- [![Travis CI Build Status](https://travis-ci.org/hjacobs/kube-downscaler.svg?branch=master)](https://travis-ci.org/hjacobs/kube-downscaler) -->
-<!-- [![Code Coverage](https://coveralls.io/repos/github/hjacobs/kube-downscaler/badge.svg?branch=master;_=1)](https://coveralls.io/github/hjacobs/kube-downscaler?branch=master)
-[![Docker pulls](https://img.shields.io/docker/pulls/hjacobs/kube-downscaler.svg)](https://hub.docker.com/r/hjacobs/kube-downscaler)
-[![CalVer](https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg)](http://calver.org/) -->
-
 Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`, and/or
 `HorizontalPodAutoscalers` and `CronJobs` too !) during non-work hours.
 
@@ -134,7 +129,7 @@ The example configuration uses the `--dry-run` as a safety flag to
 prevent downscaling \-\-- remove it to enable the downscaler, e.g. by
 editing the deployment:
 
-``` {.sourceCode .bash}
+```bash
 $ kubectl edit deploy py-kube-downscaler
 ```
 
@@ -142,7 +137,7 @@ The example deployment manifests come with a configured uptime
 (`deploy/config.yaml` sets it to \"Mon-Fri 07:30-20:30 CET\"), you can
 overwrite this per namespace or deployment, e.g.:
 
-``` {.sourceCode .bash}
+```bash
 $ kubectl run nginx --image=nginx
 $ kubectl annotate deploy nginx 'downscaler/uptime=Mon-Fri 09:00-17:00 America/Buenos_Aires'
 ```
@@ -181,7 +176,7 @@ with Deployments, consider the following:
 To enable Downscaler on HPA with `--downtime-replicas=1`,
 ensure to add the following annotations to Deployment and HPA.
 
-``` {.sourceCode .bash}
+```bash
 $ kubectl annotate deploy nginx 'downscaler/exclude=true'
 $ kubectl annotate hpa nginx 'downscaler/downtime-replicas=1'
 $ kubectl annotate hpa nginx 'downscaler/uptime=Mon-Fri 09:00-17:00 America/Buenos_Aires'
@@ -198,13 +193,13 @@ Time definitions (e.g. `DEFAULT_UPTIME`) accept a comma separated list
 of specifications, e.g. the following configuration would downscale all
 deployments for non-work hours:
 
-``` {.sourceCode .bash}
+```bash
 DEFAULT_UPTIME="Mon-Fri 07:30-20:30 Europe/Berlin"
 ```
 
 To only downscale during the weekend and Friday after 20:00:
 
-``` {.sourceCode .bash}
+```bash
 DEFAULT_DOWNTIME="Sat-Sun 00:00-24:00 CET,Fri-Fri 20:00-24:00 CET'
 ```
 
@@ -236,7 +231,7 @@ This definition will downscale your cluster between 19:00 and 20:00. If
 you upscale your cluster manually, it won\'t be scaled down until next
 day 19:00-20:00.
 
-``` {.sourceCode .bash}
+```bash
 DOWNSCALE_PERIOD="Mon-Sun 19:00-20:00 Europe/Berlin"
 ```
 
@@ -351,7 +346,7 @@ Available command line options:
 also be configured using Namespace annotations. **Where configured these
 values supersede the other global default values**.
 
-``` {.sourceCode .yaml}
+```yaml
 apiVersion: v1
 kind: Namespace
 metadata:
