@@ -19,7 +19,7 @@ This directory contains a tutorial to deploy py-kube-downscaler.
 
 Please add below annotations based on timezone your deployment should run:
 
-```
+```yaml
 metadata:
   annotations:
     downscaler/uptime: "Mon-Fri 07:00-19:00 US/Eastern"
@@ -41,11 +41,11 @@ Below are instructions to quickly install and configure py-kube-downscaler.
 
 1. Make sure you're connected to the right cluster:
 
-```
+```bash
 kubectl config current-context
 ```
 
-2. Before deploying, make sure to update *values.yaml* in py-kube-downscaler chart depending on whether you want RBAC
+2. Before deploying, make sure to update **values.yaml** in py-kube-downscaler chart depending on whether you want RBAC
    roles deployed or not:
 
 ```yaml
@@ -57,15 +57,23 @@ Note: In case RBAC is enabled, a new service account will be created for py-kube
 otherwise the 'default' one will be used.
 
 3. Deploy py-kube-downscaler:
+You can add our chart repository and deploy it by running:
+```bash
+helm repo add caas-team https://caas-team.github.io/helm-charts/
 
+helm install py-kube-downscaler caas-team/py-kube-downscaler -n py-kube-downscaler
 ```
-cd chart
-helm install . --namespace py-kube-downscaler --name py-kube-downscaler
+
+**OR**
+
+You can alternatively clone this repository, change the current directory to the py-kube-downscaler repository and run:
+```bash
+helm install py-kube-downscaler ./chart -n py-kube-downscaler
 ```
 
 4. Check the deployed release status:
 
-```
+```bash
 helm list -n py-kube-downscaler
 ```
 
@@ -77,7 +85,7 @@ py-kube-downscaler  1         Tue Sep 25 02:07:58 2018  DEPLOYED  py-kube-downsc
 
 5. Check whether py-kube-downscaler pod is up and running:
 
-```
+```bash
 kubectl get pods -n py-kube-downscaler
 ```
 
@@ -86,9 +94,9 @@ NAME                                                     READY     STATUS    RES
 py-kube-downscaler-py-kube-downscaler-7f58c6b5b7-rnglz   1/1       Running   0          6m
 ```
 
-6. Check the Kubernetes event logs, to make sure of successful deployment of py-kube-downscaler:
+6. Check the Kubernetes event logs, to make sure the deployment of the py-kube-downscaler was successful:
 
-```
+```bash
 kubectl get events -w
 ```
 
