@@ -7,7 +7,7 @@ authors = ["Henning Jacobs <henning@jacobs1.de>"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4"
-pykube-ng = "*"
+new-pykube = "*"
 pytz = "*"
 
 [tool.poetry.dev-dependencies]
