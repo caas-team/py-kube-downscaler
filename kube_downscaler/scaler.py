@@ -114,12 +114,8 @@ def ignore_if_labels_dont_match(
     resource: NamespacedAPIObject, labels: FrozenSet[Pattern]
 ) -> bool:
 
-    # if matching_labels contains empty string all resources are considered in the scaling process
-    first_element = next(iter(labels), None)
-    first_element_str = first_element.pattern
-
-    if first_element_str == "":
-        logger.debug("Matching_labels arg set to empty string: all resources are considered in the scaling process")
+    # For backwards compatibility, if there is no label filter, we don't ignore anything
+    if not any(label.pattern for label in labels):
         return False
 
     # Ignore resources whose labels do not match the set of input labels
