@@ -12,6 +12,7 @@ from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
 from pykube import Namespace
 from pykube import StatefulSet
+from pykube import DaemonSet
 from pykube.objects import NamespacedAPIObject
 
 from kube_downscaler import helper
@@ -39,6 +40,7 @@ RESOURCE_CLASSES = [
     HorizontalPodAutoscaler,
     ArgoRollout,
     ScaledObject,
+    DaemonSet,
 ]
 
 TIMESTAMP_FORMATS = [
@@ -111,8 +113,13 @@ def is_stack_deployment(resource: NamespacedAPIObject) -> bool:
 def ignore_if_labels_dont_match(
     resource: NamespacedAPIObject, labels: FrozenSet[Pattern]
 ) -> bool:
-    # For backwards compatibility, if there is no label filter, we don't ignore anything
-    if not any(label.pattern for label in labels):
+
+    # if matching_labels contains empty string all resources are considered in the scaling process
+    first_element = next(iter(labels), None)
+    first_element_str = first_element.pattern
+
+    if first_element_str == "":
+        logger.debug("Matching_labels arg set to empty string: all resources are considered in the scaling process")
         return False
 
     # Ignore resources whose labels do not match the set of input labels
@@ -171,6 +178,24 @@ def get_replicas(
         logger.debug(
             f"{resource.kind} {resource.namespace}/{resource.name} has {replicas} minReplicas (original: {original_replicas}, uptime: {uptime})"
         )
+    elif resource.kind == "DaemonSet":
+        if "nodeSelector" in resource.obj["spec"]["template"]["spec"]:
+            kube_downscaler_node_selector_dict = resource.obj["spec"]["template"]["spec"]["nodeSelector"]
+        else:
+            kube_downscaler_node_selector_dict = None
+        if kube_downscaler_node_selector_dict is None:
+            suspended = False
+        else:
+            if "kube-downscaler-non-existent" in kube_downscaler_node_selector_dict:
+                suspended = True
+            else:
+                suspended = False
+        replicas = 0 if suspended else 1
+        state = "suspended" if suspended else "not suspended"
+        original_state = "suspended" if original_replicas == 0 else "not suspended"
+        logger.debug(
+            f"{resource.kind} {resource.namespace}/{resource.name} is {state} (original: {original_state}, uptime: {uptime})"
+        )
     else:
         replicas = resource.replicas
         logger.debug(
@@ -189,7 +214,13 @@ def scale_up(
     enable_events: bool,
 ):
     event_message = "Scaling up replicas"
-    if resource.kind == "CronJob":
+    if resource.kind == "DaemonSet":
+        resource.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] = None
+        logger.info(
+            f"Unsuspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
+        )
+        event_message = "Unsuspending DaemonSet"
+    elif resource.kind == "CronJob":
         resource.obj["spec"]["suspend"] = False
         logger.info(
             f"Unsuspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
@@ -209,6 +240,24 @@ def scale_up(
         resource.annotations[ScaledObject.keda_pause_annotation] = None
         logger.info(
             f"Unpausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime}"
+        )
+    elif resource.kind == "DaemonSet":
+        if "nodeSelector" in resource.obj["spec"]["template"]["spec"]:
+            kube_downscaler_node_selector_dict = resource.obj["spec"]["template"]["spec"]["nodeSelector"]
+        else:
+            kube_downscaler_node_selector_dict = None
+        if kube_downscaler_node_selector_dict is None:
+            suspended = False
+        else:
+            if "kube-downscaler-non-existent" in kube_downscaler_node_selector_dict:
+                suspended = True
+            else:
+                suspended = False
+        replicas = 0 if suspended else 1
+        state = "suspended" if suspended else "not suspended"
+        original_state = "suspended" if original_replicas == 0 else "not suspended"
+        logger.debug(
+            f"{resource.kind} {resource.namespace}/{resource.name} is {state} (original: {original_state}, uptime: {uptime})"
         )
     else:
         resource.replicas = original_replicas
@@ -236,7 +285,15 @@ def scale_down(
     enable_events: bool,
 ):
     event_message = "Scaling down replicas"
-    if resource.kind == "CronJob":
+    if resource.kind == "DaemonSet":
+        if "nodeSelector" not in resource.obj["spec"]["template"]["spec"]:
+            resource.obj["spec"]["template"]["spec"]["nodeSelector"] = {}
+        resource.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] = "true"
+        logger.info(
+            f"Suspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
+        )
+        event_message = "Suspending DaemonSet"
+    elif resource.kind == "CronJob":
         resource.obj["spec"]["suspend"] = True
         logger.info(
             f"Suspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"

@@ -10,6 +10,7 @@ VALID_RESOURCES = frozenset(
         "horizontalpodautoscalers",
         "rollouts",
         "scaledobjects",
+        "daemonsets"
     ]
 )
 
