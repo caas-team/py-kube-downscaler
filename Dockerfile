@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.10-alpine3.19
 
 WORKDIR /
 
@@ -10,7 +10,7 @@ COPY pyproject.toml /
 RUN poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-dev --no-ansi
 
-FROM python:3.10-slim
+FROM python:3.10-alpine3.19
 
 WORKDIR /
 
