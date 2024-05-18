@@ -10,8 +10,16 @@ class ScaledObject(NamespacedAPIObject):
     kind = "ScaledObject"
 
     keda_pause_annotation = "autoscaling.keda.sh/paused-replicas"
+    last_keda_pause_annotation_if_present = "downscaler/original-pause-replicas"
 
     @property
     def replicas(self):
-        replicas = 0 if ScaledObject.keda_pause_annotation in self.annotations else 1
+        if ScaledObject.keda_pause_annotation in self.annotations:
+            if self.annotations[ScaledObject.keda_pause_annotation] == "0":
+                replicas = 0
+            elif self.annotations[ScaledObject.keda_pause_annotation] != "0":
+                replicas = int(self.annotations[ScaledObject.keda_pause_annotation])
+        else:
+            replicas = 1
+
         return replicas
