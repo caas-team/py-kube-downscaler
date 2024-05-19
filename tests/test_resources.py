@@ -1,10 +1,14 @@
+import re
 from unittest.mock import MagicMock
 
 from pykube import Deployment
 from pykube import StatefulSet
-from pykube.objects import NamespacedAPIObject
+from pykube.objects import NamespacedAPIObject, APIObject
 
+from kube_downscaler.resources.constraint import KubeDownscalerJobsConstraint
+from kube_downscaler.resources.constrainttemplate import ConstraintTemplate
 from kube_downscaler.resources.keda import ScaledObject
+from kube_downscaler.resources.policy import KubeDownscalerJobsPolicy
 from kube_downscaler.resources.stack import Stack
 
 
@@ -50,3 +54,25 @@ def test_scaledobject():
     assert d.replicas == 1
     d.annotations[ScaledObject.keda_pause_annotation] = "0"
     assert d.replicas == 0
+
+def test_kubedownscalerjobsconstraint():
+    api_mock = MagicMock(spec=APIObject, name="APIMock")
+    api_mock.obj = MagicMock(name="APIObjMock")
+    d = KubeDownscalerJobsConstraint.create_job_constraint("constraint")
+    assert d['metadata']['name'] == "constraint"
+    assert d['spec']['match']['namespaces'][0] == "constraint"
+
+def test_gatekeeper_crd():
+    api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
+    api_mock.obj = MagicMock(name="APIObjMock")
+    d = ConstraintTemplate.create_constraint_template_crd(["kube-downscaler, downscaler"], matching_labels=frozenset([re.compile("")]))
+    assert d['metadata']['name'] == "kubedownscalerjobsconstraint"
+    assert "\"^(kube-downscaler, downscaler)$\"" in d['spec']['targets'][0]['rego']
+
+
+def test_kubedownscalerjobspolicy():
+    api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
+    api_mock.obj = MagicMock(name="APIObjMock")
+    d = KubeDownscalerJobsPolicy.create_job_policy("policy")
+    assert d['metadata']['name'] == "kube-downscaler-jobs-policy"
+    assert d['metadata']['namespace'] == "policy"
