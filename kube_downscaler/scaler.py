@@ -237,24 +237,6 @@ def scale_up(
         logger.info(
             f"Unpausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime}"
         )
-    elif resource.kind == "DaemonSet":
-        if "nodeSelector" in resource.obj["spec"]["template"]["spec"]:
-            kube_downscaler_node_selector_dict = resource.obj["spec"]["template"]["spec"]["nodeSelector"]
-        else:
-            kube_downscaler_node_selector_dict = None
-        if kube_downscaler_node_selector_dict is None:
-            suspended = False
-        else:
-            if "kube-downscaler-non-existent" in kube_downscaler_node_selector_dict:
-                suspended = True
-            else:
-                suspended = False
-        replicas = 0 if suspended else 1
-        state = "suspended" if suspended else "not suspended"
-        original_state = "suspended" if original_replicas == 0 else "not suspended"
-        logger.debug(
-            f"{resource.kind} {resource.namespace}/{resource.name} is {state} (original: {original_state}, uptime: {uptime})"
-        )
     else:
         resource.replicas = original_replicas
         logger.info(

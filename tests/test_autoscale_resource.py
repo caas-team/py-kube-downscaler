@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pykube
 import pytest
-from pykube import Deployment
+from pykube import Deployment, DaemonSet
 from pykube import HorizontalPodAutoscaler
 
 from kube_downscaler.resources.stack import Stack
@@ -897,5 +897,82 @@ def test_upscale_hpa_with_autoscaling():
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
+
     assert hpa.obj["spec"]["minReplicas"] == 4
     assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+def test_downscale_daemonset_with_autoscaling():
+    ds = DaemonSet(
+        None,
+        {
+            "metadata": {
+                "name": "daemonset-1",
+                "namespace": "default",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+            },
+            "spec": {
+                "template": {
+                    "spec": {}
+                }
+            }
+        }
+    )
+    now = datetime.strptime("2018-10-23T22:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        ds,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert ds.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] == "true"
+
+
+def test_upscale_daemonset_with_autoscaling():
+    ds = DaemonSet(
+        None,
+        {
+            "metadata": {
+                "name": "daemonset-1",
+                "namespace": "default",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"}
+            },
+            "spec": {
+                "template": {
+                    "spec": {
+                        "nodeSelector": {
+                            "kube-downscaler-non-existent": "true"
+                        }
+                    }
+                }
+            }
+        }
+    )
+    print("\n" + str(ds.obj) + "\n")
+    now = datetime.strptime("2018-10-23T22:25:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        ds,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    print(ds.obj)
+    assert ds.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] == None
