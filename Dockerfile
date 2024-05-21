@@ -2,6 +2,9 @@ FROM python:3.10-alpine3.19
 
 WORKDIR /
 
+# Install necessary build tools and dependencies
+RUN apk add --no-cache gcc musl-dev libffi-dev python3-dev py3-setuptools
+
 RUN pip3 install poetry
 
 COPY poetry.lock /
