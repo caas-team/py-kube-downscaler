@@ -2,10 +2,10 @@ name: Python Tests
 
 on:
   push:
-  pull_request:
-
+  pull_request_target:
+    types: [opened, synchronize, reopened]
 permissions:
-  contents: read
+  contents: write
   issues: write
   checks: write
   pull-requests: write
