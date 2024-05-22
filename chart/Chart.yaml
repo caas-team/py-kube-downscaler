@@ -4,4 +4,4 @@ description: A Helm chart for deploying py-kube-downscaler
 
 type: application
 version: 0.2.1
-appVersion: "24.5.0"
+appVersion: "24.5.2"
