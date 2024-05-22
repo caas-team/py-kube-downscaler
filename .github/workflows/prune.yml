@@ -1,0 +1,39 @@
+name: Prune GHCR
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions:
+  contents: write
+  packages: write
+  security-events: write
+
+jobs:
+  prune_images:
+    name: Prune old py-kube-downscaler images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prune Images
+        uses: vlaurin/action-ghcr-prune@v0.5.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          organization: ${{ github.repository_owner }}
+          container: py-kube-downscaler
+          keep-younger-than: 7 # days
+          prune-untagged: true
+          keep-tags-regexes: |
+            \bdev\b
+          prune-tags-regexes: |
+            ^commit-
+            ^sha256
+
+      - name: Prune Charts
+        uses: vlaurin/action-ghcr-prune@v0.5.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          organization: ${{ github.repository_owner }}
+          container: charts/py-kube-downscaler
+          keep-younger-than: 7 # days
+          prune-untagged: true
