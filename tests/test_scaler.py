@@ -1560,3 +1560,288 @@ def test_scaler_namespace_force_downtime_period(monkeypatch):
     assert api.patch.call_count == 1
     assert api.patch.call_args[1]["url"] == "/deployments/deploy-2"
     assert json.loads(api.patch.call_args[1]["data"])["spec"]["replicas"] == 0
+
+
+def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "poddisruptionbudgets":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "pdb-1",
+                            "namespace": "default",
+                            "creationTimestamp": "2024-02-03T16:38:00Z",
+                        },
+                        "spec": {"maxUnavailable": 1}
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["poddisruptionbudgets"])
+    scale(
+        namespace=None,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        dry_run=False,
+        grace_period=300,
+        downtime_replicas=0,
+        enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert api.patch.call_count == 1
+    assert api.patch.call_args[1]["url"] == "/poddisruptionbudgets/pdb-1"
+
+    patch_data = {
+        "metadata": {
+            "name": "pdb-1",
+            "namespace": "default",
+            "creationTimestamp": "2024-02-03T16:38:00Z",
+            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"},
+        },
+        "spec": {"maxUnavailable": 0},
+    }
+    assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
+def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "poddisruptionbudgets":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "pdb-1",
+                            "namespace": "default",
+                            "creationTimestamp": "2024-02-03T16:38:00Z",
+                            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"},
+                        },
+                        "spec": {"maxUnavailable": 0}
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {
+                "metadata": {
+                    "annotations": {
+                        "downscaler/uptime": "always",
+                        "downscaler/downtime": "never",
+                    }
+                }
+            }
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["poddisruptionbudgets"])
+    scale(
+        namespace=None,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        dry_run=False,
+        grace_period=300,
+        downtime_replicas=0,
+        enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert api.patch.call_count == 1
+    assert api.patch.call_args[1]["url"] == "/poddisruptionbudgets/pdb-1"
+
+    patch_data = {
+        "metadata": {
+            "name": "pdb-1",
+            "namespace": "default",
+            "creationTimestamp": "2024-02-03T16:38:00Z",
+            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: None}
+        },
+        "spec": {"maxUnavailable": 1},
+    }
+    assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
+def test_scaler_pdb_suspend_min_available(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "poddisruptionbudgets":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "pdb-1",
+                            "namespace": "default",
+                            "creationTimestamp": "2024-02-03T16:38:00Z",
+                        },
+                        "spec": {"minAvailable": 1}
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["poddisruptionbudgets"])
+    scale(
+        namespace=None,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        dry_run=False,
+        grace_period=300,
+        downtime_replicas=0,
+        enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert api.patch.call_count == 1
+    assert api.patch.call_args[1]["url"] == "/poddisruptionbudgets/pdb-1"
+
+    patch_data = {
+        "metadata": {
+            "name": "pdb-1",
+            "namespace": "default",
+            "creationTimestamp": "2024-02-03T16:38:00Z",
+            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"},
+        },
+        "spec": {"minAvailable": 0},
+    }
+    assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
+def test_scaler_pdb_unsuspend_min_available(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "poddisruptionbudgets":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "pdb-1",
+                            "namespace": "default",
+                            "creationTimestamp": "2024-02-03T16:38:00Z",
+                            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"},
+                        },
+                        "spec": {"minAvailable": 0}
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {
+                "metadata": {
+                    "annotations": {
+                        "downscaler/uptime": "always",
+                        "downscaler/downtime": "never",
+                    }
+                }
+            }
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["poddisruptionbudgets"])
+    scale(
+        namespace=None,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        dry_run=False,
+        grace_period=300,
+        downtime_replicas=0,
+        enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert api.patch.call_count == 1
+    assert api.patch.call_args[1]["url"] == "/poddisruptionbudgets/pdb-1"
+
+    patch_data = {
+        "metadata": {
+            "name": "pdb-1",
+            "namespace": "default",
+            "creationTimestamp": "2024-02-03T16:38:00Z",
+            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: None}
+        },
+        "spec": {"minAvailable": 1},
+    }
+    assert json.loads(api.patch.call_args[1]["data"]) == patch_data
