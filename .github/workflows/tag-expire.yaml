@@ -10,10 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     name: "expire-tags"
     steps:
-      - uses: eumel8/expire-action@1.0.0
+      - uses: eumel8/expire-action@1.0.1
         with:
           token: ${{secrets.TAGEXPIRE}}
           repo_type: org
           orgname: caas-team
           image_name: py-kube-downscaler
+          protected_tags: latest,24.5.2,24.5.0,24.4.0
           days_treshold: 60
