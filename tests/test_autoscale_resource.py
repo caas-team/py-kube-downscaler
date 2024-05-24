@@ -1,12 +1,13 @@
 import json
 import logging
+import re
 from datetime import datetime
 from datetime import timezone
 from unittest.mock import MagicMock
 
 import pykube
 import pytest
-from pykube import Deployment, PodDisruptionBudget
+from pykube import Deployment, PodDisruptionBudget, DaemonSet
 from pykube import HorizontalPodAutoscaler
 
 from kube_downscaler.resources.stack import Stack
@@ -47,6 +48,7 @@ def test_swallow_exception(monkeypatch, resource, caplog):
         forced_downtime=False,
         dry_run=True,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     resource.update.assert_not_called()
@@ -77,6 +79,7 @@ def test_swallow_exception_with_event(monkeypatch, resource, caplog):
         dry_run=True,
         now=now,
         enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     resource.update.assert_not_called()
@@ -102,6 +105,7 @@ def test_exclude(resource):
         forced_downtime=False,
         dry_run=True,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     resource.update.assert_not_called()
@@ -126,6 +130,7 @@ def test_exclude_until_invalid_time(resource, caplog):
         forced_downtime=False,
         dry_run=True,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 0
     assert resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] == "1"
@@ -156,6 +161,7 @@ def test_dry_run(resource):
         now=now,
         grace_period=0,
         downtime_replicas=0,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 0
     assert resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] == "1"
@@ -182,6 +188,7 @@ def test_grace_period(resource):
         dry_run=False,
         now=now,
         grace_period=300,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     assert resource.annotations == {}
@@ -205,6 +212,7 @@ def test_downtime_always(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 0
     resource.update.assert_called_once()
@@ -228,6 +236,7 @@ def test_downtime_interval(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 0
     resource.update.assert_called_once()
@@ -251,6 +260,7 @@ def test_forced_uptime(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     resource.update.assert_not_called()
@@ -273,6 +283,7 @@ def test_forced_downtime(resource):
         forced_downtime=True,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 0
     resource.update.assert_called_once()
@@ -293,6 +304,7 @@ def test_autoscale_bad_resource():
             forced_downtime=False,
             dry_run=False,
             now=now,
+            matching_labels=frozenset([re.compile("")]),
         )
         raise AssertionError("Failed to error out with a bad resource")
     except Exception:
@@ -319,6 +331,7 @@ def test_scale_up(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 3
     resource.update.assert_called_once()
@@ -346,6 +359,7 @@ def test_scale_up_downtime_replicas_annotation(resource):
         dry_run=False,
         now=now,
         downtime_replicas=1,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     resource.update.assert_called_once()
@@ -368,6 +382,7 @@ def test_downtime_replicas_annotation_invalid(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 2
     resource.update.assert_not_called()
@@ -390,6 +405,7 @@ def test_downtime_replicas_annotation_valid(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     resource.update.assert_called_once()
@@ -413,6 +429,7 @@ def test_downtime_replicas_invalid(resource):
         dry_run=False,
         now=now,
         downtime_replicas="x",
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 2
     resource.update.assert_not_called()
@@ -435,6 +452,7 @@ def test_downtime_replicas_valid(resource):
         dry_run=False,
         now=now,
         downtime_replicas=1,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     resource.update.assert_called_once()
@@ -464,6 +482,7 @@ def test_set_annotation():
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     api.patch.assert_called_once()
     patch_data = json.loads(api.patch.call_args[1]["data"])
@@ -495,6 +514,7 @@ def test_downscale_always(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 0
     resource.update.assert_called_once()
@@ -518,6 +538,7 @@ def test_downscale_period(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 0
     resource.update.assert_called_once()
@@ -541,6 +562,7 @@ def test_downscale_period_overlaps(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 2
     resource.update.assert_not_called()
@@ -563,6 +585,7 @@ def test_downscale_period_not_match(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 2
     resource.update.assert_not_called()
@@ -587,6 +610,7 @@ def test_downscale_period_resource_overrides_never(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 0
     resource.update.assert_called_once()
@@ -611,6 +635,7 @@ def test_downscale_period_resource_overrides_namespace(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 0
     resource.update.assert_called_once()
@@ -636,6 +661,7 @@ def test_upscale_period_resource_overrides_never(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     resource.upd
@@ -661,6 +687,7 @@ def test_upscale_period_resource_overrides_namespace(resource):
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     resource.upd
@@ -692,6 +719,7 @@ def test_downscale_stack_deployment_ignored():
         forced_downtime=False,
         dry_run=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     resource.update.assert_not_called()
@@ -716,6 +744,7 @@ def test_downscale_replicas_not_zero(resource):
         dry_run=False,
         now=now,
         downtime_replicas=1,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     assert resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] == "3"
@@ -730,6 +759,7 @@ def test_downscale_replicas_not_zero(resource):
         dry_run=False,
         now=now,
         downtime_replicas=1,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert resource.replicas == 1
     assert resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] == "3"
@@ -763,6 +793,7 @@ def test_downscale_stack_with_autoscaling():
         forced_downtime=False,
         dry_run=True,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert stack.replicas == 0
 
@@ -796,6 +827,7 @@ def test_upscale_stack_with_autoscaling():
         dry_run=True,
         enable_events=False,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert stack.obj["spec"]["replicas"] is None
     assert stack.replicas == 4
@@ -828,6 +860,7 @@ def test_downscale_hpa_with_autoscaling():
         forced_downtime=False,
         dry_run=True,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
     assert hpa.obj["spec"]["minReplicas"] == 1
     assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(4)
@@ -862,10 +895,13 @@ def test_upscale_hpa_with_autoscaling():
         forced_downtime=False,
         dry_run=True,
         now=now,
+        matching_labels=frozenset([re.compile("")]),
     )
+
     assert hpa.obj["spec"]["minReplicas"] == 4
     assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
 
+    
 def test_downscale_pdb_minavailable_with_autoscaling():
     pdb = PodDisruptionBudget(
         None,
@@ -993,3 +1029,80 @@ def test_upscale_pdb_maxunavailable_with_autoscaling():
     )
     assert pdb.obj["spec"]["maxUnavailable"] == 4
     assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+    
+def test_downscale_daemonset_with_autoscaling():
+    ds = DaemonSet(
+        None,
+        {
+            "metadata": {
+                "name": "daemonset-1",
+                "namespace": "default",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+            },
+            "spec": {
+                "template": {
+                    "spec": {}
+                }
+            }
+        }
+    )
+    now = datetime.strptime("2018-10-23T22:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        ds,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert ds.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] == "true"
+
+
+def test_upscale_daemonset_with_autoscaling():
+    ds = DaemonSet(
+        None,
+        {
+            "metadata": {
+                "name": "daemonset-1",
+                "namespace": "default",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"}
+            },
+            "spec": {
+                "template": {
+                    "spec": {
+                        "nodeSelector": {
+                            "kube-downscaler-non-existent": "true"
+                        }
+                    }
+                }
+            }
+        }
+    )
+    print("\n" + str(ds.obj) + "\n")
+    now = datetime.strptime("2018-10-23T22:25:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        ds,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    print(ds.obj)
+    assert ds.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] == None
