@@ -13,7 +13,7 @@ from pykube import HorizontalPodAutoscaler
 from pykube import Namespace
 from pykube import StatefulSet
 from pykube import DaemonSet
-from pykube.objects import NamespacedAPIObject
+from pykube.objects import NamespacedAPIObject, PodDisruptionBudget
 
 from kube_downscaler import helper
 from kube_downscaler.helper import matches_time_spec
@@ -41,6 +41,7 @@ RESOURCE_CLASSES = [
     ArgoRollout,
     ScaledObject,
     DaemonSet,
+    PodDisruptionBudget,
 ]
 
 TIMESTAMP_FORMATS = [
@@ -169,6 +170,22 @@ def get_replicas(
         logger.debug(
             f"{resource.kind} {resource.namespace}/{resource.name} is {state} (original: {original_state}, uptime: {uptime})"
         )
+    elif resource.kind == "PodDisruptionBudget":
+        if "minAvailable" in resource.obj["spec"]:
+            replicas = resource.obj["spec"]["minAvailable"]
+            logger.debug(
+                f"{resource.kind} {resource.namespace}/{resource.name} has {replicas} minAvailable (original: {original_replicas}, uptime: {uptime})"
+            )
+        elif "maxUnavailable" in resource.obj["spec"]:
+            replicas = resource.obj["spec"]["maxUnavailable"]
+            logger.debug(
+                f"{resource.kind} {resource.namespace}/{resource.name} has {replicas} maxUnavailable (original: {original_replicas}, uptime: {uptime})"
+            )
+        else:
+            replicas = 0
+            logger.debug(
+                f"{resource.kind} {resource.namespace}/{resource.name} has neither minAvailable nor maxUnavailable (original: {original_replicas}, uptime: {uptime})"
+            )
     elif resource.kind == "HorizontalPodAutoscaler":
         replicas = resource.obj["spec"]["minReplicas"]
         logger.debug(
@@ -222,6 +239,17 @@ def scale_up(
             f"Unsuspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
         event_message = "Unsuspending CronJob"
+    elif resource.kind == "PodDisruptionBudget":
+        if "minAvailable" in resource.obj["spec"]:
+            resource.obj["spec"]["minAvailable"] = original_replicas
+            logger.info(
+                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minAvailable (uptime: {uptime}, downtime: {downtime})"
+            )
+        elif "maxUnavailable" in resource.obj["spec"]:
+            resource.obj["spec"]["maxUnavailable"] = original_replicas
+            logger.info(
+                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
+            )
     elif resource.kind == "HorizontalPodAutoscaler":
         resource.obj["spec"]["minReplicas"] = original_replicas
         logger.info(
@@ -233,9 +261,14 @@ def scale_up(
             f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} replicas (uptime: {uptime}, downtime: {downtime})"
         )
     elif resource.kind == "ScaledObject":
-        resource.annotations[ScaledObject.keda_pause_annotation] = None
+        if resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] is not None:
+            paused_replicas = resource.annotations[ScaledObject.last_keda_pause_annotation_if_present]
+            resource.annotations[ScaledObject.keda_pause_annotation] = paused_replicas
+            resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = None
+        else:
+            resource.annotations[ScaledObject.keda_pause_annotation] = None
         logger.info(
-            f"Unpausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime}"
+            f"Unpausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
     else:
         resource.replicas = original_replicas
@@ -277,6 +310,17 @@ def scale_down(
             f"Suspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
         event_message = "Suspending CronJob"
+    elif resource.kind == "PodDisruptionBudget":
+        if "minAvailable" in resource.obj["spec"]:
+            resource.obj["spec"]["minAvailable"] = target_replicas
+            logger.info(
+                f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} minAvailable (uptime: {uptime}, downtime: {downtime})"
+            )
+        elif "maxUnavailable" in resource.obj["spec"]:
+            resource.obj["spec"]["maxUnavailable"] = target_replicas
+            logger.info(
+                f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
+            )
     elif resource.kind == "HorizontalPodAutoscaler":
         resource.obj["spec"]["minReplicas"] = target_replicas
         logger.info(
@@ -288,9 +332,12 @@ def scale_down(
             f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} replicas (uptime: {uptime}, downtime: {downtime})"
         )
     elif resource.kind == "ScaledObject":
+        if resource.annotations[ScaledObject.keda_pause_annotation] is not None:
+            paused_replicas = resource.annotations[ScaledObject.keda_pause_annotation]
+            resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = paused_replicas
         resource.annotations[ScaledObject.keda_pause_annotation] = "0"
         logger.info(
-            f"Pausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime}"
+            f"Pausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
         event_message = "Pausing KEDA ScaledObject"
     else:

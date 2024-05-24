@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pykube
 import pytest
-from pykube import Deployment, DaemonSet
+from pykube import Deployment, PodDisruptionBudget, DaemonSet
 from pykube import HorizontalPodAutoscaler
 
 from kube_downscaler.resources.stack import Stack
@@ -901,6 +901,136 @@ def test_upscale_hpa_with_autoscaling():
     assert hpa.obj["spec"]["minReplicas"] == 4
     assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
 
+    
+def test_downscale_pdb_minavailable_with_autoscaling():
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {DOWNTIME_REPLICAS_ANNOTATION: str(1)},
+            },
+            "spec": {"minAvailable": 4},
+        },
+    )
+    now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+    )
+    assert pdb.obj["spec"]["minAvailable"] == 1
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(4)
+
+
+def test_upscale_pdb_minavailable_with_autoscaling():
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    DOWNTIME_REPLICAS_ANNOTATION: str(1),
+                    ORIGINAL_REPLICAS_ANNOTATION: str(4),
+                },
+            },
+            "spec": {"minAvailable": 1},
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+    )
+    assert pdb.obj["spec"]["minAvailable"] == 4
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+def test_downscale_pdb_maxunavailable_with_autoscaling():
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {DOWNTIME_REPLICAS_ANNOTATION: str(1)},
+            },
+            "spec": {"maxUnavailable": 4},
+        },
+    )
+    now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == 1
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(4)
+
+
+def test_upscale_pdb_maxunavailable_with_autoscaling():
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    DOWNTIME_REPLICAS_ANNOTATION: str(1),
+                    ORIGINAL_REPLICAS_ANNOTATION: str(4),
+                },
+            },
+            "spec": {"maxUnavailable": 1},
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == 4
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+    
 def test_downscale_daemonset_with_autoscaling():
     ds = DaemonSet(
         None,
