@@ -7,7 +7,7 @@ image:
 
 arguments:
   - --interval=60
-  - --include-resources=deployments,statefulsets,horizontalpodautoscalers,scaledobjects
+  - --include-resources=deployments,statefulsets,scaledobjects
 
 imagePullSecrets: []
 nameOverride: ""
