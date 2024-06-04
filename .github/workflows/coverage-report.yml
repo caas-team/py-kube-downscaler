@@ -1,0 +1,38 @@
+name: Coverage Report
+
+on:
+  workflow_run:
+    workflows: ["Python Tests"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  issues: write
+  checks: write
+  pull-requests: write
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.event == 'pull_request' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_commit.id }}
+      - name: Download Coverage Artifacts
+        uses: dawidd6/action-download-artifact@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: ${{ github.event.workflow_run.workflow_id }}
+          commit: ${{ github.event.workflow_run.head_commit.id }}
+          name: coverage
+          path: coverage
+      - name: Produce Coverage report
+        uses: 5monkeys/cobertura-action@master
+        with:
+          path: coverage/coverage.xml
+          minimum_coverage: 70
+          skip_covered: false
