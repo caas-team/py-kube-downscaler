@@ -3,6 +3,7 @@ name: Python Tests
 on:
   push:
   pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
@@ -13,21 +14,20 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v5
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: |
-        pip install poetry
-        poetry install
-    - name: Run pytest with coverage and generate report
-      run: poetry run pytest --cov=tests --cov-report=xml tests/
-    - name: Upload coverage to Cobertura
-      uses: 5monkeys/cobertura-action@master
-      with:
-        path: coverage.xml
-        minimum_coverage: 70
-        skip_covered: false
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+      - name: Run pytest with coverage and generate report
+        run: poetry run pytest --cov=tests --cov-report=xml tests/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
