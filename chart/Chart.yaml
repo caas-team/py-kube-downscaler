@@ -3,5 +3,5 @@ name: py-kube-downscaler
 description: A Helm chart for deploying py-kube-downscaler
 
 type: application
-version: 0.2.1
+version: 0.2.2
 appVersion: "24.5.2"
