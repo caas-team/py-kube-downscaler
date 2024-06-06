@@ -370,7 +370,7 @@ inside jobs to exclude them from downscaling. However, when using `downscaler/ex
 otherwise the exclusion won't work. 
 Please check the example below
 
-``` {.sourceCode .yaml}
+```yaml {.sourceCode .yaml}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -411,6 +411,13 @@ Kyverno
 kubectl delete policies -A -l origin=kube-downscaler
 ```
 
+### Scaling DaemonSet
+
+The feature to scale DaemonSets can be very useful for reducing the base occupancy of a node. If enabled, the DaemonSets downscaling algorithm works like this:
+
+1) Downtime Hours: Kube Downscaler will add to each targeted DaemonSet a Node Selector that cannot be satisfied `kube-downscaler-non-existent=true`
+2) Uptime Hours: Kube Downscaler will remove the `kube-downscaler-non-existent=true` Node Selector from each targeted DaemonSet
+
 ### Matching Labels Argument
 
 Labels, in Kubernetes, are key-value pairs that can be used to identify and group resources.
@@ -424,7 +431,7 @@ Each entry must be separated by a comma (`,`). If multiple entries are specified
 
 To make it more clear, given the following resource
 
-``` {.sourceCode .yaml}
+```yaml {.sourceCode .yaml}
 kind: Deployment
 metadata:
   labels:
