@@ -10,7 +10,7 @@ VALID_RESOURCES = frozenset(
         "horizontalpodautoscalers",
         "rollouts",
         "scaledobjects",
-        "jobs"
+        "jobs",
         "daemonsets",
         "poddisruptionbudgets",
     ]
