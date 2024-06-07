@@ -267,7 +267,7 @@ Available command line options:
 `--include-resources`
 
 :   Downscale resources of this kind as comma separated list.
-    \[deployments, statefulsets, stacks, horizontalpodautoscalers, cronjobs, daemonsets, rollouts, scaledobjects\]
+    \[deployments, statefulsets, stacks, horizontalpodautoscalers, cronjobs, daemonsets, rollouts, scaledobjects, jobs\]
     (default: deployments)
 
 `--grace-period`
@@ -339,6 +339,134 @@ Available command line options:
     scope. All workloads whose labels don't match any in the list are ignored.
     For backwards compatibility, if this argument is not specified,
     py-kube-downscaler will apply to all resources.
+
+`--admission-controller`
+
+:   Optional: admission controller used by the kube-downscaler to downscale and upscale
+    jobs. Required only if "jobs" are specified inside "--include-resources" arg. 
+    Supported Admission Controllers are
+    \[gatekeeper, kyverno*\]
+
+    *Make sure to read the dedicated section below to understand how to use the
+    --admission-controller feature correctly
+
+### Scaling Jobs
+
+Before scaling jobs make sure the Admission Controller of your choice is correctly installed inside the cluster. 
+Kube-Downscaler performs some health checks that are displayed inside logs when the `--debug` arg is present. 
+If you are using Gatekeeper, Kube-Downscaler will install a new Custom Resource Definition
+called `kubedownscalerjobsconstraint`
+
+**When using this feature you need to exclude Kyverno or Gatekeeper resources from downscaling otherwise 
+the admission controller pods won't be able to donwscale jobs.** 
+You can use `EXCLUDE_NAMESPACES` environment variable or `--exclude-namespaces` arg to exclude `"kyverno"` or `"gatekeeper-system"` namespaces. 
+To have a more fine-grained control you can use `EXCLUDE_DEPLOYMENTS` environment variable
+or `--exclude-deployments` arg to exclude only certain resources inside `"kyverno"` or `"gatekeeper-system"` namespaces
+
+**<u>Important</u>:** Jobs started from CronJobs are excluded by default unless you have included `cronjobs` inside `--include-resources` argument
+
+**Annotations:** both the `downscaler/exclude` and `downscaler/exclude-until` annotations are fully supported 
+inside jobs to exclude them from downscaling. However, when using `downscaler/exclude-until`, the time <u>**must**</u> be specified in the RFC format `YYYY-MM-DDT00:00:00Z`
+otherwise the exclusion won't work. 
+Please check the example below
+
+```yaml {.sourceCode .yaml}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: default
+  name: testjob
+  annotations:
+    downscaler/exclude-until: "2024-01-31T00:00:00Z"   
+spec:
+  template:
+    spec:
+      containers:
+      - image: nginx
+        name: testjob
+      restartPolicy: Never
+```
+
+**Arguments and Env:** you can also use `EXCLUDE_DEPLOYMENTS` environment variable or the argument `--exclude-deployments`
+to exclude jobs. As described above, despite their names, these variables work for any type of workload
+
+**<u>Important</u>:** 
+`downscaler/downscale-period`, `downscaler/downtime`, `downscaler/upscale-period`, `downscaler/uptime` 
+annotations are not supported if specified directly inside the Job definition due to limitations 
+on computing days of the week inside the policies. However you can still use 
+these annotations at Namespace level to downscale/upscale Jobs 
+
+
+**Deleting Policies:** if for some reason you want to delete all resources blocking jobs, you can use these commands:
+
+Gatekeeper
+
+``` {.sourceCode .sh}
+kubectl delete constraints -A -l origin=kube-downscaler
+```
+
+Kyverno
+
+``` {.sourceCode .sh}
+kubectl delete policies -A -l origin=kube-downscaler
+```
+
+### Scaling DaemonSet
+
+The feature to scale DaemonSets can be very useful for reducing the base occupancy of a node. If enabled, the DaemonSets downscaling algorithm works like this:
+
+1) Downtime Hours: Kube Downscaler will add to each targeted DaemonSet a Node Selector that cannot be satisfied `kube-downscaler-non-existent=true`
+2) Uptime Hours: Kube Downscaler will remove the `kube-downscaler-non-existent=true` Node Selector from each targeted DaemonSet
+
+### Matching Labels Argument
+
+Labels, in Kubernetes, are key-value pairs that can be used to identify and group resources.
+
+You can use the `--matching-labels` argument to include only certain resources in the namespaces
+that are targeted by the Kube Downscaler. inside this argument you can specify:
+- labels written in this format [key=value]
+- regular expressions that target this format [key=value].
+
+Each entry must be separated by a comma (`,`). If multiple entries are specified, the Kube Downscaler evaluates them as an OR condition
+
+To make it more clear, given the following resource
+
+```yaml {.sourceCode .yaml}
+kind: Deployment
+metadata:
+  labels:
+    app: nginx
+    type: example
+  name: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+```
+
+Kube-Downscaler will evaluate the input of the `--matching-labels` argument against _app=nginx_
+and _type=example_. If at least one of the two key-value pairs matches the resource will be downscaled
+
+Example of valid inputs are:
+
+`--matching-labels=hello=world`: if the resource has a label "hello" equals to "world" it will be downscaled
+
+`--matching-labels=hello=world,version=2.0`: if the resource has a label "hello" equals to "world" 
+or a label "version" equal to "2.0" it will be downscaled
+
+`--matching-labels=^it-plt.*`: if the resource has a label that starts with "it-plt" it will be downscaled
+
+`--matching-labels=^it-plt.*,not-critical=true`: if the resource has a label that starts with "it-plt" or a label
+"not-critical" equals to "true" it will be downscaled
 
 ### Namespace Defaults
 
