@@ -1,12 +1,16 @@
 import datetime
 import json
 import re
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch, PropertyMock
 
+from kube_downscaler.resources.policy import KubeDownscalerJobsPolicy
 from kube_downscaler.scaler import DOWNTIME_REPLICAS_ANNOTATION
 from kube_downscaler.scaler import EXCLUDE_ANNOTATION
 from kube_downscaler.scaler import ORIGINAL_REPLICAS_ANNOTATION
 from kube_downscaler.scaler import scale
+from kube_downscaler.scaler import autoscale_jobs
+from kube_downscaler.scaler import scale_down_jobs
+from kube_downscaler.scaler import scale_up_jobs
 
 
 def test_scaler_always_up(monkeypatch):
@@ -56,6 +60,7 @@ def test_scaler_always_up(monkeypatch):
         exclude_deployments=[],
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=False,
     )
@@ -117,6 +122,7 @@ def test_scaler_namespace_excluded(monkeypatch):
         dry_run=False,
         matching_labels=frozenset([re.compile("")]),
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=False,
     )
@@ -195,7 +201,9 @@ def test_scaler_namespace_excluded_regex(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
+        enable_events=False,
     )
 
     assert api.patch.call_count == 1
@@ -270,6 +278,7 @@ def test_scaler_namespace_excluded_via_annotation(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=False,
     )
@@ -341,6 +350,7 @@ def test_scaler_down_to(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=True,
     )
@@ -405,6 +415,7 @@ def test_scaler_down_to_upscale(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=True,
     )
@@ -467,6 +478,7 @@ def test_scaler_upscale_on_exclude(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=False,
     )
@@ -531,6 +543,7 @@ def test_scaler_upscale_on_exclude_namespace(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=False,
     )
@@ -592,6 +605,7 @@ def test_scaler_always_upscale(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=False,
     )
@@ -649,6 +663,7 @@ def test_scaler_namespace_annotation_replicas(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=False,
     )
@@ -708,6 +723,7 @@ def test_scaler_daemonset_suspend(monkeypatch):
         include_resources=include_resources,
         exclude_namespaces=[],
         exclude_deployments=[],
+        admission_controller="",
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
@@ -799,6 +815,7 @@ def test_scaler_daemonset_unsuspend(monkeypatch):
         include_resources=include_resources,
         exclude_namespaces=[],
         exclude_deployments=[],
+        admission_controller="",
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
@@ -878,6 +895,7 @@ def test_scaler_cronjob_suspend(monkeypatch):
         exclude_deployments=[],
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
@@ -956,6 +974,7 @@ def test_scaler_cronjob_unsuspend(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=True,
     )
@@ -1022,6 +1041,7 @@ def test_scaler_downscale_period_no_error(monkeypatch, caplog):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
         enable_events=False,
     )
@@ -1102,6 +1122,7 @@ def test_scaler_deployment_excluded_until(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
     )
 
     assert api.patch.call_count == 1
@@ -1183,6 +1204,7 @@ def test_scaler_namespace_excluded_until(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
         downtime_replicas=0,
     )
 
@@ -1256,6 +1278,7 @@ def test_scaler_name_excluded(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
     )
 
     assert api.patch.call_count == 1
@@ -1320,6 +1343,7 @@ def test_scaler_namespace_force_uptime_true(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
     )
 
     assert api.patch.call_count == 0
@@ -1371,6 +1395,7 @@ def test_scaler_namespace_force_uptime_false(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
     )
 
     assert api.patch.call_count == 1
@@ -1486,6 +1511,7 @@ def test_scaler_namespace_force_uptime_period(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
     )
 
     # make sure that deploy-2 was updated
@@ -1546,6 +1572,7 @@ def test_scaler_namespace_force_downtime_true(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
     )
 
     assert api.patch.call_count == 1
@@ -1597,6 +1624,7 @@ def test_scaler_namespace_force_downtime_false(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
     )
 
     assert api.patch.call_count == 0
@@ -1655,6 +1683,7 @@ def test_scaler_namespace_force_uptime_and_downtime_true(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
     )
 
     assert api.patch.call_count == 0
@@ -1747,6 +1776,7 @@ def test_scaler_namespace_force_downtime_period(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        admission_controller="",
     )
 
     # make sure that deploy-2 was updated
@@ -1754,6 +1784,221 @@ def test_scaler_namespace_force_downtime_period(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/deployments/deploy-2"
     assert json.loads(api.patch.call_args[1]["data"])["spec"]["replicas"] == 0
 
+@patch("kube_downscaler.scaler.autoscale_jobs_for_namespace")
+@patch("kube_downscaler.scaler.Namespace")
+@patch("kube_downscaler.scaler.gatekeeper_constraint_template_crd_exist", return_value=False)
+def test_autoscale_jobs_gatekeeper_not_installed(
+        mock_gatekeeper_exist, mock_namespace, mock_autoscale_jobs_for_namespace
+):
+    mock_namespace_instance = MagicMock()
+    mock_namespace_instance.name = "test-namespace"
+    mock_namespace.return_value = mock_namespace_instance
+
+    autoscale_jobs(
+        api=None,
+        namespace="test-namespace",
+        exclude_namespaces=set(),
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=True,
+        matching_labels=set(),
+        dry_run=False,
+        now=datetime.datetime.now(),
+        grace_period=60,
+        admission_controller="gatekeeper",
+        exclude_names=[],
+        enable_events=True,
+    )
+
+    assert mock_gatekeeper_exist.called
+    mock_autoscale_jobs_for_namespace.assert_not_called()  # autoscale_jobs_for_namespace should not be called
+
+
+@patch("kube_downscaler.scaler.autoscale_jobs_for_namespace")
+@patch("kube_downscaler.scaler.Namespace")
+def test_autoscale_jobs_invented_admission_controller(
+        mock_namespace, mock_autoscale_jobs_for_namespace
+):
+    # Mock the Namespace instance
+    mock_namespace_instance = MagicMock()
+    mock_namespace_instance.name = "test-namespace"
+    mock_namespace.return_value = mock_namespace_instance
+
+    autoscale_jobs(
+        api=None,
+        namespace="test-namespace",
+        exclude_namespaces=set(),
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=True,
+        matching_labels=set(),
+        dry_run=False,
+        now=datetime.datetime.now(),
+        grace_period=60,
+        admission_controller="invented_admission_controller",
+        exclude_names=[],
+        enable_events=True,
+    )
+
+    mock_autoscale_jobs_for_namespace.assert_not_called()
+
+
+@patch('kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects', autospec=True)
+def test_scale_up_jobs_gatekeeper_policy_not_none(objects_mock):
+    api = MagicMock()
+    objects_instance_mock = objects_mock.return_value
+    objects_instance_mock.get_or_none.return_value = "Not None"
+
+    policy, operation = scale_up_jobs(
+        MagicMock(), MagicMock(), "uptime_value", "downtime_value",
+        "gatekeeper", False, True
+    )
+
+    assert operation == "scale_up"
+
+
+@patch('kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects', autospec=True)
+def test_scale_up_jobs_kyverno_policy_not_none(objects_mock):
+    api = MagicMock()
+    filter_instance_mock = objects_mock.return_value.filter.return_value
+    filter_instance_mock.get_or_none.return_value = "Not None"
+
+    policy, operation = scale_up_jobs(
+        MagicMock(),
+        MagicMock(),
+        "uptime_value",
+        "downtime_value",
+        "kyverno",
+        False,
+        True
+    )
+
+    assert operation == "scale_up"
+
+
+@patch('kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects', autospec=True)
+def test_scale_up_jobs_gatekeeper_policy_none(objects_mock):
+    api = MagicMock()
+    objects_instance_mock = objects_mock.return_value
+    objects_instance_mock.get_or_none.return_value = None
+
+    policy, operation = scale_up_jobs(
+        MagicMock(),
+        MagicMock(),
+        "uptime_value",
+        "downtime_value",
+        "gatekeeper",
+        False,
+        True
+    )
+
+    assert operation == "no_scale"
+
+@patch('kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects', autospec=True)
+def test_scale_up_jobs_kyverno_policy_none(objects_mock):
+    api = MagicMock()
+    filter_instance_mock = objects_mock.return_value.filter.return_value
+    filter_instance_mock.get_or_none.return_value = None
+
+    policy, operation = scale_up_jobs(
+        MagicMock(),
+        MagicMock(),
+        "uptime_value",
+        "downtime_value",
+        "kyverno",
+        False,
+        True
+    )
+
+    assert operation == "no_scale"
+
+@patch('kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects', autospec=True)
+def test_scale_down_jobs_gatekeeper_policy_not_none(objects_mock):
+    api = MagicMock()
+    objects_instance_mock = objects_mock.return_value
+    objects_instance_mock.get_or_none.return_value = "Not None"
+
+    obj, operation = scale_down_jobs(
+        MagicMock(),
+        MagicMock(),
+        "uptime_value",
+        "downtime_value",
+        "gatekeeper",
+        [],
+        frozenset([re.compile("")]),
+        False,
+        True
+    )
+
+    assert operation == "no_scale"
+
+
+@patch('kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects', autospec=True)
+def test_scale_down_jobs_kyverno_policy_not_none(objects_mock):
+    api = MagicMock()
+    mock_obj = MagicMock()
+    type(mock_obj).type = PropertyMock(return_value="with-matching-labels")
+    filter_instance_mock = objects_mock.return_value.filter.return_value
+    filter_instance_mock.get_or_none.return_value = mock_obj
+
+    obj, operation = scale_down_jobs(
+        MagicMock(),
+        MagicMock(),
+        "uptime_value",
+        "downtime_value",
+        "kyverno",
+        [],
+        frozenset([re.compile(".*")]),
+        False,
+        True
+    )
+
+    assert operation == "no_scale"
+
+
+@patch('kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects', autospec=True)
+def test_scale_down_jobs_gatekeeper_policy_none(objects_mock):
+    api = MagicMock()
+    objects_instance_mock = objects_mock.return_value
+    objects_instance_mock.get_or_none.return_value = None
+
+    obj, operation = scale_down_jobs(
+        MagicMock(),
+        MagicMock(),
+        "uptime_value",
+        "downtime_value",
+        "gatekeeper",
+        [],
+        frozenset([re.compile("")]),
+        False,
+        True
+    )
+
+    assert operation == "scale_down"
+
+@patch('kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects', autospec=True)
+def test_scale_down_jobs_kyverno_policy_none(objects_mock):
+    api = MagicMock()
+    filter_instance_mock = objects_mock.return_value.filter.return_value
+    filter_instance_mock.get_or_none.return_value = None
+
+    obj, operation = scale_down_jobs(
+        MagicMock(),
+        MagicMock(),
+        "uptime_value",
+        "downtime_value",
+        "kyverno",
+        [],
+        frozenset([re.compile("")]),
+        False,
+        True
+    )
+
+    assert operation == "scale_down"
 
 def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
     api = MagicMock()
@@ -1801,6 +2046,7 @@ def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
         include_resources=include_resources,
         exclude_namespaces=[],
         exclude_deployments=[],
+        admission_controller="",
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
@@ -1876,6 +2122,7 @@ def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
         include_resources=include_resources,
         exclude_namespaces=[],
         exclude_deployments=[],
+        admission_controller="",
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
@@ -1943,6 +2190,7 @@ def test_scaler_pdb_suspend_min_available(monkeypatch):
         include_resources=include_resources,
         exclude_namespaces=[],
         exclude_deployments=[],
+        admission_controller="",
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
@@ -2018,6 +2266,7 @@ def test_scaler_pdb_unsuspend_min_available(monkeypatch):
         include_resources=include_resources,
         exclude_namespaces=[],
         exclude_deployments=[],
+        admission_controller="",
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,

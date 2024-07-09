@@ -19,6 +19,6 @@ def test_check_include_resources_invalid():
     with pytest.raises(Exception) as excinfo:
         check_include_resources("deployments,foo")
     assert (
-        "--include-resources argument should contain a subset of [cronjobs, daemonsets, deployments, horizontalpodautoscalers, poddisruptionbudgets, rollouts, scaledobjects, stacks, statefulsets]"
+        "--include-resources argument should contain a subset of [cronjobs, daemonsets, deployments, horizontalpodautoscalers, jobs, poddisruptionbudgets, rollouts, scaledobjects, stacks, statefulsets]"
         in str(excinfo.value)
     )

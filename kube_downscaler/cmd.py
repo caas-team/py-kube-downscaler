@@ -10,6 +10,7 @@ VALID_RESOURCES = frozenset(
         "horizontalpodautoscalers",
         "rollouts",
         "scaledobjects",
+        "jobs",
         "daemonsets",
         "poddisruptionbudgets",
     ]
@@ -105,5 +106,10 @@ def get_parser():
         "--matching-labels",
         default=os.getenv("MATCHING_LABELS", ""),
         help="Apply downscaling to resources with the supplied labels. This is a comma-separated list of regex patterns. This is optional, downscaling will be applied to all resources by default.",
+    )
+    parser.add_argument(
+        "--admission-controller",
+        default=os.getenv("ADMISSION_CONTROLLER", ""),
+        help="Apply downscaling to jobs using the supplied admission controller. Jobs should be included inside --include-resources if you want to use this parameter. kyverno and gatekeeper are supported.",
     )
     return parser
