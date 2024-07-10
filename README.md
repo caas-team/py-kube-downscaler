@@ -22,8 +22,11 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Notes](#notes)
   - [Configuration](#configuration)
     - [Uptime / downtime spec](#uptime--downtime-spec)
-    - [Alternative logic, based on periods](#alternative-logic-based-on-periods)
+    - [Alternative Logic, Based on Periods](#alternative-logic-based-on-periods)
     - [Command Line Options](#command-line-options)
+    - [Scaling Jobs](#scaling-jobs)
+    - [Scaling Daemonsets](#scaling-daemonset)
+    - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
   - [Contributing](#contributing)
   - [License](#license)
@@ -33,8 +36,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
 
 ## Concepts
 
-> [!NOTE] 
-> `Deployments` are interchangeable by any kind of _supported workload_ for this whole guide unless explicitly stated otherwise.
+> :memo: `Deployments` are interchangeable by any kind of _supported workload_ for this whole guide unless explicitly stated otherwise.
 >
 > The complete list of supported workload is defined [here](./kube_downscaler/scaler.py#9-14).
 
@@ -216,7 +218,7 @@ Each time specification can be in one of two formats:
     `<YYYY>-<MM>-<DD>T<HH>:<MM>:<SS>[+-]<TZHH>:<TZMM>`.
 
 
-### Alternative logic, based on periods
+### Alternative Logic, Based on Periods
 
 Instead of strict uptimes or downtimes, you can chose time periods for
 upscaling or downscaling. The time definitions are the same. In this
@@ -346,11 +348,11 @@ Available command line options:
 :   Optional: admission controller used by the kube-downscaler to downscale and upscale
     jobs. Required only if "jobs" are specified inside "--include-resources" arg. 
     Supported Admission Controllers are
-    \[gatekeeper, kyverno*\] [^1]
+    \[gatekeeper, kyverno*\] 
 
 > [!IMPORTANT] 
-> [^1]Make sure to read the dedicated section below to understand how to use the
-> --admission-controller feature correctly
+> Make sure to read the dedicated section below to understand how to use the
+> `--admission-controller` feature correctly
 
 ### Scaling Jobs
 
