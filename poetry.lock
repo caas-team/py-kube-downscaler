@@ -521,12 +521,12 @@ files = [
 
 [[package]]
 name = "new-pykube"
-version = "24.5.2"
+version = "24.7.0"
 description = "Python client library for Kubernetes"
 optional = false
 python-versions = "<4,>=3.8"
 files = [
-    {file = "new_pykube-24.5.2-py3-none-any.whl", hash = "sha256:b93074c4c8abb0e5c6fc94e1b113eff2fcbab8425a6d88b5b285dea37d324e68"},
+    {file = "new_pykube-24.7.0-py3-none-any.whl", hash = "sha256:cd2686e7d1973ce962a3fafbb5199d9ef7a95b244f9773458451f321f54413f3"},
 ]
 
 [package.dependencies]
@@ -912,4 +912,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<4"
-content-hash = "391fbe3dbf26889971a7c0cfa6cd6fcda5965b5543e3c1a68bd18f40de3d4dc7"
+content-hash = "52bb4622fbec373a460592581c81aa08192b1245e163326c5c3426621aff5925"
