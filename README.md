@@ -3,8 +3,8 @@ Python Kubernetes Downscaler
 
 This is a fork of [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler) which is no longer maintained.
 
-Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`, and/or
-`HorizontalPodAutoscalers` and `CronJobs` too !) during non-work hours.
+Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
+`HorizontalPodAutoscalers`, `DaemonSets`, `CronJobs`, `Jobs`, `PodDisruptionBudgets`, `Argo Rollouts` and `Keda ScaledObjects`  too !) during non-work hours.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -22,8 +22,11 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`, and/or
     - [Notes](#notes)
   - [Configuration](#configuration)
     - [Uptime / downtime spec](#uptime--downtime-spec)
-    - [Alternative logic, based on periods](#alternative-logic-based-on-periods)
+    - [Alternative Logic, Based on Periods](#alternative-logic-based-on-periods)
     - [Command Line Options](#command-line-options)
+    - [Scaling Jobs](#scaling-jobs)
+    - [Scaling Daemonsets](#scaling-daemonset)
+    - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
   - [Contributing](#contributing)
   - [License](#license)
@@ -152,7 +155,7 @@ nginx deployment, i.e.
   will eventually log something like:
 
 ```
-    INFO: Scaling down Deployment default/nginx from 1 to 0 replicas (uptime: Mon-Fri 09:00-17:00 America/Buenos_Aires, downtime: never)
+INFO: Scaling down Deployment default/nginx from 1 to 0 replicas (uptime: Mon-Fri 09:00-17:00 America/Buenos_Aires, downtime: never)
 ```
 
 Note that in cases where a `HorizontalPodAutoscaler` (HPA) is used along
@@ -215,7 +218,7 @@ Each time specification can be in one of two formats:
     `<YYYY>-<MM>-<DD>T<HH>:<MM>:<SS>[+-]<TZHH>:<TZMM>`.
 
 
-### Alternative logic, based on periods
+### Alternative Logic, Based on Periods
 
 Instead of strict uptimes or downtimes, you can chose time periods for
 upscaling or downscaling. The time definitions are the same. In this
@@ -266,8 +269,8 @@ Available command line options:
 
 `--include-resources`
 
-:   Downscale resources of this kind as comma separated list.
-    \[deployments, statefulsets, stacks, horizontalpodautoscalers, cronjobs, daemonsets, rollouts, scaledobjects, jobs\]
+:   Downscale resources of this kind as comma separated list. Available resources are:
+    `[deployments, statefulsets, stacks, horizontalpodautoscalers, cronjobs, daemonsets, poddisruptionbudgets, rollouts, scaledobjects, jobs]`
     (default: deployments)
 
 `--grace-period`
@@ -345,10 +348,11 @@ Available command line options:
 :   Optional: admission controller used by the kube-downscaler to downscale and upscale
     jobs. Required only if "jobs" are specified inside "--include-resources" arg. 
     Supported Admission Controllers are
-    \[gatekeeper, kyverno*\]
+    \[gatekeeper, kyverno*\] 
 
-    *Make sure to read the dedicated section below to understand how to use the
-    --admission-controller feature correctly
+> [!IMPORTANT] 
+> Make sure to read the dedicated section below to understand how to use the
+> `--admission-controller` feature correctly
 
 ### Scaling Jobs
 
@@ -401,14 +405,14 @@ these annotations at Namespace level to downscale/upscale Jobs
 
 Gatekeeper
 
-``` {.sourceCode .sh}
-kubectl delete constraints -A -l origin=kube-downscaler
+```bash
+$ kubectl delete constraints -A -l origin=kube-downscaler
 ```
 
 Kyverno
 
-``` {.sourceCode .sh}
-kubectl delete policies -A -l origin=kube-downscaler
+```bash
+$ kubectl delete policies -A -l origin=kube-downscaler
 ```
 
 ### Scaling DaemonSet
