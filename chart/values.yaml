@@ -70,6 +70,7 @@ configMapName: py-kube-downscaler
 # DEFAULT_UPTIME: "Mon-Fri 07:30-20:30 CET"
 excludedNamespaces:
   - py-kube-downscaler
+  - kube-downscaler
   - kube-system
 
 # Additional config in the configmap.
