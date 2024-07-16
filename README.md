@@ -28,6 +28,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Scaling Daemonsets](#scaling-daemonset)
     - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
+  - [Migrate From Codeberg](#migrate-from-codeberg)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -508,6 +509,22 @@ The following annotations are supported on the Namespace level:
 -   `downscaler/downtime-replicas`: overwrite the default target
     replicas to scale down to (default: zero)
 
+## Migrate From Codeberg
+
+For all users who come from the Codeberg repository (no longer maintained by the original author) 
+it is possible to migrate to this new version of the kube-downscaler by installing the Helm chart in this way:
+
+```bash
+$ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
+```
+
+or extracting and applying the template manually:
+
+```bash
+$ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
+```
+
+Installing the chart in this way will preserve the old nomenclature already present in your cluster
 
 ## Contributing
 
