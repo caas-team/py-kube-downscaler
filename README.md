@@ -354,18 +354,64 @@ Available command line options:
 > Make sure to read the dedicated section below to understand how to use the
 > `--admission-controller` feature correctly
 
-### Scaling Jobs
+### Scaling Jobs: Overview
 
-Before scaling jobs make sure the Admission Controller of your choice is correctly installed inside the cluster. 
-Kube-Downscaler performs some health checks that are displayed inside logs when the `--debug` arg is present. 
-If you are using Gatekeeper, Kube-Downscaler will install a new Custom Resource Definition
-called `kubedownscalerjobsconstraint`
+Kube Downscaler offers two possibilities for downscaling Jobs:
 
-**When using this feature you need to exclude Kyverno or Gatekeeper resources from downscaling otherwise 
-the admission controller pods won't be able to donwscale jobs.** 
-You can use `EXCLUDE_NAMESPACES` environment variable or `--exclude-namespaces` arg to exclude `"kyverno"` or `"gatekeeper-system"` namespaces. 
-To have a more fine-grained control you can use `EXCLUDE_DEPLOYMENTS` environment variable
+1) Downscaling Jobs Natively: Kube Downscaler will downscale Jobs by modifying the spec.suspend parameter 
+within the job's yaml file. The spec.suspend parameter will be set to True and the pods created by the Job 
+will be automatically deleted.
+
+2) Downscaling Jobs With Admission Controllers: Kube Downscaler will block the creation of all new Jobs using
+Admission Policies created with an Admission Controller (Kyverno or Gatekeeper, depending on the user's choice)
+
+In both cases, all Jobs created by CronJob will not be modified unless the user specifies via the
+`--include-resources` argument that they want to turn off both Jobs and CronJobs
+
+**How To Choose The Correct Mode:**
+
+1) The first mode is recommended when the Jobs created within the Cluster are few and sporadic
+
+2) The second mode is recommended when there are many Jobs created within the Cluster and they are created at very frequent intervals.
+
+it's important to note the following:
+
+The second mode is specifically designed to avoid frequent node provisioning. This is particularly relevant when KubeDownscaler
+might turn off jobs shortly after they've triggered node provisioning. If jobs trigger node provisioning but are then
+scaled down or stopped by KubeDownscaler within 30 to 60 seconds, the Cluster Autoscaler is basically doing an unnecessary 
+provisioning action because the new nodes will be scaled down shortly after as well. Frequently provisioning nodes only to
+have them become unnecessary shortly thereafter is an operation that should be minimized, as it is inefficient. 
+
+### Scaling Jobs Natively
+
+To scale down jobs natively, you only need to specify `jobs` inside the `--include-resource` argument of the Deployment
+
+### Scaling Jobs With Admission Controller
+
+Before scaling jobs with an Admission Controller make sure the Admission Controller of your choice is correctly installed inside the
+cluster. 
+At startup, Kube-Downscaler will always perform some health checks for the Admission Controller of your choiche that are 
+displayed inside logs when the argument `--debug` arg is present inside the main Deployment. 
+
+**<u>Important</u>: In order to use this feature you will need to exclude Kyverno or Gatekeeper resources from downscaling otherwise 
+the admission controller pods won't be able to block jobs.** You can use `EXCLUDE_NAMESPACES` environment variable or `--exclude-namespaces`
+arg to exclude `"kyverno"` or `"gatekeeper-system"` namespaces. 
+Alternatively `EXCLUDE_DEPLOYMENTS` environment variable
 or `--exclude-deployments` arg to exclude only certain resources inside `"kyverno"` or `"gatekeeper-system"` namespaces
+
+The workflow for blocking jobs is different if you use Gatekeeper or Kyverno, both are described below
+
+**Blocking Jobs: Gatekeeper Workflow**
+
+1) Kube-Downscaler will install a new Custom Resource Definition
+called `kubedownscalerjobsconstraint`.
+2) Kube-Downscaler will create a Constraint called "KubeDownscalerJobsConstraint" for each namespace that is not excluded
+
+**Blocking Jobs: Kyverno Workflow**
+
+1) Kube-Downscaler will create a Policy for each namespace that is not excluded
+
+All the statements below are valid for both Kyverno and Gatekeeper, unless specified otherwise
 
 **<u>Important</u>:** Jobs started from CronJobs are excluded by default unless you have included `cronjobs` inside `--include-resources` argument
 
@@ -399,7 +445,6 @@ to exclude jobs. As described above, despite their names, these variables work f
 annotations are not supported if specified directly inside the Job definition due to limitations 
 on computing days of the week inside the policies. However you can still use 
 these annotations at Namespace level to downscale/upscale Jobs 
-
 
 **Deleting Policies:** if for some reason you want to delete all resources blocking jobs, you can use these commands:
 
