@@ -132,6 +132,8 @@ def pods_force_uptime(api, namespace: str):
             return True
     return False
 
+def scale_jobs_without_admission_controller(plural, admission_controller):
+    return plural == "jobs" and admission_controller == ""
 
 def is_stack_deployment(resource: NamespacedAPIObject) -> bool:
     if resource.kind == Deployment.kind and resource.version == Deployment.version:
@@ -195,7 +197,7 @@ def ignore_resource(resource: NamespacedAPIObject, now: datetime.datetime) -> bo
 def get_replicas(
     resource: NamespacedAPIObject, original_replicas: Optional[int], uptime: str
 ) -> int:
-    if resource.kind == "CronJob":
+    if resource.kind in ["CronJob", "Job"]:
         suspended = resource.obj["spec"]["suspend"]
         replicas = 0 if suspended else 1
         state = "suspended" if suspended else "not suspended"
@@ -397,12 +399,12 @@ def scale_up(
             f"Unsuspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
         event_message = "Unsuspending DaemonSet"
-    elif resource.kind == "CronJob":
+    elif resource.kind in ["CronJob", "Job"]:
         resource.obj["spec"]["suspend"] = False
         logger.info(
             f"Unsuspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
-        event_message = "Unsuspending CronJob"
+        event_message = f"Unsuspending {resource.kind}"
     elif resource.kind == "PodDisruptionBudget":
         if "minAvailable" in resource.obj["spec"]:
             resource.obj["spec"]["minAvailable"] = original_replicas
@@ -468,12 +470,12 @@ def scale_down(
             f"Suspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
         event_message = "Suspending DaemonSet"
-    elif resource.kind == "CronJob":
+    elif resource.kind in ["CronJob", "Job"]:
         resource.obj["spec"]["suspend"] = True
         logger.info(
             f"Suspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
-        event_message = "Suspending CronJob"
+        event_message = f"Suspending {resource.kind}"
     elif resource.kind == "PodDisruptionBudget":
         if "minAvailable" in resource.obj["spec"]:
             resource.obj["spec"]["minAvailable"] = target_replicas
@@ -836,6 +838,11 @@ def autoscale_resources(
                     f"{resource.kind} {resource.namespace}/{resource.name} was excluded (name matches exclusion list)"
                 )
                 continue
+            if resource.kind == 'Job' and 'ownerReferences' in resource.metadata:
+                logger.debug(
+                    f"{resource.kind} {resource.namespace}/{resource.name} was excluded (Job with ownerReferences)"
+                )
+                continue
             resources_by_namespace[resource.namespace].append(resource)
     except requests.HTTPError as e:
         if e.response.status_code == 404:
@@ -1165,7 +1172,7 @@ def scale(
     for clazz in RESOURCE_CLASSES:
         plural = clazz.endpoint
         if plural in include_resources:
-            if plural != "jobs":
+            if scale_jobs_without_admission_controller(plural, admission_controller) or plural != "jobs":
                 autoscale_resources(
                     api,
                     clazz,
