@@ -1062,6 +1062,63 @@ def test_scaler_job_suspend_without_admission_controller(monkeypatch):
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 
+def test_scaler_job_suspend_without_admission_controller_with_owner_reference(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "jobs":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "job-1",
+                            "namespace": "default",
+                            "creationTimestamp": "2019-03-01T16:38:00Z",
+                            "ownerReferences": "cron-job-1"
+                        },
+                        "spec": {"suspend": False},
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+            # data = {'metadata': {}}
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["jobs"])
+    scale(
+        namespace=None,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        dry_run=False,
+        grace_period=300,
+        admission_controller="",
+        downtime_replicas=0,
+        enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert api.patch.call_count == 0
 
 def test_scaler_job_unsuspend_without_admission_controller(monkeypatch):
     api = MagicMock()
