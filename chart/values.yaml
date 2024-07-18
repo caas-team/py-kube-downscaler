@@ -14,10 +14,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 constraintedDownscaler: false
-constraintedNamespaces:
-  - test
-  - test2
-  - test3
+constraintedNamespaces: []
 
 serviceAccount:
   # Specifies whether a service account should be created
