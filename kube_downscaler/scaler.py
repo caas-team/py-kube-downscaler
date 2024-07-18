@@ -1049,7 +1049,7 @@ def kyverno_healthy(api):
         return True
 def autoscale_jobs(
         api,
-        namespace: str,
+        namespace: FrozenSet[str],
         exclude_namespaces: FrozenSet[Pattern],
         upscale_period: str,
         downscale_period: str,
@@ -1083,8 +1083,8 @@ def autoscale_jobs(
             logging.error("unable to scale jobs")
             return
 
-        if namespace is not None:
-            namespace_list = [namespace]
+        if len(namespace) >= 1:
+            namespace_list = namespace
         else:
             namespace_list = list(Namespace.objects(api).iterator())
 
