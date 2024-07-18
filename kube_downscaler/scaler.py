@@ -132,8 +132,8 @@ def pods_force_uptime(api, namespace: str):
             return True
     return False
 
-def scale_jobs_without_admission_controller(plural, admission_controller):
-    return plural == "jobs" and admission_controller == ""
+def scale_jobs_without_admission_controller(plural, admission_controller, constrainted_downscaler):
+    return (plural == "jobs" and admission_controller == "") or constrainted_downscaler
 
 def is_stack_deployment(resource: NamespacedAPIObject) -> bool:
     if resource.kind == Deployment.kind and resource.version == Deployment.version:
@@ -823,6 +823,7 @@ def autoscale_resources(
     default_uptime: str,
     default_downtime: str,
     forced_uptime: bool,
+    constrainted_downscaler: bool,
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int,
@@ -1159,6 +1160,7 @@ def scale(
     dry_run: bool,
     grace_period: int,
     admission_controller: str,
+    constrainted_downscaler: bool,
     downtime_replicas: int = 0,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
@@ -1172,7 +1174,7 @@ def scale(
     for clazz in RESOURCE_CLASSES:
         plural = clazz.endpoint
         if plural in include_resources:
-            if scale_jobs_without_admission_controller(plural, admission_controller) or plural != "jobs":
+            if scale_jobs_without_admission_controller(plural, admission_controller, constrainted_downscaler) or plural != "jobs":
                 autoscale_resources(
                     api,
                     clazz,
@@ -1185,6 +1187,7 @@ def scale(
                     default_uptime,
                     default_downtime,
                     forced_uptime,
+                    constrainted_downscaler,
                     dry_run,
                     now,
                     grace_period,
