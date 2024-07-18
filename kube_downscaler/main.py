@@ -75,6 +75,11 @@ def run_loop(
     else:
         namespace_list = frozenset(include_resources.split(","))
 
+    if len(namespace_list) >= 1:
+        constrainted_downscaler = True
+    else:
+        constrainted_downscaler = False
+
     while True:
         try:
             scale(
