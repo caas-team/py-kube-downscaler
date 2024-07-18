@@ -122,15 +122,40 @@ def within_grace_period_namespace(
     delta = now - update_time
     return delta.total_seconds() <= grace_period
 
-def pods_force_uptime(api, namespace: str):
+def pods_force_uptime(api, namespace: FrozenSet[str]):
     """Return True if there are any running pods which require the deployments to be scaled back up."""
-    for pod in pykube.Pod.objects(api).filter(namespace=(namespace or pykube.all)):
+    pods = get_pod_resources(api, namespace)
+
+    for pod in pods:
         if pod.obj.get("status", {}).get("phase") in ("Succeeded", "Failed"):
             continue
         if pod.annotations.get(FORCE_UPTIME_ANNOTATION, "").lower() == "true":
             logger.info(f"Forced uptime because of {pod.namespace}/{pod.name}")
             return True
     return False
+
+def get_pod_resources(api, namespace: FrozenSet[str]):
+    if len(namespace) >= 1:
+        pods = []
+        for namespace in namespace_list:
+            pods_query_result = pykube.Pod.objects(api).filter(namespace=(namespace or pykube.all))
+            pods += pods_query_result
+    else:
+        pods = pykube.Pod.objects(api).filter(namespace=pykube.all)
+
+    return pods;
+
+def get_resources(kind, api, namespace: FrozenSet[str]):
+    if len(namespace) >= 1:
+        resources = []
+        for namespace in namespace_list:
+            resources_inside_namespace = kind.objects(api, namespace=namespace)
+            resources += resources_inside_namespace
+    else:
+        resources = kind.objects(api, namespace=pykube.all)
+
+    return resources;
+
 
 def scale_jobs_without_admission_controller(plural, admission_controller, constrainted_downscaler):
     return (plural == "jobs" and admission_controller == "") or constrainted_downscaler
@@ -814,7 +839,7 @@ def autoscale_resource(
 def autoscale_resources(
     api,
     kind,
-    namespace: str,
+    namespace: FrozenSet[Pattern],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_names: FrozenSet[str],
     matching_labels: FrozenSet[Pattern],
@@ -832,8 +857,10 @@ def autoscale_resources(
     enable_events: bool = False,
 ):
     resources_by_namespace = collections.defaultdict(list)
+    resources = get_resources(kind, api, namespace)
+
     try:
-        for resource in kind.objects(api, namespace=(namespace or pykube.all)):
+        for resource in resources:
             if resource.name in exclude_names:
                 logger.debug(
                     f"{resource.kind} {resource.namespace}/{resource.name} was excluded (name matches exclusion list)"
@@ -852,6 +879,8 @@ def autoscale_resources(
             )
         else:
             raise e
+
+
 
     for current_namespace, resources in sorted(resources_by_namespace.items()):
         if any(
@@ -1149,7 +1178,7 @@ def autoscale_jobs(
             )
 
 def scale(
-    namespace: str,
+    namespace: FrozenSet[str],
     upscale_period: str,
     downscale_period: str,
     default_uptime: str,

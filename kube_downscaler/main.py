@@ -69,10 +69,16 @@ def run_loop(
     enable_events=False,
 ):
     handler = shutdown.GracefulShutdown()
+
+    if namespace == "":
+        namespace_list = []
+    else:
+        namespace_list = frozenset(include_resources.split(","))
+
     while True:
         try:
             scale(
-                namespace,
+                namespace_list,
                 upscale_period,
                 downscale_period,
                 default_uptime,
