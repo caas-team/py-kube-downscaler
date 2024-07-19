@@ -68,6 +68,91 @@ def test_scaler_always_up(monkeypatch):
 
     api.patch.assert_not_called()
 
+def test_scaler_namespace_included(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "deployments":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "deploy-2",
+                            "namespace": "default",
+                            "creationTimestamp": "2019-03-01T16:38:00Z",
+                        },
+                        "spec": {"replicas": 2},
+                    },
+                    {
+                        "metadata": {
+                            "name": "sysdep-1",
+                            "namespace": "system-ns",
+                            "creationTimestamp": "2019-03-01T16:38:00Z",
+                        },
+                        "spec": {"replicas": 1},
+                    },
+                ]
+            }
+        elif url == "namespaces/system-ns":
+            data = {"metadata": {}}
+        elif url == "namespaces/default":
+            data = {"metadata": {}}
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["deployments"])
+    scale(
+        constrainted_downscaler=True,
+        namespace=frozenset(["system-ns"]),
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        dry_run=False,
+        matching_labels=frozenset([re.compile("")]),
+        grace_period=300,
+        admission_controller="",
+        downtime_replicas=0,
+        enable_events=False,
+    )
+
+    # Ensure two patch operations were performed
+    assert api.patch.call_count == 1
+
+    # Print details of the API calls made
+    for call in api.patch.call_args_list:
+        print("API Call:")
+        print(f"URL: {call[1]['url']}")
+        print(f"Data: {json.loads(call[1]['data'])}")
+
+    # Ensure that deploy-2 was updated (namespace of deploy-2 was not included)
+    patch_data_sysdep_1 = {
+        "metadata": {
+            "name": "sysdep-1",
+            "namespace": "system-ns",
+            "creationTimestamp": "2019-03-01T16:38:00Z",
+            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"},
+        },
+        "spec": {"replicas": 0},
+    }
+
+    assert api.patch.call_args_list[0][1]["url"] == "/deployments/sysdep-1"
+    assert json.loads(api.patch.call_args_list[0][1]["data"]) == patch_data_sysdep_1
+
 
 def test_scaler_namespace_excluded(monkeypatch):
     api = MagicMock()

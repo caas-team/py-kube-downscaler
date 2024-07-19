@@ -3,6 +3,7 @@ import datetime
 import logging
 import time
 import requests
+import re
 from typing import FrozenSet
 from typing import Optional
 from typing import Pattern
@@ -155,9 +156,31 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
 
     return pods;
 
-def get_resources(kind, api, namespaces: FrozenSet[str]):
+
+def create_excluded_namespaces_regex(namespaces: FrozenSet[str]):
+    # Ensure the input is a FrozenSet of strings
+    if not isinstance(namespaces, FrozenSet):
+        raise TypeError("namespaces must be of type FrozenSet[str]")
+    if not all(isinstance(ns, str) for ns in namespaces):
+        raise TypeError("All elements of namespaces must be strings")
+
+    # Escape special regex characters in each namespace name
+    escaped_namespaces = [re.escape(ns) for ns in namespaces]
+
+    # Combine the escaped names into a single alternation pattern
+    combined_pattern = '|'.join(escaped_namespaces)
+
+    # Create a regex pattern that matches any string not exactly one of the namespaces
+    excluded_pattern = f'^(?!{combined_pattern}$).+'
+
+    # Compile and return the regex pattern
+    return [re.compile(excluded_pattern)]
+
+
+def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
     if len(namespaces) >= 1:
         resources = []
+        excluded_namespaces = create_excluded_namespaces_regex(namespaces)
         for namespace in namespaces:
             try:
                 resources_inside_namespace = kind.objects(api, namespace=namespace)
@@ -174,7 +197,7 @@ def get_resources(kind, api, namespaces: FrozenSet[str]):
     else:
         resources = kind.objects(api, namespace=pykube.all)
 
-    return resources;
+    return resources, excluded_namespaces;
 
 
 def scale_jobs_without_admission_controller(plural, admission_controller, constrainted_downscaler):
@@ -877,10 +900,9 @@ def autoscale_resources(
     enable_events: bool = False,
 ):
     resources_by_namespace = collections.defaultdict(list)
-    resources = get_resources(kind, api, namespace)
+    resources, exclude_namespaces = get_resources(kind, api, namespace, exclude_namespaces)
 
     try:
-        #get_resources will return a list of resources of a given kubernetes type (deployments, statefulsets, etc...)
         for resource in resources:
             if resource.name in exclude_names:
                 logger.debug(
