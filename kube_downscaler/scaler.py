@@ -173,6 +173,8 @@ def create_excluded_namespaces_regex(namespaces: FrozenSet[str]):
     # Create a regex pattern that matches any string not exactly one of the namespaces
     excluded_pattern = f'^(?!{combined_pattern}$).+'
 
+    logging.info("--namespace arg is not empty the --exclude-namespaces argument was modified to the following regex pattern: " + excluded_pattern)
+
     # Compile and return the regex pattern
     return [re.compile(excluded_pattern)]
 
