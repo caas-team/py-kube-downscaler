@@ -22,6 +22,9 @@ spec:
         image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
         args:
         {{- toYaml .Values.arguments | nindent 8 }}
+        {{- if .Values.constraintedDownscaler }}
+        - --constrainted-downscaler
+        {{- end }}
         envFrom:
         - configMapRef:
             name: {{ .Values.configMapName }}
