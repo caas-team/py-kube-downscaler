@@ -134,23 +134,43 @@ def pods_force_uptime(api, namespace: FrozenSet[str]):
             return True
     return False
 
-def get_pod_resources(api, namespace: FrozenSet[str]):
-    if len(namespace) >= 1:
+def get_pod_resources(api, namespaces: FrozenSet[str]):
+    if len(namespaces) >= 1:
         pods = []
-        for namespace in namespace_list:
-            pods_query_result = pykube.Pod.objects(api).filter(namespace=(namespace or pykube.all))
-            pods += pods_query_result
+        for namespace in namespaces:
+            try:
+                pods_query_result = pykube.Pod.objects(api).filter(namespace=namespace)
+                pods += pods_query_result
+            except requests.HTTPError as e:
+                if e.response.status_code == 403:
+                    logger.error(
+                        f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
+                        f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
+                        f"The RoleBinding should be linked to the KubeDownscaler Service Account."
+                    )
+                else:
+                    raise e
     else:
         pods = pykube.Pod.objects(api).filter(namespace=pykube.all)
 
     return pods;
 
-def get_resources(kind, api, namespace: FrozenSet[str]):
-    if len(namespace) >= 1:
+def get_resources(kind, api, namespaces: FrozenSet[str]):
+    if len(namespaces) >= 1:
         resources = []
-        for namespace in namespace_list:
-            resources_inside_namespace = kind.objects(api, namespace=namespace)
-            resources += resources_inside_namespace
+        for namespace in namespaces:
+            try:
+                resources_inside_namespace = kind.objects(api, namespace=namespace)
+                resources += resources_inside_namespace
+            except requests.HTTPError as e:
+                if e.response.status_code == 403:
+                    logger.error(
+                        f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
+                        f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
+                        f"The RoleBinding should be linked to the KubeDownscaler Service Account."
+                    )
+                else:
+                    raise e
     else:
         resources = kind.objects(api, namespace=pykube.all)
 
@@ -860,6 +880,7 @@ def autoscale_resources(
     resources = get_resources(kind, api, namespace)
 
     try:
+        #get_resources will return a list of resources of a given kubernetes type (deployments, statefulsets, etc...)
         for resource in resources:
             if resource.name in exclude_names:
                 logger.debug(

@@ -73,7 +73,7 @@ def run_loop(
     if namespace == "":
         namespace_list = []
     else:
-        namespace_list = frozenset(include_resources.split(","))
+        namespace_list = frozenset(namespace.split(","))
 
     if len(namespace_list) >= 1:
         constrainted_downscaler = True
