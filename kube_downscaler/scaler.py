@@ -148,7 +148,7 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
                         f"No {kind.endpoint} found in namespace {namespace} (404)"
                     )
                 if e.response.status_code == 403:
-                    logger.error(
+                    logger.warning(
                         f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
                         f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
                         f"The RoleBinding should be linked to the KubeDownscaler Service Account."
@@ -156,7 +156,15 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
                 else:
                     raise e
     else:
-        pods = pykube.Pod.objects(api).filter(namespace=pykube.all)
+        try:
+            pods = pykube.Pod.objects(api).filter(namespace=pykube.all)
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                logger.warning(
+                    f"KubeDownscaler is not authorized to perform a cluster wide query to retrieve Pods (403)"
+                )
+            else:
+                raise e
 
     return pods;
 
@@ -197,7 +205,7 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
                         f"No {kind.endpoint} found in namespace {namespace} (404)"
                     )
                 if e.response.status_code == 403:
-                    logger.error(
+                    logger.warning(
                         f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
                         f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
                         f"The RoleBinding should be linked to the KubeDownscaler Service Account."
@@ -205,7 +213,15 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
                 else:
                     raise e
     else:
-        resources = kind.objects(api, namespace=pykube.all)
+        try:
+            resources = kind.objects(api, namespace=pykube.all)
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                logger.warning(
+                    f"KubeDownscaler is not authorized to perform a cluster wide query to retrieve {kind.endpoint} (403)"
+                )
+            else:
+                raise e
 
     return resources, excluded_namespaces;
 
