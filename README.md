@@ -618,7 +618,12 @@ The following annotations are supported on the Namespace level:
 ## Migrate From Codeberg
 
 For all users who come from the Codeberg repository (no longer maintained by the original author) 
-it is possible to migrate to this new version of the kube-downscaler by installing the Helm chart in this way:
+it is possible to migrate to this new version of the kube-downscaler by installing the Helm chart in these ways that will
+preserve the old nomenclature already present inside your cluster
+
+### Migrate From Codeberg - Cluster Wide Installation
+
+Read [Installation](#installation) section to understand what is meant for **Cluster Wide Installation**
 
 ```bash
 $ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
@@ -630,7 +635,19 @@ or extracting and applying the template manually:
 $ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
 ```
 
-Installing the chart in this way will preserve the old nomenclature already present in your cluster
+### Migrate From Codeberg - Limited Access Installation
+
+Read [Installation](#installation) section to understand what is meant for **Limited Access Installation**
+
+```bash
+$ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constraintedDownscaler=true --set "constraintedNamespaces={namespace1,namespace2,namespace3}"
+```
+
+or extracting and applying the template manually:
+
+```bash
+$ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constraintedDownscaler=true --set "constraintedNamespaces={namespace1,namespace2,namespace3}"
+```
 
 ## Contributing
 
