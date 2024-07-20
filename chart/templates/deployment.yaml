@@ -23,8 +23,8 @@ spec:
         image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
         args:
         {{- toYaml .Values.arguments | nindent 8 }}
-        {{- if .Values.constraintedDownscaler }}
-        - --namespace={{ join "," .Values.constraintedNamespaces }}
+        {{- if .Values.constrainedDownscaler }}
+        - --namespace={{ join "," .Values.constrainedNamespaces }}
         {{- end }}
         envFrom:
         - configMapRef:

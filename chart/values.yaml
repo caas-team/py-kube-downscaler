@@ -13,8 +13,8 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-constraintedDownscaler: false
-constraintedNamespaces: []
+constrainedDownscaler: false
+constrainedNamespaces: []
 
 serviceAccount:
   # Specifies whether a service account should be created

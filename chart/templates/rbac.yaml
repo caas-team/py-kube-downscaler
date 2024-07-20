@@ -4,15 +4,15 @@ metadata:
   name: {{ include "py-kube-downscaler.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
 ---
-{{- if .Values.constraintedDownscaler }}
-{{- if not .Values.constraintedNamespaces }}
-{{- fail "Error: 'constraintedNamespaces' must not be empty or null when 'constraintedDownscaler' is true." }}
+{{- if .Values.constrainedDownscaler }}
+{{- if not .Values.constrainedNamespaces }}
+{{- fail "Error: 'constrainedNamespaces' must not be empty or null when 'constrainedDownscaler' is true." }}
 {{- end }}
 
 {{- $releaseNamespace := .Release.Namespace }}
 {{- $name := include "py-kube-downscaler.name" . }}
 {{- $serviceAccountName := include "py-kube-downscaler.serviceAccountName" . }}
-{{- range $namespace := .Values.constraintedNamespaces }}
+{{- range $namespace := .Values.constrainedNamespaces }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
