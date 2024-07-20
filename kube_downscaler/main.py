@@ -74,9 +74,9 @@ def run_loop(
         namespaces = frozenset(namespace.split(","))
 
     if len(namespaces) >= 1:
-        constrainted_downscaler = True
+        constrained_downscaler = True
     else:
-        constrainted_downscaler = False
+        constrained_downscaler = False
 
     while True:
         try:
@@ -94,7 +94,7 @@ def run_loop(
                 dry_run=dry_run,
                 grace_period=grace_period,
                 admission_controller=admission_controller,
-                constrainted_downscaler=constrainted_downscaler,
+                constrained_downscaler=constrained_downscaler,
                 downtime_replicas=downtime_replicas,
                 deployment_time_annotation=deployment_time_annotation,
                 enable_events=enable_events,

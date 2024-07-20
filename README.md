@@ -27,6 +27,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Uptime / downtime spec](#uptime--downtime-spec)
     - [Alternative Logic, Based on Periods](#alternative-logic-based-on-periods)
     - [Command Line Options](#command-line-options)
+    - [Constrained Mode (Limited Access Mode)](#constrained-mode-limited-access-mode)
     - [Scaling Jobs: Overview](#scaling-jobs-overview)
     - [Scaling Jobs Natively](#scaling-jobs-natively)
     - [Scaling Jobs With Admission Controller](#scaling-jobs-with-admission-controller)
