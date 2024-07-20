@@ -143,6 +143,10 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
                 pods_query_result = pykube.Pod.objects(api).filter(namespace=namespace)
                 pods += pods_query_result
             except requests.HTTPError as e:
+                if e.response.status_code == 404:
+                    logger.debug(
+                        f"No {kind.endpoint} found in namespace {namespace} (404)"
+                    )
                 if e.response.status_code == 403:
                     logger.error(
                         f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
@@ -188,6 +192,10 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
                 resources_inside_namespace = kind.objects(api, namespace=namespace)
                 resources += resources_inside_namespace
             except requests.HTTPError as e:
+                if e.response.status_code == 404:
+                    logger.debug(
+                        f"No {kind.endpoint} found in namespace {namespace} (404)"
+                    )
                 if e.response.status_code == 403:
                     logger.error(
                         f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
