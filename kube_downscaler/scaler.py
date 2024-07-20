@@ -1102,7 +1102,7 @@ def kyverno_healthy(api):
         return True
 def autoscale_jobs(
         api,
-        namespace: FrozenSet[str],
+        namespaces: FrozenSet[str],
         exclude_namespaces: FrozenSet[Pattern],
         upscale_period: str,
         downscale_period: str,
@@ -1136,17 +1136,17 @@ def autoscale_jobs(
             logging.error("unable to scale jobs")
             return
 
-        if len(namespace) >= 1:
-            namespace_list = namespace
+        if len(namespaces) >= 1:
+            namespaces = namespaces
         else:
-            namespace_list = list(Namespace.objects(api).iterator())
+            namespaces = list(Namespace.objects(api).iterator())
 
         excluded_jobs = []
 
         for name in exclude_names:
             excluded_jobs.append(name)
 
-        for current_namespace in namespace_list:
+        for current_namespace in namespaces:
 
             if any(
                     [pattern.fullmatch(current_namespace.name) for pattern in exclude_namespaces]
@@ -1231,7 +1231,7 @@ def autoscale_jobs(
             )
 
 def scale(
-    namespace: FrozenSet[str],
+    namespaces: FrozenSet[str],
     upscale_period: str,
     downscale_period: str,
     default_uptime: str,
@@ -1251,7 +1251,7 @@ def scale(
     api = helper.get_kube_api()
 
     now = datetime.datetime.now(datetime.timezone.utc)
-    forced_uptime = pods_force_uptime(api, namespace)
+    forced_uptime = pods_force_uptime(api, namespaces)
 
     for clazz in RESOURCE_CLASSES:
         plural = clazz.endpoint
@@ -1260,7 +1260,7 @@ def scale(
                 autoscale_resources(
                     api,
                     clazz,
-                    namespace,
+                    namespaces,
                     exclude_namespaces,
                     exclude_deployments,
                     matching_labels,
@@ -1280,7 +1280,7 @@ def scale(
             else:
                 autoscale_jobs(
                     api,
-                    namespace,
+                    namespaces,
                     exclude_namespaces,
                     upscale_period,
                     downscale_period,

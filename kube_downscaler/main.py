@@ -71,19 +71,15 @@ def run_loop(
     handler = shutdown.GracefulShutdown()
 
     if namespace == "":
-        namespace_list = []
+        namespaces = []
     else:
-        namespace_list = frozenset(namespace.split(","))
+        namespaces = frozenset(namespace.split(","))
 
-    if len(namespace_list) >= 1:
-        constrainted_downscaler = True
-    else:
-        constrainted_downscaler = False
 
     while True:
         try:
             scale(
-                namespace_list,
+                namespaces,
                 upscale_period,
                 downscale_period,
                 default_uptime,

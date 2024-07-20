@@ -51,7 +51,7 @@ def test_scaler_always_up(monkeypatch):
     include_resources = frozenset(["statefulsets", "deployments", "stacks", "cronjobs"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -114,7 +114,7 @@ def test_scaler_namespace_included(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=True,
-        namespace=frozenset(["system-ns"]),
+        namespaces=frozenset(["system-ns"]),
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -198,7 +198,7 @@ def test_scaler_namespace_excluded(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -274,7 +274,7 @@ def test_scaler_namespace_excluded_regex(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -356,7 +356,7 @@ def test_scaler_namespace_excluded_via_annotation(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -429,7 +429,7 @@ def test_scaler_down_to(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -495,7 +495,7 @@ def test_scaler_down_to_upscale(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -559,7 +559,7 @@ def test_scaler_upscale_on_exclude(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -625,7 +625,7 @@ def test_scaler_upscale_on_exclude_namespace(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -688,7 +688,7 @@ def test_scaler_always_upscale(monkeypatch):
     include_resources = frozenset(["statefulsets", "deployments", "stacks"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="always",
         downscale_period="never",
         default_uptime="never",
@@ -747,7 +747,7 @@ def test_scaler_namespace_annotation_replicas(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -811,7 +811,7 @@ def test_scaler_daemonset_suspend(monkeypatch):
     include_resources = frozenset(["daemonsets"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -904,7 +904,7 @@ def test_scaler_daemonset_unsuspend(monkeypatch):
     include_resources = frozenset(["daemonsets"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -983,7 +983,7 @@ def test_scaler_cronjob_suspend(monkeypatch):
     include_resources = frozenset(["cronjobs"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1062,7 +1062,7 @@ def test_scaler_cronjob_unsuspend(monkeypatch):
     include_resources = frozenset(["cronjobs"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1132,7 +1132,7 @@ def test_scaler_job_suspend_without_admission_controller(monkeypatch):
     include_resources = frozenset(["jobs"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1203,7 +1203,7 @@ def test_scaler_job_suspend_without_admission_controller_with_owner_reference(mo
     include_resources = frozenset(["jobs"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1269,7 +1269,7 @@ def test_scaler_job_unsuspend_without_admission_controller(monkeypatch):
     include_resources = frozenset(["jobs"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1336,7 +1336,7 @@ def test_scaler_downscale_period_no_error(monkeypatch, caplog):
     include_resources = frozenset(["cronjobs"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="Mon-Tue 19:00-19:00 UTC",
         default_uptime="always",
@@ -1418,7 +1418,7 @@ def test_scaler_deployment_excluded_until(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1501,7 +1501,7 @@ def test_scaler_namespace_excluded_until(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1576,7 +1576,7 @@ def test_scaler_name_excluded(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1642,7 +1642,7 @@ def test_scaler_namespace_force_uptime_true(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1695,7 +1695,7 @@ def test_scaler_namespace_force_uptime_false(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1812,7 +1812,7 @@ def test_scaler_namespace_force_uptime_period(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1874,7 +1874,7 @@ def test_scaler_namespace_force_downtime_true(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -1927,7 +1927,7 @@ def test_scaler_namespace_force_downtime_false(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -1987,7 +1987,7 @@ def test_scaler_namespace_force_uptime_and_downtime_true(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -2081,7 +2081,7 @@ def test_scaler_namespace_force_downtime_period(monkeypatch):
     include_resources = frozenset(["deployments"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -2112,7 +2112,7 @@ def test_autoscale_jobs_gatekeeper_not_installed(
 
     autoscale_jobs(
         api=None,
-        namespace="test-namespace",
+        namespaces=["test-namespace"],
         exclude_namespaces=set(),
         upscale_period="never",
         downscale_period="never",
@@ -2144,7 +2144,7 @@ def test_autoscale_jobs_invented_admission_controller(
 
     autoscale_jobs(
         api=None,
-        namespace="test-namespace",
+        namespaces=["test-namespace"],
         exclude_namespaces=set(),
         upscale_period="never",
         downscale_period="never",
@@ -2355,7 +2355,7 @@ def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
     include_resources = frozenset(["poddisruptionbudgets"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -2432,7 +2432,7 @@ def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
     include_resources = frozenset(["poddisruptionbudgets"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -2501,7 +2501,7 @@ def test_scaler_pdb_suspend_min_available(monkeypatch):
     include_resources = frozenset(["poddisruptionbudgets"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -2578,7 +2578,7 @@ def test_scaler_pdb_unsuspend_min_available(monkeypatch):
     include_resources = frozenset(["poddisruptionbudgets"])
     scale(
         constrainted_downscaler=False,
-        namespace=[],
+        namespaces=[],
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
