@@ -332,7 +332,7 @@ Available command line options:
 
 > [!IMPORTANT] 
 > It's strongly not advised to use this argument in a Cluster
-> Wide Access installation, see the [Constrained Mode](#constrained-mode) section
+> Wide Access installation, see the [Constrained Mode](#constrained-mode-limited-access-mode) section
 
 `--include-resources`
 
@@ -422,17 +422,19 @@ Available command line options:
 > Make sure to read the [Scaling Jobs With Admission Controller](#scaling-jobs-with-admission-controller) section
 > to understand how to use the `--admission-controller` feature correctly
 
-### Constrained Mode
+### Constrained Mode (Limited Access Mode)
 
 The Constrained Mode (also known as Limited Access Mode) is designed for users who do not have full cluster access. 
 It is automatically activated when the `--namespace` argument is specified. 
 This mode utilizes a different set of API calls optimized for environments where users cannot deploy ClusterRole and ClusterRoleBinding.
-Additionally, this mode disables the ability to scale Jobs via Admission Controllers since the Admission Controller feature require Full
+Additionally, this mode disables the ability to scale Jobs via Admission Controllers since the 
+"[Scaling Jobs With Admission Controllers](#scaling-jobs-with-admission-controller)" feature requires Full
 Cluster Access to operate.
 
 If you are installing KubeDownscaler with full cluster access, 
-it is strongly recommended to use the `--exclude-namespaces` parameter instead of `--namespace`. Using --namespace
-in a full-access installation will make API calls less efficient and will disable the ability to scale Jobs with Admission Controllers.
+it is strongly recommended to use the `--exclude-namespaces` parameter instead of `--namespace`. Using `--namespace`
+in a cluster wide access installation will make API calls less efficient and 
+will disable the ability to scale Jobs with Admission Controllers for the reason specified above.
 
 ### Scaling Jobs: Overview
 
@@ -482,7 +484,7 @@ or `--exclude-deployments` arg to exclude only certain resources inside `"kyvern
 **<u>Important</u>**: `--admission-controller` argument won't take effect if used in conjunction with --namespace argument.
 if you specified `jobs` inside the `--include-resources` argument KubeDonwscaler will 
 still [downscale jobs natively](#scaling-jobs-natively).
-Please read the [Constrained Mode](#constrained-mode) section to understand why
+Please read the [Constrained Mode](#constrained-mode-limited-access-mode) section to understand why
 
 The workflow for blocking jobs is different if you use Gatekeeper or Kyverno, both are described below
 
