@@ -225,13 +225,13 @@ It is possible to further customize it by changing the parameters present in the
 **RBAC-Prerequisite**: This installation mode requires permission to deploy Service Account, Role and RoleBinding
 
 The Limited Access installation requires the user to fill the following parameters inside values.yaml
-- **constraintedDownscaler**: true (mandatory)
-- **constraintedNamespaces**: [namespace1,namespace2,namespace3,...] (list of namespaces - mandatory)
+- **constrainedDownscaler**: true (mandatory)
+- **constrainedNamespaces**: [namespace1,namespace2,namespace3,...] (list of namespaces - mandatory)
 
 It is also recommended to explicitly set the namespace where KubeDownscaler will be installed
 
 ```bash
-$ helm install py-kube-downscaler py-kube-downscaler/py-kube-downscaler --namespace my-release-namespace --set constraintedDownscaler=true --set "constraintedNamespaces={namespace1,namespace2,namespace3}"
+$ helm install py-kube-downscaler py-kube-downscaler/py-kube-downscaler --namespace my-release-namespace --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
 ```
 
 This command will deploy:
@@ -240,7 +240,7 @@ This command will deploy:
 - **ConfigMap**: used to supply parameters to the deployment
 - **ServiceAccount**: represents the Cluster Idenity of the KubeDownscaler
 
-For each namespace inside constraintedNamespaces, the chart will deploy
+For each namespace inside constrainedNamespaces, the chart will deploy
 
 - **Role**: needed to access all the resources that can be modified by the KubeDownscaler (inside that namespace)
 - **RoleBinding**: links the ServiceAccount used by KubeDownscaler to the Role inside that namespace
@@ -668,13 +668,13 @@ $ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set name
 Read [Installation](#installation) section to understand what is meant for **Limited Access Installation**
 
 ```bash
-$ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constraintedDownscaler=true --set "constraintedNamespaces={namespace1,namespace2,namespace3}"
+$ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
 ```
 
 or extracting and applying the template manually:
 
 ```bash
-$ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constraintedDownscaler=true --set "constraintedNamespaces={namespace1,namespace2,namespace3}"
+$ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
 ```
 
 ## Contributing
