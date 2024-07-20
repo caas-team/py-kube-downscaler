@@ -324,12 +324,14 @@ Available command line options:
 
 `--namespace`
 
-:   Restrict the downscaler to work only in targeted namespaces (default:
+:   Restrict the downscaler to work only in some namespaces (default:
     all namespaces). This is mainly useful for deployment scenarios
     where the deployer of py-kube-downscaler only has access to some
-    namespaces (instead of cluster access). If used simultaneously with
+    namespaces (instead of cluster wide access). If used simultaneously with
     `--exclude-namespaces`, `--namespace` will take precedence overriding 
-    its value. 
+    its value. This argument takes a comma separated list of namespaces
+   (example: --namespace=default,test-namespace1,test-namespace2)
+
 
 > [!IMPORTANT] 
 > It's strongly not advised to use this argument in a Cluster
