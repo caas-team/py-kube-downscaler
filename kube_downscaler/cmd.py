@@ -39,9 +39,6 @@ def get_parser():
         "--debug", "-d", help="Debug mode: print more information", action="store_true"
     )
     parser.add_argument(
-        "--constrainted-downscaler", help="Run downscaler only on constrainted namespaces, api calls will not be cluster wide", action="store_true"
-    )
-    parser.add_argument(
         "--once", help="Run loop only once and exit", action="store_true"
     )
     parser.add_argument(

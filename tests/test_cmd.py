@@ -10,12 +10,6 @@ def test_parse_args():
 
     assert config.dry_run
 
-def test_parse_args_bis():
-    parser = get_parser()
-    config = parser.parse_args(["--constrainted-downscaler"])
-
-    assert config.constrainted_downscaler
-
 
 def test_check_include_resources():
     assert check_include_resources("deployments,cronjobs") == "deployments,cronjobs"

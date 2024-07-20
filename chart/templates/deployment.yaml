@@ -23,7 +23,6 @@ spec:
         args:
         {{- toYaml .Values.arguments | nindent 8 }}
         {{- if .Values.constraintedDownscaler }}
-        - --constrainted-downscaler
         - --namespace={{ join "," .Values.constraintedNamespaces }}
         {{- end }}
         envFrom:

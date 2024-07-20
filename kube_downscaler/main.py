@@ -32,7 +32,6 @@ def main(args=None):
         args.include_resources,
         args.matching_labels,
         args.admission_controller,
-        args.constrainted_downscaler,
         args.upscale_period,
         args.downscale_period,
         args.default_uptime,
@@ -54,7 +53,6 @@ def run_loop(
     include_resources,
     matching_labels,
     admission_controller,
-    constrainted_downscaler,
     upscale_period,
     downscale_period,
     default_uptime,
@@ -75,6 +73,10 @@ def run_loop(
     else:
         namespaces = frozenset(namespace.split(","))
 
+    if len(namespaces) >= 1:
+        constrainted_downscaler = True
+    else:
+        constrainted_downscaler = False
 
     while True:
         try:
