@@ -452,8 +452,11 @@ annotations are not supported if specified directly inside the Job definition du
 on computing days of the week inside the policies. However you can still use 
 these annotations at Namespace level to downscale/upscale Jobs 
 
-`downscaler/downscale-period` annotation is only supported at namespace level when used
-to scale down jobs with Admission Controllers
+**<u>Important</u>:** 
+global `--grace-period` is not supported for this feature at the moment, however `downscaler/downscale-period` annotation is 
+supported at namespace level when used to scale down jobs with Admission Controllers
+
+**<u>Important</u>:** 
 
 **Deleting Policies:** if for some reason you want to delete all resources blocking jobs, you can use these commands:
 
