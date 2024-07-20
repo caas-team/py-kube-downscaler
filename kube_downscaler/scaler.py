@@ -100,13 +100,25 @@ def within_grace_period(
 
     if grace_period_annotation is not None and is_grace_period_annotation_integer(grace_period_annotation):
         grace_period_annotation_integer = int(grace_period_annotation)
-        if grace_period_annotation_integer <= grace_period and grace_period_annotation_integer > 0:
-            logger.info(
-                f"Grace period annotation found for {resource.kind} {resource.name} in namespace {resource.namespace}. "
-                f"Since the grace period specified in the annotation is shorter than the global grace period, "
-                f"the downscaler will use the annotation's grace period for this resource."
+
+        if grace_period_annotation_integer > 0:
+            if grace_period_annotation_integer <= grace_period:
+                logger.info(
+                    f"Grace period annotation found for {resource.kind} {resource.name} in namespace {resource.namespace}. "
+                    f"Since the grace period specified in the annotation is shorter than the global grace period, "
+                    f"the downscaler will use the annotation's grace period for this resource."
+                )
+                grace_period = grace_period_annotation_integer
+            else:
+                logger.info(
+                    f"Grace period annotation found for {resource.kind} {resource.name} in namespace {resource.namespace}. "
+                    f"The global grace period is shorter, so the downscaler will use the global grace period for this resource."
+                )
+        else:
+            logger.warning(
+                f"Grace period annotation found for {resource.kind} {resource.name} in namespace {resource.namespace} "
+                f"but cannot be a negative integer"
             )
-            grace_period = grace_period_annotation_integer
 
     if deployment_time_annotation:
         annotations = resource.metadata.get("annotations", {})
