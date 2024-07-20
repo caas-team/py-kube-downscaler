@@ -20,6 +20,9 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Helm Chart](#helm-chart)
     - [Example configuration](#example-configuration)
     - [Notes](#notes)
+  - [Installation](#installation)
+    - [Cluster Wide Access Installation](#cluster-wide-access-installation)
+    - [Limited Access Installation](#limited-access-installation)
   - [Configuration](#configuration)
     - [Uptime / downtime spec](#uptime--downtime-spec)
     - [Alternative Logic, Based on Periods](#alternative-logic-based-on-periods)
@@ -187,6 +190,62 @@ $ kubectl annotate deploy nginx 'downscaler/exclude=true'
 $ kubectl annotate hpa nginx 'downscaler/downtime-replicas=1'
 $ kubectl annotate hpa nginx 'downscaler/uptime=Mon-Fri 09:00-17:00 America/Buenos_Aires'
 ```
+
+## Installation
+
+KubeDownscaler offers two installation methods. 
+- **Cluster Wide Access**: This method is dedicated for users who have total access to the Cluster and aspire to adopt the
+tool throughout the cluster
+- **Limited Access**: This method is dedicated to users who only have access to a limited number of namespaces and can 
+adopt the tool only within them
+
+### Cluster Wide Access Installation
+
+**RBAC-Prerequisite**: This installation mode requires permission to deploy Service Account, ClusterRole, ClusterRoleBinding, CRDs
+
+The basic Cluster Wide installation is very simple
+
+```bash
+$ helm install py-kube-downscaler py-kube-downscaler/py-kube-downscaler
+```
+
+This command will deploy:
+
+- **Deployment**: main deployment 
+- **ConfigMap**: used to supply parameters to the deployment
+- **ServiceAccount**: represents the Cluster Idenity of the KubeDownscaler
+- **ClusterRole**: needed to access all the resources that can be modified by the KubeDownscaler
+- **ClusterRoleBinding**: links the ServiceAccount used by KubeDownscaler to the ClusterRole
+
+It is possible to further customize it by changing the parameters present in the values.yaml file of the Chart
+
+### Limited Access Installation
+
+**RBAC-Prerequisite**: This installation mode requires permission to deploy Service Account, Role and RoleBinding
+
+The Limited Access installation requires the user to fill the following parameters inside values.yaml
+- **constraintedDownscaler**: true (mandatory)
+- **constraintedNamespaces**: [namespace1,namespace2,namespace3,...] (list of namespaces - mandatory)
+
+It is also recommended to explicitly set the namespace where KubeDownscaler will be installed
+
+```bash
+$ helm install py-kube-downscaler py-kube-downscaler/py-kube-downscaler --namespace my-release-namespace --set constraintedDownscaler=true --set "constraintedNamespaces={namespace1,namespace2,namespace3}"
+```
+
+This command will deploy:
+
+- **Deployment**: main deployment 
+- **ConfigMap**: used to supply parameters to the deployment
+- **ServiceAccount**: represents the Cluster Idenity of the KubeDownscaler
+
+For each namespace inside constraintedNamespaces, the chart will deploy
+
+- **Role**: needed to access all the resources that can be modified by the KubeDownscaler (inside that namespace)
+- **RoleBinding**: links the ServiceAccount used by KubeDownscaler to the Role inside that namespace
+
+If RBAC permissions are misconfigured and the KubeDownscaler is unable to access resources in one of the specified namespaces, 
+a warning message will appear in the logs indicating a `403 Error`
 
 ## Configuration
 
