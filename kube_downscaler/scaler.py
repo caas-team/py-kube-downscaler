@@ -3,6 +3,7 @@ import datetime
 import logging
 import time
 import requests
+import re
 from typing import FrozenSet
 from typing import Optional
 from typing import Pattern
@@ -122,9 +123,11 @@ def within_grace_period_namespace(
     delta = now - update_time
     return delta.total_seconds() <= grace_period
 
-def pods_force_uptime(api, namespace: str):
+def pods_force_uptime(api, namespace: FrozenSet[str]):
     """Return True if there are any running pods which require the deployments to be scaled back up."""
-    for pod in pykube.Pod.objects(api).filter(namespace=(namespace or pykube.all)):
+    pods = get_pod_resources(api, namespace)
+
+    for pod in pods:
         if pod.obj.get("status", {}).get("phase") in ("Succeeded", "Failed"):
             continue
         if pod.annotations.get(FORCE_UPTIME_ANNOTATION, "").lower() == "true":
@@ -132,8 +135,99 @@ def pods_force_uptime(api, namespace: str):
             return True
     return False
 
-def scale_jobs_without_admission_controller(plural, admission_controller):
-    return plural == "jobs" and admission_controller == ""
+def get_pod_resources(api, namespaces: FrozenSet[str]):
+    if len(namespaces) >= 1:
+        pods = []
+        for namespace in namespaces:
+            try:
+                pods_query_result = pykube.Pod.objects(api).filter(namespace=namespace)
+                pods += pods_query_result
+            except requests.HTTPError as e:
+                if e.response.status_code == 404:
+                    logger.debug(
+                        f"No {kind.endpoint} found in namespace {namespace} (404)"
+                    )
+                if e.response.status_code == 403:
+                    logger.warning(
+                        f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
+                        f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
+                        f"The RoleBinding should be linked to the KubeDownscaler Service Account."
+                    )
+                else:
+                    raise e
+    else:
+        try:
+            pods = pykube.Pod.objects(api).filter(namespace=pykube.all)
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                logger.warning(
+                    f"KubeDownscaler is not authorized to perform a cluster wide query to retrieve Pods (403)"
+                )
+            else:
+                raise e
+
+    return pods;
+
+
+def create_excluded_namespaces_regex(namespaces: FrozenSet[str]):
+    # Ensure the input is a FrozenSet of strings
+    if not isinstance(namespaces, FrozenSet):
+        raise TypeError("namespaces must be of type FrozenSet[str]")
+    if not all(isinstance(ns, str) for ns in namespaces):
+        raise TypeError("All elements of namespaces must be strings")
+
+    # Escape special regex characters in each namespace name
+    escaped_namespaces = [re.escape(ns) for ns in namespaces]
+
+    # Combine the escaped names into a single alternation pattern
+    combined_pattern = '|'.join(escaped_namespaces)
+
+    # Create a regex pattern that matches any string not exactly one of the namespaces
+    excluded_pattern = f'^(?!{combined_pattern}$).+'
+
+    logging.info("--namespace arg is not empty the --exclude-namespaces argument was modified to the following regex pattern: " + excluded_pattern)
+
+    # Compile and return the regex pattern
+    return [re.compile(excluded_pattern)]
+
+
+def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
+    if len(namespaces) >= 1:
+        resources = []
+        excluded_namespaces = create_excluded_namespaces_regex(namespaces)
+        for namespace in namespaces:
+            try:
+                resources_inside_namespace = kind.objects(api, namespace=namespace)
+                resources += resources_inside_namespace
+            except requests.HTTPError as e:
+                if e.response.status_code == 404:
+                    logger.debug(
+                        f"No {kind.endpoint} found in namespace {namespace} (404)"
+                    )
+                if e.response.status_code == 403:
+                    logger.warning(
+                        f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
+                        f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
+                        f"The RoleBinding should be linked to the KubeDownscaler Service Account."
+                    )
+                else:
+                    raise e
+    else:
+        try:
+            resources = kind.objects(api, namespace=pykube.all)
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                logger.warning(
+                    f"KubeDownscaler is not authorized to perform a cluster wide query to retrieve {kind.endpoint} (403)"
+                )
+            else:
+                raise e
+
+    return resources, excluded_namespaces;
+
+
+def scale_jobs_without_admission_controller(plural, admission_controller, constrainted_downscaler):
+    return (plural == "jobs" and admission_controller == "") or constrainted_downscaler
 
 def is_stack_deployment(resource: NamespacedAPIObject) -> bool:
     if resource.kind == Deployment.kind and resource.version == Deployment.version:
@@ -814,7 +908,7 @@ def autoscale_resource(
 def autoscale_resources(
     api,
     kind,
-    namespace: str,
+    namespace: FrozenSet[Pattern],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_names: FrozenSet[str],
     matching_labels: FrozenSet[Pattern],
@@ -823,6 +917,7 @@ def autoscale_resources(
     default_uptime: str,
     default_downtime: str,
     forced_uptime: bool,
+    constrained_downscaler: bool,
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int,
@@ -831,8 +926,10 @@ def autoscale_resources(
     enable_events: bool = False,
 ):
     resources_by_namespace = collections.defaultdict(list)
+    resources, exclude_namespaces = get_resources(kind, api, namespace, exclude_namespaces)
+
     try:
-        for resource in kind.objects(api, namespace=(namespace or pykube.all)):
+        for resource in resources:
             if resource.name in exclude_names:
                 logger.debug(
                     f"{resource.kind} {resource.namespace}/{resource.name} was excluded (name matches exclusion list)"
@@ -851,6 +948,8 @@ def autoscale_resources(
             )
         else:
             raise e
+
+
 
     for current_namespace, resources in sorted(resources_by_namespace.items()):
         if any(
@@ -1019,7 +1118,7 @@ def kyverno_healthy(api):
         return True
 def autoscale_jobs(
         api,
-        namespace: str,
+        namespaces: FrozenSet[str],
         exclude_namespaces: FrozenSet[Pattern],
         upscale_period: str,
         downscale_period: str,
@@ -1053,17 +1152,17 @@ def autoscale_jobs(
             logging.error("unable to scale jobs")
             return
 
-        if namespace is not None:
-            namespace_list = [namespace]
+        if len(namespaces) >= 1:
+            namespaces = namespaces
         else:
-            namespace_list = list(Namespace.objects(api).iterator())
+            namespaces = list(Namespace.objects(api).iterator())
 
         excluded_jobs = []
 
         for name in exclude_names:
             excluded_jobs.append(name)
 
-        for current_namespace in namespace_list:
+        for current_namespace in namespaces:
 
             if any(
                     [pattern.fullmatch(current_namespace.name) for pattern in exclude_namespaces]
@@ -1148,7 +1247,7 @@ def autoscale_jobs(
             )
 
 def scale(
-    namespace: str,
+    namespaces: FrozenSet[str],
     upscale_period: str,
     downscale_period: str,
     default_uptime: str,
@@ -1159,6 +1258,7 @@ def scale(
     dry_run: bool,
     grace_period: int,
     admission_controller: str,
+    constrained_downscaler: bool,
     downtime_replicas: int = 0,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
@@ -1167,16 +1267,16 @@ def scale(
     api = helper.get_kube_api()
 
     now = datetime.datetime.now(datetime.timezone.utc)
-    forced_uptime = pods_force_uptime(api, namespace)
+    forced_uptime = pods_force_uptime(api, namespaces)
 
     for clazz in RESOURCE_CLASSES:
         plural = clazz.endpoint
         if plural in include_resources:
-            if scale_jobs_without_admission_controller(plural, admission_controller) or plural != "jobs":
+            if scale_jobs_without_admission_controller(plural, admission_controller, constrained_downscaler) or plural != "jobs":
                 autoscale_resources(
                     api,
                     clazz,
-                    namespace,
+                    namespaces,
                     exclude_namespaces,
                     exclude_deployments,
                     matching_labels,
@@ -1185,6 +1285,7 @@ def scale(
                     default_uptime,
                     default_downtime,
                     forced_uptime,
+                    constrained_downscaler,
                     dry_run,
                     now,
                     grace_period,
@@ -1195,7 +1296,7 @@ def scale(
             else:
                 autoscale_jobs(
                     api,
-                    namespace,
+                    namespaces,
                     exclude_namespaces,
                     upscale_period,
                     downscale_period,

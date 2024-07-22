@@ -67,10 +67,21 @@ def run_loop(
     enable_events=False,
 ):
     handler = shutdown.GracefulShutdown()
+
+    if namespace == "":
+        namespaces = []
+    else:
+        namespaces = frozenset(namespace.split(","))
+
+    if len(namespaces) >= 1:
+        constrained_downscaler = True
+    else:
+        constrained_downscaler = False
+
     while True:
         try:
             scale(
-                namespace,
+                namespaces,
                 upscale_period,
                 downscale_period,
                 default_uptime,
@@ -83,6 +94,7 @@ def run_loop(
                 dry_run=dry_run,
                 grace_period=grace_period,
                 admission_controller=admission_controller,
+                constrained_downscaler=constrained_downscaler,
                 downtime_replicas=downtime_replicas,
                 deployment_time_annotation=deployment_time_annotation,
                 enable_events=enable_events,

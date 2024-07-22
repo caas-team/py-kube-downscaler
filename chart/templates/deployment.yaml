@@ -4,6 +4,7 @@ metadata:
   labels:
     {{- include "py-kube-downscaler.labels" . | nindent 4 }}
   name: {{ include "py-kube-downscaler.name" . }}
+  namespace: {{ .Release.Namespace }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -22,6 +23,9 @@ spec:
         image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
         args:
         {{- toYaml .Values.arguments | nindent 8 }}
+        {{- if .Values.constrainedDownscaler }}
+        - --namespace={{ join "," .Values.constrainedNamespaces }}
+        {{- end }}
         envFrom:
         - configMapRef:
             name: {{ .Values.configMapName }}
