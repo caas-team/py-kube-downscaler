@@ -348,7 +348,10 @@ Available command line options:
 :   Grace period in seconds for new deployments before scaling them down
     (default: 15min). The grace period counts from time of creation of
     the deployment, i.e. updated deployments will immediately be scaled
-    down regardless of the grace period.
+    down regardless of the grace period. If the `downscaler/grace-period` 
+    annotation is present in a resource and its value is shorter than 
+    the global grace period, the annotation's value will override the
+    global grace period for that specific resource.
 
 `--upscale-period`
 
@@ -535,6 +538,12 @@ to exclude jobs. As described above, despite their names, these variables work f
 annotations are not supported if specified directly inside the Job definition due to limitations 
 on computing days of the week inside the policies. However you can still use 
 these annotations at Namespace level to downscale/upscale Jobs 
+
+**<u>Important</u>:** 
+global `--grace-period` is not supported for this feature at the moment, however `downscaler/downscale-period` annotation is 
+supported at namespace level when used to scale down jobs with Admission Controllers
+
+**<u>Important</u>:** 
 
 **Deleting Policies:** if for some reason you want to delete all resources blocking jobs, you can use these commands:
 

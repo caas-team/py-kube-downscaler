@@ -39,6 +39,7 @@ EXCLUDE_UNTIL_ANNOTATION = "downscaler/exclude-until"
 UPTIME_ANNOTATION = "downscaler/uptime"
 DOWNTIME_ANNOTATION = "downscaler/downtime"
 DOWNTIME_REPLICAS_ANNOTATION = "downscaler/downtime-replicas"
+GRACE_PERIOD_ANNOTATION="downscaler/grace-period"
 
 RESOURCE_CLASSES = [
     Deployment,
@@ -80,6 +81,13 @@ def parse_time(timestamp: str) -> datetime.datetime:
         f"time data '{timestamp}' does not match any format ({', '.join(TIMESTAMP_FORMATS)})"
     )
 
+def is_grace_period_annotation_integer(value):
+    try:
+        int(value)  # Attempt to convert the string to an integer
+        return True
+    except ValueError:
+        return False
+
 
 def within_grace_period(
     resource,
@@ -88,6 +96,30 @@ def within_grace_period(
     deployment_time_annotation: Optional[str] = None,
 ):
     update_time = parse_time(resource.metadata["creationTimestamp"])
+
+    grace_period_annotation = resource.annotations.get(GRACE_PERIOD_ANNOTATION, None)
+
+    if grace_period_annotation is not None and is_grace_period_annotation_integer(grace_period_annotation):
+        grace_period_annotation_integer = int(grace_period_annotation)
+
+        if grace_period_annotation_integer > 0:
+            if grace_period_annotation_integer <= grace_period:
+                logger.debug(
+                    f"Grace period annotation found for {resource.kind} {resource.name} in namespace {resource.namespace}. "
+                    f"Since the grace period specified in the annotation is shorter than the global grace period, "
+                    f"the downscaler will use the annotation's grace period for this resource."
+                )
+                grace_period = grace_period_annotation_integer
+            else:
+                logger.debug(
+                    f"Grace period annotation found for {resource.kind} {resource.name} in namespace {resource.namespace}. "
+                    f"The global grace period is shorter, so the downscaler will use the global grace period for this resource."
+                )
+        else:
+            logger.debug(
+                f"Grace period annotation found for {resource.kind} {resource.name} in namespace {resource.namespace} "
+                f"but cannot be a negative integer"
+            )
 
     if deployment_time_annotation:
         annotations = resource.metadata.get("annotations", {})
@@ -109,6 +141,30 @@ def within_grace_period_namespace(
         deployment_time_annotation: Optional[str] = None,
 ):
     update_time = parse_time(resource.metadata["creationTimestamp"])
+
+    grace_period_annotation = resource.annotations.get(GRACE_PERIOD_ANNOTATION, None)
+
+    if grace_period_annotation is not None and is_grace_period_annotation_integer(grace_period_annotation):
+        grace_period_annotation_integer = int(grace_period_annotation)
+
+        if grace_period_annotation_integer > 0:
+            if grace_period_annotation_integer <= grace_period:
+                logger.debug(
+                    f"Grace period annotation found for namespace {resource.name}. "
+                    f"Since the grace period specified in the annotation is shorter than the global grace period, "
+                    f"the downscaler will use the annotation's grace period for this resource."
+                )
+                grace_period = grace_period_annotation_integer
+            else:
+                logger.debug(
+                    f"Grace period annotation found for namespace {resource.name}. "
+                    f"The global grace period is shorter, so the downscaler will use the global grace period for this resource."
+                )
+        else:
+            logger.debug(
+                f"Grace period annotation found for namespace {resource.name} "
+                f"but cannot be a negative integer"
+            )
 
     if deployment_time_annotation:
         annotations = resource.metadata.get("annotations", {})
