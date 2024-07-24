@@ -6,9 +6,7 @@ metadata:
   name: {{ include "py-kube-downscaler.name" . }}
   namespace: {{ .Release.Namespace }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "py-kube-downscaler.selectorLabels" . | nindent 6 }}
