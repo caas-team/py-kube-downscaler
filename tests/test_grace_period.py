@@ -7,6 +7,7 @@ from pykube import Deployment
 from kube_downscaler.scaler import within_grace_period
 
 ANNOTATION_NAME = "my-deployment-time"
+GRACE_PERIOD_ANNOTATION="downscaler/grace-period"
 
 
 def test_within_grace_period_creation_time():
@@ -18,6 +19,47 @@ def test_within_grace_period_creation_time():
     assert within_grace_period(deploy, 900, now)
     assert not within_grace_period(deploy, 180, now)
 
+def test_within_grace_period_override_annotation():
+    now = datetime.now(timezone.utc)
+    ts = now - timedelta(minutes=2)
+    deploy = Deployment(
+        None,
+        {
+            "metadata":
+             {
+                 "name": "grace-period-test-deployment",
+                 "namespace": "test-namespace",
+                 "creationTimestamp": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                 "annotations": {
+                     GRACE_PERIOD_ANNOTATION: "300"
+                 }
+             }
+         }
+    )
+
+    assert within_grace_period(deploy, 900, now)
+    assert not within_grace_period(deploy, 119, now)
+    assert within_grace_period(deploy, 123, now)
+
+def test_within_grace_period_override_wrong_annotation_value():
+    now = datetime.now(timezone.utc)
+    ts = now - timedelta(minutes=5)
+    deploy = Deployment(
+        None,
+        {
+            "metadata":
+             {
+                 "name": "grace-period-test-deployment",
+                 "namespace": "test-namespace",
+                 "creationTimestamp": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                 "annotations": {
+                     GRACE_PERIOD_ANNOTATION: "wrong"
+                 }
+             }
+         }
+    )
+    assert within_grace_period(deploy, 900, now)
+    assert not within_grace_period(deploy, 180, now)
 
 def test_within_grace_period_deployment_time_annotation():
     now = datetime.now(timezone.utc)

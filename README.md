@@ -20,10 +20,14 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Helm Chart](#helm-chart)
     - [Example configuration](#example-configuration)
     - [Notes](#notes)
+  - [Installation](#installation)
+    - [Cluster Wide Access Installation](#cluster-wide-access-installation)
+    - [Limited Access Installation](#limited-access-installation)
   - [Configuration](#configuration)
     - [Uptime / downtime spec](#uptime--downtime-spec)
     - [Alternative Logic, Based on Periods](#alternative-logic-based-on-periods)
     - [Command Line Options](#command-line-options)
+    - [Constrained Mode (Limited Access Mode)](#constrained-mode-limited-access-mode)
     - [Scaling Jobs: Overview](#scaling-jobs-overview)
     - [Scaling Jobs Natively](#scaling-jobs-natively)
     - [Scaling Jobs With Admission Controller](#scaling-jobs-with-admission-controller)
@@ -188,6 +192,62 @@ $ kubectl annotate hpa nginx 'downscaler/downtime-replicas=1'
 $ kubectl annotate hpa nginx 'downscaler/uptime=Mon-Fri 09:00-17:00 America/Buenos_Aires'
 ```
 
+## Installation
+
+KubeDownscaler offers two installation methods. 
+- **Cluster Wide Access**: This method is dedicated for users who have total access to the Cluster and aspire to adopt the
+tool throughout the cluster
+- **Limited Access**: This method is dedicated to users who only have access to a limited number of namespaces and can 
+adopt the tool only within them
+
+### Cluster Wide Access Installation
+
+**RBAC-Prerequisite**: This installation mode requires permission to deploy Service Account, ClusterRole, ClusterRoleBinding, CRDs
+
+The basic Cluster Wide installation is very simple
+
+```bash
+$ helm install py-kube-downscaler py-kube-downscaler/py-kube-downscaler
+```
+
+This command will deploy:
+
+- **Deployment**: main deployment 
+- **ConfigMap**: used to supply parameters to the deployment
+- **ServiceAccount**: represents the Cluster Idenity of the KubeDownscaler
+- **ClusterRole**: needed to access all the resources that can be modified by the KubeDownscaler
+- **ClusterRoleBinding**: links the ServiceAccount used by KubeDownscaler to the ClusterRole
+
+It is possible to further customize it by changing the parameters present in the values.yaml file of the Chart
+
+### Limited Access Installation
+
+**RBAC-Prerequisite**: This installation mode requires permission to deploy Service Account, Role and RoleBinding
+
+The Limited Access installation requires the user to fill the following parameters inside values.yaml
+- **constrainedDownscaler**: true (mandatory)
+- **constrainedNamespaces**: [namespace1,namespace2,namespace3,...] (list of namespaces - mandatory)
+
+It is also recommended to explicitly set the namespace where KubeDownscaler will be installed
+
+```bash
+$ helm install py-kube-downscaler py-kube-downscaler/py-kube-downscaler --namespace my-release-namespace --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
+```
+
+This command will deploy:
+
+- **Deployment**: main deployment 
+- **ConfigMap**: used to supply parameters to the deployment
+- **ServiceAccount**: represents the Cluster Idenity of the KubeDownscaler
+
+For each namespace inside constrainedNamespaces, the chart will deploy
+
+- **Role**: needed to access all the resources that can be modified by the KubeDownscaler (inside that namespace)
+- **RoleBinding**: links the ServiceAccount used by KubeDownscaler to the Role inside that namespace
+
+If RBAC permissions are misconfigured and the KubeDownscaler is unable to access resources in one of the specified namespaces, 
+a warning message will appear in the logs indicating a `403 Error`
+
 ## Configuration
 
 ### Uptime / downtime spec
@@ -264,11 +324,18 @@ Available command line options:
 
 `--namespace`
 
-:   Restrict the downscaler to work only in a single namespace (default:
+:   Restrict the downscaler to work only in some namespaces (default:
     all namespaces). This is mainly useful for deployment scenarios
-    where the deployer of py-kube-downscaler only has access to a given
-    namespace (instead of cluster access). If used simultaneously with
-    `--exclude-namespaces`, none is applied.
+    where the deployer of py-kube-downscaler only has access to some
+    namespaces (instead of cluster wide access). If used simultaneously with
+    `--exclude-namespaces`, `--namespace` will take precedence overriding 
+    its value. This argument takes a comma separated list of namespaces
+   (example: --namespace=default,test-namespace1,test-namespace2)
+
+
+> [!IMPORTANT] 
+> It's strongly not advised to use this argument in a Cluster
+> Wide Access installation, see the [Constrained Mode](#constrained-mode-limited-access-mode) section
 
 `--include-resources`
 
@@ -281,7 +348,10 @@ Available command line options:
 :   Grace period in seconds for new deployments before scaling them down
     (default: 15min). The grace period counts from time of creation of
     the deployment, i.e. updated deployments will immediately be scaled
-    down regardless of the grace period.
+    down regardless of the grace period. If the `downscaler/grace-period` 
+    annotation is present in a resource and its value is shorter than 
+    the global grace period, the annotation's value will override the
+    global grace period for that specific resource.
 
 `--upscale-period`
 
@@ -314,7 +384,8 @@ Available command line options:
 :   Exclude namespaces from downscaling (list of regex patterns,
     default: kube-system), can also be configured via environment
     variable `EXCLUDE_NAMESPACES`. If used simultaneously with
-    `--namespace`, none is applied.
+    `--exclude-namespaces`, `--namespace` will take precedence 
+    overriding its value. 
 
 `--exclude-deployments`
 
@@ -349,13 +420,27 @@ Available command line options:
 `--admission-controller`
 
 :   Optional: admission controller used by the kube-downscaler to downscale and upscale
-    jobs. Required only if "jobs" are specified inside "--include-resources" arg. 
+    jobs. This argument won't take effect if used in conjunction with `--namespace` argument.
     Supported Admission Controllers are
     \[gatekeeper, kyverno*\] 
 
 > [!IMPORTANT] 
-> Make sure to read the dedicated section below to understand how to use the
-> `--admission-controller` feature correctly
+> Make sure to read the [Scaling Jobs With Admission Controller](#scaling-jobs-with-admission-controller) section
+> to understand how to use the `--admission-controller` feature correctly
+
+### Constrained Mode (Limited Access Mode)
+
+The Constrained Mode (also known as Limited Access Mode) is designed for users who do not have full cluster access. 
+It is automatically activated when the `--namespace` argument is specified. 
+This mode utilizes a different set of API calls optimized for environments where users cannot deploy ClusterRole and ClusterRoleBinding.
+Additionally, this mode disables the ability to scale Jobs via Admission Controllers since the 
+"[Scaling Jobs With Admission Controllers](#scaling-jobs-with-admission-controller)" feature requires Full
+Cluster Access to operate.
+
+If you are installing KubeDownscaler with full cluster access, 
+it is strongly recommended to use the `--exclude-namespaces` parameter instead of `--namespace`. Using `--namespace`
+in a cluster wide access installation will make API calls less efficient and 
+will disable the ability to scale Jobs with Admission Controllers for the reason specified above.
 
 ### Scaling Jobs: Overview
 
@@ -366,7 +451,7 @@ within the job's yaml file. The spec.suspend parameter will be set to True and t
 will be automatically deleted.
 
 2) Downscaling Jobs With Admission Controllers: Kube Downscaler will block the creation of all new Jobs using
-Admission Policies created with an Admission Controller (Kyverno or Gatekeeper, depending on the user's choice)
+Admission Policies created with an Admission Controller (Kyverno or Gatekeeper, depending on the user's choice).
 
 In both cases, all Jobs created by CronJob will not be modified unless the user specifies via the
 `--include-resources` argument that they want to turn off both Jobs and CronJobs
@@ -401,6 +486,11 @@ the admission controller pods won't be able to block jobs.** You can use `EXCLUD
 arg to exclude `"kyverno"` or `"gatekeeper-system"` namespaces. 
 Alternatively `EXCLUDE_DEPLOYMENTS` environment variable
 or `--exclude-deployments` arg to exclude only certain resources inside `"kyverno"` or `"gatekeeper-system"` namespaces
+
+**<u>Important</u>**: `--admission-controller` argument won't take effect if used in conjunction with --namespace argument.
+if you specified `jobs` inside the `--include-resources` argument KubeDonwscaler will 
+still [downscale jobs natively](#scaling-jobs-natively).
+Please read the [Constrained Mode](#constrained-mode-limited-access-mode) section to understand why
 
 The workflow for blocking jobs is different if you use Gatekeeper or Kyverno, both are described below
 
@@ -448,6 +538,12 @@ to exclude jobs. As described above, despite their names, these variables work f
 annotations are not supported if specified directly inside the Job definition due to limitations 
 on computing days of the week inside the policies. However you can still use 
 these annotations at Namespace level to downscale/upscale Jobs 
+
+**<u>Important</u>:** 
+global `--grace-period` is not supported for this feature at the moment, however `downscaler/downscale-period` annotation is 
+supported at namespace level when used to scale down jobs with Admission Controllers
+
+**<u>Important</u>:** 
 
 **Deleting Policies:** if for some reason you want to delete all resources blocking jobs, you can use these commands:
 
@@ -559,7 +655,12 @@ The following annotations are supported on the Namespace level:
 ## Migrate From Codeberg
 
 For all users who come from the Codeberg repository (no longer maintained by the original author) 
-it is possible to migrate to this new version of the kube-downscaler by installing the Helm chart in this way:
+it is possible to migrate to this new version of the kube-downscaler by installing the Helm chart in these ways that will
+preserve the old nomenclature already present inside your cluster
+
+### Migrate From Codeberg - Cluster Wide Installation
+
+Read [Installation](#installation) section to understand what is meant for **Cluster Wide Installation**
 
 ```bash
 $ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
@@ -571,7 +672,19 @@ or extracting and applying the template manually:
 $ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
 ```
 
-Installing the chart in this way will preserve the old nomenclature already present in your cluster
+### Migrate From Codeberg - Limited Access Installation
+
+Read [Installation](#installation) section to understand what is meant for **Limited Access Installation**
+
+```bash
+$ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
+```
+
+or extracting and applying the template manually:
+
+```bash
+$ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
+```
 
 ## Contributing
 

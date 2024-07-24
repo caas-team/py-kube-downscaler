@@ -44,7 +44,11 @@ def get_parser():
     parser.add_argument(
         "--interval", type=int, help="Loop interval (default: 30s)", default=30
     )
-    parser.add_argument("--namespace", help="Namespace")
+    parser.add_argument(
+        "--namespace",
+        help="Namespace",
+        default=os.getenv("NAMESPACE", "")
+    )
     parser.add_argument(
         "--include-resources",
         type=check_include_resources,
