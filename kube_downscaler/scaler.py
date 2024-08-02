@@ -858,7 +858,7 @@ def autoscale_resource(
         if downtime_replicas_from_annotation is not None:
             downtime_replicas = downtime_replicas_from_annotation
 
-        if exclude and not original_replicas:
+        if exclude:
             logger.debug(
                 f"{resource.kind} {resource.namespace}/{resource.name} was excluded"
             )
