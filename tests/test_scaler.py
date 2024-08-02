@@ -518,6 +518,121 @@ def test_scaler_down_to_upscale(monkeypatch):
         ORIGINAL_REPLICAS_ANNOTATION
     ]
 
+def test_scaler_no_upscale_on_exclude(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    ORIGINAL_REPLICAS = 2
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "deployments":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "deploy-1",
+                            "namespace": "default",
+                            "annotations": {
+                                EXCLUDE_ANNOTATION: "true",
+                                ORIGINAL_REPLICAS_ANNOTATION: ORIGINAL_REPLICAS,
+                            },
+                        },
+                        "spec": {"replicas": 0},
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {"metadata": {}}
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["deployments"])
+    scale(
+        constrained_downscaler=False,
+        namespaces=[],
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        matching_labels=frozenset([re.compile("")]),
+        dry_run=False,
+        grace_period=300,
+        admission_controller="",
+        downtime_replicas=0,
+        enable_events=False,
+    )
+
+    assert api.patch.call_count == 0
+
+def test_scaler_no_upscale_on_exclude_namespace(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    ORIGINAL_REPLICAS = 2
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "deployments":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "deploy-1",
+                            "namespace": "default",
+                            "annotations": {
+                                ORIGINAL_REPLICAS_ANNOTATION: ORIGINAL_REPLICAS,
+                            },
+                        },
+                        "spec": {"replicas": 0},
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {"metadata": {"annotations": {EXCLUDE_ANNOTATION: "true"}}}
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["deployments"])
+    scale(
+        constrained_downscaler=False,
+        namespaces=[],
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        matching_labels=frozenset([re.compile("")]),
+        dry_run=False,
+        grace_period=300,
+        admission_controller="",
+        downtime_replicas=0,
+        enable_events=False,
+    )
+
+    assert api.patch.call_count == 0
+
 def test_scaler_always_upscale(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
