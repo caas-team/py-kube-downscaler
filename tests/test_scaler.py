@@ -518,8 +518,7 @@ def test_scaler_down_to_upscale(monkeypatch):
         ORIGINAL_REPLICAS_ANNOTATION
     ]
 
-
-def test_scaler_upscale_on_exclude(monkeypatch):
+def test_scaler_no_upscale_on_exclude(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
@@ -575,18 +574,9 @@ def test_scaler_upscale_on_exclude(monkeypatch):
         enable_events=False,
     )
 
-    assert api.patch.call_count == 1
-    assert api.patch.call_args[1]["url"] == "/deployments/deploy-1"
-    assert (
-        json.loads(api.patch.call_args[1]["data"])["spec"]["replicas"]
-        == ORIGINAL_REPLICAS
-    )
-    assert not json.loads(api.patch.call_args[1]["data"])["metadata"]["annotations"][
-        ORIGINAL_REPLICAS_ANNOTATION
-    ]
+    assert api.patch.call_count == 0
 
-
-def test_scaler_upscale_on_exclude_namespace(monkeypatch):
+def test_scaler_no_upscale_on_exclude_namespace(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
@@ -641,16 +631,7 @@ def test_scaler_upscale_on_exclude_namespace(monkeypatch):
         enable_events=False,
     )
 
-    assert api.patch.call_count == 1
-    assert api.patch.call_args[1]["url"] == "/deployments/deploy-1"
-    assert (
-        json.loads(api.patch.call_args[1]["data"])["spec"]["replicas"]
-        == ORIGINAL_REPLICAS
-    )
-    assert not json.loads(api.patch.call_args[1]["data"])["metadata"]["annotations"][
-        ORIGINAL_REPLICAS_ANNOTATION
-    ]
-
+    assert api.patch.call_count == 0
 
 def test_scaler_always_upscale(monkeypatch):
     api = MagicMock()
