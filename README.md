@@ -381,12 +381,14 @@ Available command line options:
 
 `--upscale-target-only`
 
-:   Only namespaces currently targeted by the downscaler will be upscaled 
-    during "wake up" times. For example, if your downscaler initially targets
-    namespaces A, B, and C, but later you reconfigure it to target only B and C,
-    namespace A will not be upscaled if it is downscaled at the exact time 
-    of reconfiguration. This is an advanced configuration that most users
-    may not need.
+:   When this optional argument is used, only the namespaces currently 
+    targeted by the downscaler will be upscaled during wake-up times. 
+    For instance, if your downscaler initially manages namespaces 
+    A, B, and C, but is later reconfigured to target only namespaces
+    B and C, namespace A will remain downscaled if it was downscaled
+    at the time of reconfiguration. If the parameter is not used, 
+    all previously downscaled namespaces may be upscaled, even if
+    they are no longer targeted by the downscaler.
 
 `--exclude-namespaces`
 
