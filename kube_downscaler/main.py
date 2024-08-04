@@ -77,6 +77,7 @@ def run_loop(
 
     if len(namespaces) >= 1:
         constrained_downscaler = True
+        logging.info("Namespace argument is not empty, the downscaler will run in constrained mode")
     else:
         constrained_downscaler = False
 
