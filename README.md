@@ -379,6 +379,15 @@ Available command line options:
     configured via environment variable `DEFAULT_DOWNTIME` or via the
     annotation `downscaler/downtime` on each deployment
 
+`--upscale-target-only`
+
+:   Only namespaces currently targeted by the downscaler will be upscaled 
+    during "wake up" times. For example, if your downscaler initially targets
+    namespaces A, B, and C, but later you reconfigure it to target only B and C,
+    namespace A will not be upscaled if it is downscaled at the exact time 
+    of reconfiguration. This is an advanced configuration that most users
+    may not need.
+
 `--exclude-namespaces`
 
 :   Exclude namespaces from downscaling (list of regex patterns,
