@@ -34,14 +34,19 @@ Create chart name and version as used by the chart label.
 Common labels
 */}}
 {{- define "py-kube-downscaler.labels" -}}
-application: {{ include "py-kube-downscaler.name" . }}
+helm.sh/chart: {{ include "py-kube-downscaler.chart" . }}
+{{ include "py-kube-downscaler.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
 Selector labels
 */}}
 {{- define "py-kube-downscaler.selectorLabels" -}}
-application: {{ include "py-kube-downscaler.name" . }}
+application: {{ include "py-kube-downscaler.fullname" . }}
 {{- end }}
 
 {{/*
