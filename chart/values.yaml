@@ -42,10 +42,6 @@ securityContext:
     drop:
       - ALL
 
-service:
-  type: ClusterIP
-  port: 80
-
 resources:
   limits:
     cpu: 500m
@@ -53,12 +49,6 @@ resources:
   requests:
     cpu: 200m
     memory: 300Mi
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
 
 nodeSelector: {}
 
