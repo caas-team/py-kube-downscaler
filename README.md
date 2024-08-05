@@ -280,6 +280,24 @@ Each time specification can be in one of two formats:
   where each `<TIME>` is an ISO 8601 date and time of the format
   `<YYYY>-<MM>-<DD>T<HH>:<MM>:<SS>[+-]<TZHH>:<TZMM>`.
 
+If you are using the first format (recurring specifications) it is important 
+to note that the  downscaler can only interpret configurations within 
+a single day and cannot process intervals that stretch across two different days.
+As a result, overlapping time intervals are not supported.
+
+In the expression `<WEEKDAY-FROM>-<WEEKDAY-TO-INCLUSIVE> <HH>:<MM>-<HH>:<MM> <TIMEZONE>`
+the time range `<HH>:<MM>-<HH>:<MM>` should always have the end time later
+than the start time (in 24-hour format)
+
+If you want to schedule downtime from 23:30 to 09:30 the following day, 
+a configuration like this would be incorrect:
+
+`DEFAULT_DOWNTIME="Mon-Fri 23:30-09:30 Europe/Berlin"`
+ 
+The correct configuration would be: 
+
+`DEFAULT_DOWNTIME="Mon-Fri 23:30-24:00 Europe/Berlin,Mon-Fri 00:00-09:30 Europe/Berlin"`
+
 ### Alternative Logic, Based on Periods
 
 Instead of strict uptimes or downtimes, you can chose time periods for
