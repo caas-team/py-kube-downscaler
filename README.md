@@ -3,7 +3,7 @@
 ![GitHub Release](https://img.shields.io/github/v/release/caas-team/py-kube-downscaler?style=flat&link=%2F..%2F..%2Fcommits%2F)
 ![GitHub Issues](https://img.shields.io/github/issues/caas-team/py-kube-downscaler)
 ![GitHub License](https://img.shields.io/github/license/caas-team/py-kube-downscaler)
-![Slack Workspace](https://img.shields.io/badge/slack-py--kube--downscaler-dark_green?style=flat&logo=slack&link=https%3A%2F%2Fjoin.slack.com%2Ft%2Fpy-kube-downscaler%2Fshared_invite%2Fzt-2o4uu6rcw-KjEOg7gy6mIS0KomevSDmA)
+![Slack Workspace](https://img.shields.io/badge/slack-py--kube--downscaler-dark_green?style=flat&logo=slack&link=https%3A%2F%2Fcommunityinviter.com%2Fapps%2Fpy-kube-downscaler%2Fpy-kube-downscaler)
 
 This is a fork of [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler) which is no longer maintained.
 
