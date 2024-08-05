@@ -1,9 +1,9 @@
 # Python Kubernetes Downscaler
 
-![GitHub Release](https://img.shields.io/github/v/release/caas-team/py-kube-downscaler?style=flat&link=%2F..%2F..%2Fcommits%2F)
-![GitHub Issues](https://img.shields.io/github/issues/caas-team/py-kube-downscaler)
-![GitHub License](https://img.shields.io/github/license/caas-team/py-kube-downscaler)
-![Slack Workspace](https://img.shields.io/badge/slack-py--kube--downscaler-dark_green?style=flat&logo=slack&link=https%3A%2F%2Fcommunityinviter.com%2Fapps%2Fpy-kube-downscaler%2Fpy-kube-downscaler)
+<a href="/../../releases/" title="GitHub Release"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/caas-team/py-kube-downscaler?style=flat"></a>
+<a href="./LICENSE" title="GitHub License"><img alt="GitHub License" src="https://img.shields.io/github/license/caas-team/py-kube-downscaler?style=flat"></a>
+<a href="/../../issues/" title="GitHub Issues"><img alt="GitHub Issues" src="https://img.shields.io/github/issues/caas-team/py-kube-downscaler"></a>
+<a href="https://communityinviter.com/apps/py-kube-downscaler/py-kube-downscaler" title="Slack Workspace"><img alt="Slack Workspace" src="https://img.shields.io/badge/slack-py--kube--downscaler-dark_green?style=flat&logo=slack"></a>
 
 This is a fork of [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler) which is no longer maintained.
 
