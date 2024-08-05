@@ -40,6 +40,7 @@ def main(args=None):
         args.exclude_deployments,
         args.grace_period,
         args.interval,
+        args.upscale_target_only,
         args.dry_run,
         args.downtime_replicas,
         args.deployment_time_annotation,
@@ -61,6 +62,7 @@ def run_loop(
     exclude_deployments,
     grace_period,
     interval,
+    upscale_target_only,
     dry_run,
     downtime_replicas,
     deployment_time_annotation=None,
@@ -75,6 +77,7 @@ def run_loop(
 
     if len(namespaces) >= 1:
         constrained_downscaler = True
+        logging.info("Namespace argument is not empty, the downscaler will run in constrained mode")
     else:
         constrained_downscaler = False
 
@@ -86,6 +89,7 @@ def run_loop(
                 downscale_period,
                 default_uptime,
                 default_downtime,
+                upscale_target_only,
                 include_resources=frozenset(include_resources.split(",")),
                 exclude_namespaces=frozenset(
                     re.compile(pattern) for pattern in exclude_namespaces.split(",")

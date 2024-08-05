@@ -45,6 +45,11 @@ def get_parser():
         "--interval", type=int, help="Loop interval (default: 30s)", default=30
     )
     parser.add_argument(
+        "--upscale-target-only",
+        help="Upscale only resource in target when waking up namespaces",
+        action="store_true"
+    )
+    parser.add_argument(
         "--namespace",
         help="Namespace",
         default=os.getenv("NAMESPACE", "")
