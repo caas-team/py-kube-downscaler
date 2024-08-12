@@ -4,11 +4,8 @@ metadata:
   labels:
     {{- include "py-kube-downscaler.labels" . | nindent 4 }}
   name: {{ include "py-kube-downscaler.name" . }}
-  namespace: {{ .Release.Namespace }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "py-kube-downscaler.selectorLabels" . | nindent 6 }}
@@ -36,6 +33,14 @@ spec:
           {{- toYaml .Values.securityContext | nindent 10 }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
