@@ -10,7 +10,7 @@ metadata:
 {{- end }}
 
 {{- $releaseNamespace := .Release.Namespace }}
-{{- $name := include "py-kube-downscaler.name" . }}
+{{- $name := include "py-kube-downscaler.fullname" . }}
 {{- $serviceAccountName := include "py-kube-downscaler.serviceAccountName" . }}
 {{- range $namespace := .Values.constrainedNamespaces }}
 apiVersion: rbac.authorization.k8s.io/v1
