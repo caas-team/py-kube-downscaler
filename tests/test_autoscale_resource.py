@@ -11,6 +11,7 @@ from pykube import Deployment, PodDisruptionBudget, DaemonSet
 from pykube import HorizontalPodAutoscaler
 
 from kube_downscaler.resources.stack import Stack
+from kube_downscaler.resources.keda import ScaledObject
 from kube_downscaler.scaler import autoscale_resource
 from kube_downscaler.scaler import DOWNSCALE_PERIOD_ANNOTATION
 from kube_downscaler.scaler import DOWNTIME_REPLICAS_ANNOTATION
@@ -1143,5 +1144,165 @@ def test_upscale_daemonset_with_autoscaling():
         matching_labels=frozenset([re.compile("")]),
     )
 
-    print(ds.obj)
     assert ds.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] == None
+
+
+def test_downscale_scaledobject_with_pause_annotation_already_present():
+    # Create a ScaledObject with the annotation present
+    so = ScaledObject(
+        None,
+        {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {
+                    "autoscaling.keda.sh/paused-replicas": "3"
+                }
+            },
+            "spec": {}
+        }
+    )
+
+    now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+
+
+    autoscale_resource(
+        so,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    # Check if the annotations have been correctly updated
+    assert so.annotations[ScaledObject.keda_pause_annotation] == "0"
+    assert so.annotations[ScaledObject.last_keda_pause_annotation_if_present] == "3"
+
+
+def test_upscale_scaledobject_with_pause_annotation_already_present():
+    so = ScaledObject(
+        None,
+        {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {
+                    "autoscaling.keda.sh/paused-replicas": "0",  # Paused replicas
+                    "downscaler/original-pause-replicas": "3",  # Original replicas before pause
+                    "downscaler/original-replicas": "3",  # Keeping track of original replicas
+                }
+            },
+            "spec": {}
+        }
+    )
+
+
+    now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+
+
+    autoscale_resource(
+        so,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    # Check if the annotations have been correctly updated for the upscale operation
+    assert so.annotations[ScaledObject.keda_pause_annotation] == "3"
+    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+
+def test_downscale_scaledobject_without_pause_annotation():
+    so = ScaledObject(
+        None,
+        {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+            },
+            "spec": {}
+        }
+    )
+
+    now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+
+    autoscale_resource(
+        so,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    # Check if the annotations have been correctly updated
+    assert so.annotations[ScaledObject.keda_pause_annotation] == "0"
+
+
+def test_upscale_scaledobject_without_pause_annotation():
+    so = ScaledObject(
+        None,
+        {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {
+                    "autoscaling.keda.sh/paused-replicas": "0",
+                    "downscaler/original-pause-replicas": "3",
+                    "downscaler/original-replicas": "3",
+                }
+            },
+            "spec": {}
+        }
+    )
+
+
+    now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+
+
+    autoscale_resource(
+        so,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    # Check if the annotations have been correctly updated for the upscale operation
+    assert so.annotations[ScaledObject.keda_pause_annotation] == "3"
+    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
