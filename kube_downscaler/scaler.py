@@ -660,9 +660,10 @@ def scale_down(
             f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} replicas (uptime: {uptime}, downtime: {downtime})"
         )
     elif resource.kind == "ScaledObject":
-        if resource.annotations[ScaledObject.keda_pause_annotation] is not None:
-            paused_replicas = resource.annotations[ScaledObject.keda_pause_annotation]
-            resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = paused_replicas
+        if ScaledObject.keda_pause_annotation in resource.annotations:
+            if resource.annotations[ScaledObject.keda_pause_annotation] is not None:
+                paused_replicas = resource.annotations[ScaledObject.keda_pause_annotation]
+                resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = paused_replicas
         resource.annotations[ScaledObject.keda_pause_annotation] = "0"
         logger.info(
             f"Pausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
