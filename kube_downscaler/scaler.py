@@ -589,8 +589,8 @@ def scale_up(
             f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} replicas (uptime: {uptime}, downtime: {downtime})"
         )
     elif resource.kind == "ScaledObject":
-        if ScaledObject.keda_pause_annotation in resource.annotations:
-            if resource.annotations[ScaledObject.keda_pause_annotation] is not None:
+        if ScaledObject.last_keda_pause_annotation_if_present in resource.annotations:
+            if resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] is not None:
                 paused_replicas = resource.annotations[ScaledObject.last_keda_pause_annotation_if_present]
                 resource.annotations[ScaledObject.keda_pause_annotation] = paused_replicas
                 resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = None
