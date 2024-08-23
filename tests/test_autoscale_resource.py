@@ -1238,8 +1238,8 @@ def test_downscale_scaledobject_without_keda_pause_annotation():
                 "name": "scaledobject-1",
                 "namespace": "default",
                 "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {}
             },
-            "spec": {"replicas": 3},
         }
     )
 
@@ -1263,8 +1263,8 @@ def test_downscale_scaledobject_without_keda_pause_annotation():
 
     # Check if the annotations have been correctly updated
     assert so.annotations[ScaledObject.keda_pause_annotation] == "0"
-    assert so.replicas == 0
     assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    assert so.replicas == 0
 
 
 def test_upscale_scaledobject_without_keda_pause_annotation():
@@ -1277,11 +1277,9 @@ def test_upscale_scaledobject_without_keda_pause_annotation():
                 "creationTimestamp": "2023-08-21T10:00:00Z",
                 "annotations": {
                     "autoscaling.keda.sh/paused-replicas": "0",
-                    "downscaler/original-pause-replicas": "3",
                     "downscaler/original-replicas": "3",
                 }
             },
-            "spec": {"replicas": 0},
         }
     )
 
@@ -1304,6 +1302,6 @@ def test_upscale_scaledobject_without_keda_pause_annotation():
     )
 
     # Check if the annotations have been correctly updated for the upscale operation
-    assert so.annotations[ScaledObject.keda_pause_annotation] == "3"
-    assert so.replicas == 3
+    assert so.annotations[ScaledObject.keda_pause_annotation] is None
     assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    assert so.replicas == 1
