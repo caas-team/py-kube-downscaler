@@ -63,6 +63,7 @@ rules:
     - batch
   resources:
     - cronjobs
+    - jobs
   verbs:
     - get
     - watch
