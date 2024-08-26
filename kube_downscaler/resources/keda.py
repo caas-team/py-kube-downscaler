@@ -15,9 +15,11 @@ class ScaledObject(NamespacedAPIObject):
     @property
     def replicas(self):
         if ScaledObject.keda_pause_annotation in self.annotations:
-            if self.annotations[ScaledObject.keda_pause_annotation] == "0":
+            if self.annotations[ScaledObject.keda_pause_annotation] is None:
+                replicas = 1
+            elif self.annotations[ScaledObject.keda_pause_annotation] == "0":
                 replicas = 0
-            elif self.annotations[ScaledObject.keda_pause_annotation] != "0":
+            elif self.annotations[ScaledObject.keda_pause_annotation] != "0" and self.annotations[ScaledObject.keda_pause_annotation] is not None:
                 replicas = int(self.annotations[ScaledObject.keda_pause_annotation])
         else:
             replicas = 1

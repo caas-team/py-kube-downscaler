@@ -2754,3 +2754,318 @@ def test_scaler_pdb_unsuspend_min_available(monkeypatch):
         "spec": {"minAvailable": 1},
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
+def test_scaler_downscale_keda_already_with_pause_annotation(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "scaledobjects":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "scaledobject-1",
+                            "namespace": "default",
+                            "creationTimestamp": "2023-08-21T10:00:00Z",
+                            "annotations": {
+                                "autoscaling.keda.sh/paused-replicas": "2",
+                                "downscaler/original-pause-replicas": "2"
+                            }
+                        }
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {
+                "metadata": {
+                }
+            }
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["scaledobjects"])
+    scale(
+        constrained_downscaler=False,
+        namespaces=[],
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        upscale_target_only=False,
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        admission_controller="",
+        dry_run=False,
+        grace_period=300,
+        downtime_replicas=0,
+        enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert api.patch.call_count == 1
+    assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
+
+    patch_data = {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {
+                    "autoscaling.keda.sh/paused-replicas": "0",
+                    "downscaler/original-pause-replicas": "2",
+                    "downscaler/original-replicas": "2",
+                }
+            }
+    }
+    assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
+def test_scaler_upscale_keda_already_with_pause_annotation(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "scaledobjects":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "scaledobject-1",
+                            "namespace": "default",
+                            "creationTimestamp": "2023-08-21T10:00:00Z",
+                            "annotations": {
+                                "autoscaling.keda.sh/paused-replicas": "0",
+                                "downscaler/original-pause-replicas": "3",
+                                "downscaler/original-replicas": "3",
+                            }
+                        }
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {
+                "metadata": {
+                }
+            }
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["scaledobjects"])
+    scale(
+        constrained_downscaler=False,
+        namespaces=[],
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        upscale_target_only=False,
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        admission_controller="",
+        dry_run=False,
+        grace_period=300,
+        downtime_replicas=0,
+        enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert api.patch.call_count == 1
+    assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
+
+    patch_data = {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {
+                    "autoscaling.keda.sh/paused-replicas": "3",
+                    "downscaler/original-pause-replicas": None,
+                    "downscaler/original-replicas": None,
+                }
+            }
+    }
+    assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
+
+def test_scaler_downscale_keda_without_pause_annotation(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "scaledobjects":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "scaledobject-1",
+                            "namespace": "default",
+                            "creationTimestamp": "2023-08-21T10:00:00Z",
+                            "annotations": {
+                            }
+                        }
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {
+                "metadata": {
+                }
+            }
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["scaledobjects"])
+    scale(
+        constrained_downscaler=False,
+        namespaces=[],
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        upscale_target_only=False,
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        admission_controller="",
+        dry_run=False,
+        grace_period=300,
+        downtime_replicas=0,
+        enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert api.patch.call_count == 1
+    assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
+
+    patch_data = {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {
+                    "autoscaling.keda.sh/paused-replicas": "0",
+                    "downscaler/original-replicas": "1"
+                }
+            }
+    }
+    assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
+
+def test_scaler_upscale_keda_without_pause_annotation(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "scaledobjects":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "scaledobject-1",
+                            "namespace": "default",
+                            "creationTimestamp": "2023-08-21T10:00:00Z",
+                            "annotations": {
+                                "autoscaling.keda.sh/paused-replicas": "0",
+                                "downscaler/original-replicas": "1"
+                            }
+                        }
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {
+                "metadata": {
+                }
+            }
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["scaledobjects"])
+    scale(
+        constrained_downscaler=False,
+        namespaces=[],
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        upscale_target_only=False,
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        admission_controller="",
+        dry_run=False,
+        grace_period=300,
+        downtime_replicas=0,
+        enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert api.patch.call_count == 1
+    assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
+
+    patch_data = {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {
+                    "autoscaling.keda.sh/paused-replicas": None,
+                    "downscaler/original-replicas": None
+                }
+            }
+    }
+    assert json.loads(api.patch.call_args[1]["data"]) == patch_data
