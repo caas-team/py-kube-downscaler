@@ -9,7 +9,7 @@ metadata:
 {{- end }}
 
 {{- $releaseNamespace := .Release.Namespace }}
-{{- $name := include "py-kube-downscaler.name" . }}
+{{- $name := include "py-kube-downscaler.fullname" . }}
 {{- $serviceAccountName := include "py-kube-downscaler.serviceAccountName" . }}
 {{- range $namespace := .Values.constrainedNamespaces }}
 apiVersion: rbac.authorization.k8s.io/v1
@@ -130,7 +130,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "py-kube-downscaler.name" . }}
+  name: {{ include "py-kube-downscaler.fullname" . }}
 rules:
 - apiGroups:
     - ""
@@ -281,11 +281,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "py-kube-downscaler.name" . }}
+  name: {{ include "py-kube-downscaler.fullname" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "py-kube-downscaler.name" . }}
+  name: {{ include "py-kube-downscaler.fullname" . }}
 subjects:
   - kind: ServiceAccount
     name: {{ include "py-kube-downscaler.serviceAccountName" . }}
