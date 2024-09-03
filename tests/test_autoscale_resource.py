@@ -11,6 +11,7 @@ from pykube import Deployment, PodDisruptionBudget, DaemonSet
 from pykube import HorizontalPodAutoscaler
 
 from kube_downscaler.resources.stack import Stack
+from kube_downscaler.resources.keda import ScaledObject
 from kube_downscaler.scaler import autoscale_resource
 from kube_downscaler.scaler import DOWNSCALE_PERIOD_ANNOTATION
 from kube_downscaler.scaler import DOWNTIME_REPLICAS_ANNOTATION
@@ -40,6 +41,7 @@ def test_swallow_exception(monkeypatch, resource, caplog):
     resource.metadata = {"creationTimestamp": "invalid-timestamp!"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -70,6 +72,7 @@ def test_swallow_exception_with_event(monkeypatch, resource, caplog):
     resource.metadata = {"creationTimestamp": "invalid-timestamp!"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -97,6 +100,7 @@ def test_exclude(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -122,6 +126,7 @@ def test_exclude_until_invalid_time(resource, caplog):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -151,6 +156,7 @@ def test_dry_run(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -179,6 +185,7 @@ def test_grace_period(resource):
     # resource was only created 1 minute ago, grace period is 5 minutes
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -204,6 +211,7 @@ def test_downtime_always(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -228,6 +236,7 @@ def test_downtime_interval(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="Mon-Fri 07:30-20:30 Europe/Berlin",
@@ -252,6 +261,7 @@ def test_forced_uptime(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="Mon-Fri 07:30-20:30 Europe/Berlin",
@@ -275,6 +285,7 @@ def test_forced_downtime(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T14:59:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="Mon-Fri 07:30-20:30 Europe/Berlin",
@@ -295,6 +306,7 @@ def test_autoscale_bad_resource():
     )
     try:
         autoscale_resource(
+            upscale_target_only=False,
             resource=None,
             upscale_period="never",
             downscale_period="never",
@@ -323,6 +335,7 @@ def test_scale_up(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="Mon-Fri 07:30-20:30 Europe/Berlin",
@@ -350,6 +363,7 @@ def test_scale_up_downtime_replicas_annotation(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="Mon-Fri 07:30-20:30 Europe/Berlin",
@@ -374,6 +388,7 @@ def test_downtime_replicas_annotation_invalid(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -397,6 +412,7 @@ def test_downtime_replicas_annotation_valid(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -420,6 +436,7 @@ def test_downtime_replicas_invalid(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -443,6 +460,7 @@ def test_downtime_replicas_valid(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -474,6 +492,7 @@ def test_set_annotation():
     )
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -506,6 +525,7 @@ def test_downscale_always(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="always",
         default_uptime="always",
@@ -530,6 +550,7 @@ def test_downscale_period(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="Mon-Fri 20:30-24:00 Europe/Berlin",
         default_uptime="always",
@@ -554,6 +575,7 @@ def test_downscale_period_overlaps(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="Mon-Fri 20:30-24:00 Europe/Berlin",
         downscale_period="Mon-Fri 20:30-24:00 Europe/Berlin",
         default_uptime="always",
@@ -577,6 +599,7 @@ def test_downscale_period_not_match(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="Mon-Fri 07:30-10:00 Europe/Berlin",
         default_uptime="always",
@@ -602,6 +625,7 @@ def test_downscale_period_resource_overrides_never(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -627,6 +651,7 @@ def test_downscale_period_resource_overrides_namespace(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -653,6 +678,7 @@ def test_upscale_period_resource_overrides_never(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -679,6 +705,7 @@ def test_upscale_period_resource_overrides_namespace(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="Mon-Fri 22:00-24:00 Europe/Berlin",
         downscale_period="never",
         default_uptime="always",
@@ -711,6 +738,7 @@ def test_downscale_stack_deployment_ignored():
     )
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -735,6 +763,7 @@ def test_downscale_replicas_not_zero(resource):
     resource.metadata = {"creationTimestamp": "2018-10-23T21:55:00Z"}
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -750,6 +779,7 @@ def test_downscale_replicas_not_zero(resource):
     assert resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] == "3"
     autoscale_resource(
         resource,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -785,6 +815,7 @@ def test_downscale_stack_with_autoscaling():
     assert stack.replicas == 4
     autoscale_resource(
         stack,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -818,6 +849,7 @@ def test_upscale_stack_with_autoscaling():
     assert stack.replicas == 0
     autoscale_resource(
         stack,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -852,6 +884,7 @@ def test_downscale_hpa_with_autoscaling():
     )
     autoscale_resource(
         hpa,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -887,6 +920,7 @@ def test_upscale_hpa_with_autoscaling():
     )
     autoscale_resource(
         hpa,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -901,7 +935,7 @@ def test_upscale_hpa_with_autoscaling():
     assert hpa.obj["spec"]["minReplicas"] == 4
     assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
 
-    
+
 def test_downscale_pdb_minavailable_with_autoscaling():
     pdb = PodDisruptionBudget(
         None,
@@ -920,6 +954,7 @@ def test_downscale_pdb_minavailable_with_autoscaling():
     )
     autoscale_resource(
         pdb,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -954,6 +989,7 @@ def test_upscale_pdb_minavailable_with_autoscaling():
     )
     autoscale_resource(
         pdb,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -965,6 +1001,7 @@ def test_upscale_pdb_minavailable_with_autoscaling():
     )
     assert pdb.obj["spec"]["minAvailable"] == 4
     assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
 
 def test_downscale_pdb_maxunavailable_with_autoscaling():
     pdb = PodDisruptionBudget(
@@ -984,6 +1021,7 @@ def test_downscale_pdb_maxunavailable_with_autoscaling():
     )
     autoscale_resource(
         pdb,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1018,6 +1056,7 @@ def test_upscale_pdb_maxunavailable_with_autoscaling():
     )
     autoscale_resource(
         pdb,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -1030,7 +1069,7 @@ def test_upscale_pdb_maxunavailable_with_autoscaling():
     assert pdb.obj["spec"]["maxUnavailable"] == 4
     assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
 
-    
+
 def test_downscale_daemonset_with_autoscaling():
     ds = DaemonSet(
         None,
@@ -1052,6 +1091,7 @@ def test_downscale_daemonset_with_autoscaling():
     )
     autoscale_resource(
         ds,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="never",
@@ -1093,6 +1133,7 @@ def test_upscale_daemonset_with_autoscaling():
     )
     autoscale_resource(
         ds,
+        upscale_target_only=False,
         upscale_period="never",
         downscale_period="never",
         default_uptime="always",
@@ -1104,5 +1145,163 @@ def test_upscale_daemonset_with_autoscaling():
         matching_labels=frozenset([re.compile("")]),
     )
 
-    print(ds.obj)
     assert ds.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] == None
+
+
+def test_downscale_scaledobject_with_pause_annotation_already_present():
+    # Create a ScaledObject with the annotation present
+    so = ScaledObject(
+        None,
+        {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {
+                    "autoscaling.keda.sh/paused-replicas": "3"
+                }
+            },
+            "spec": {}
+        }
+    )
+
+    now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+
+    autoscale_resource(
+        so,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    # Check if the annotations have been correctly updated
+    assert so.annotations[ScaledObject.keda_pause_annotation] == "0"
+    assert so.replicas == 0
+
+
+def test_upscale_scaledobject_with_pause_annotation_already_present():
+    so = ScaledObject(
+        None,
+        {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {
+                    "autoscaling.keda.sh/paused-replicas": "0",  # Paused replicas
+                    "downscaler/original-pause-replicas": "3",  # Original replicas before pause
+                    "downscaler/original-replicas": "3",  # Keeping track of original replicas
+                }
+            },
+            "spec": {}
+        }
+    )
+
+    now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+
+    autoscale_resource(
+        so,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    # Check if the annotations have been correctly updated for the upscale operation
+    assert so.annotations[ScaledObject.keda_pause_annotation] == "3"
+    assert so.replicas == 3
+    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+
+
+def test_downscale_scaledobject_without_keda_pause_annotation():
+    so = ScaledObject(
+        None,
+        {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {}
+            },
+        }
+    )
+
+    now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+
+    autoscale_resource(
+        so,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    # Check if the annotations have been correctly updated
+    assert so.annotations[ScaledObject.keda_pause_annotation] == "0"
+    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    assert so.replicas == 0
+
+
+def test_upscale_scaledobject_without_keda_pause_annotation():
+    so = ScaledObject(
+        None,
+        {
+            "metadata": {
+                "name": "scaledobject-1",
+                "namespace": "default",
+                "creationTimestamp": "2023-08-21T10:00:00Z",
+                "annotations": {
+                    "autoscaling.keda.sh/paused-replicas": "0",
+                    "downscaler/original-replicas": "3",
+                }
+            },
+        }
+    )
+
+    now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+
+    autoscale_resource(
+        so,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    # Check if the annotations have been correctly updated for the upscale operation
+    assert so.annotations[ScaledObject.keda_pause_annotation] is None
+    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    assert so.replicas == 1

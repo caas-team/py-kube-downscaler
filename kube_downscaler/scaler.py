@@ -81,6 +81,18 @@ def parse_time(timestamp: str) -> datetime.datetime:
         f"time data '{timestamp}' does not match any format ({', '.join(TIMESTAMP_FORMATS)})"
     )
 
+
+# If the argument --upscale-target-only is present, resources from namespaces not in target won't be processed.
+# Otherwise all resources from all namespaces will be processed for scaling if the have original_replicas annotation
+def define_scope(exclude, original_replicas, upscale_target_only):
+    if upscale_target_only:
+        exclude_condition = exclude
+    else:
+        exclude_condition = exclude and not original_replicas
+
+    return exclude_condition
+
+
 def is_grace_period_annotation_integer(value):
     try:
         int(value)  # Attempt to convert the string to an integer
@@ -577,10 +589,11 @@ def scale_up(
             f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} replicas (uptime: {uptime}, downtime: {downtime})"
         )
     elif resource.kind == "ScaledObject":
-        if resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] is not None:
-            paused_replicas = resource.annotations[ScaledObject.last_keda_pause_annotation_if_present]
-            resource.annotations[ScaledObject.keda_pause_annotation] = paused_replicas
-            resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = None
+        if ScaledObject.last_keda_pause_annotation_if_present in resource.annotations:
+            if resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] is not None:
+                paused_replicas = resource.annotations[ScaledObject.last_keda_pause_annotation_if_present]
+                resource.annotations[ScaledObject.keda_pause_annotation] = paused_replicas
+                resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = None
         else:
             resource.annotations[ScaledObject.keda_pause_annotation] = None
         logger.info(
@@ -648,9 +661,10 @@ def scale_down(
             f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} replicas (uptime: {uptime}, downtime: {downtime})"
         )
     elif resource.kind == "ScaledObject":
-        if resource.annotations[ScaledObject.keda_pause_annotation] is not None:
-            paused_replicas = resource.annotations[ScaledObject.keda_pause_annotation]
-            resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = paused_replicas
+        if ScaledObject.keda_pause_annotation in resource.annotations:
+            if resource.annotations[ScaledObject.keda_pause_annotation] is not None:
+                paused_replicas = resource.annotations[ScaledObject.keda_pause_annotation]
+                resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = paused_replicas
         resource.annotations[ScaledObject.keda_pause_annotation] = "0"
         logger.info(
             f"Pausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
@@ -834,6 +848,7 @@ def autoscale_resource(
     default_downtime: str,
     forced_uptime: bool,
     forced_downtime: bool,
+    upscale_target_only: bool,
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int = 0,
@@ -858,7 +873,9 @@ def autoscale_resource(
         if downtime_replicas_from_annotation is not None:
             downtime_replicas = downtime_replicas_from_annotation
 
-        if exclude and not original_replicas:
+        exclude_condition = define_scope(exclude, original_replicas, upscale_target_only)
+
+        if exclude_condition:
             logger.debug(
                 f"{resource.kind} {resource.namespace}/{resource.name} was excluded"
             )
@@ -973,6 +990,7 @@ def autoscale_resources(
     default_uptime: str,
     default_downtime: str,
     forced_uptime: bool,
+    upscale_target_only: bool,
     constrained_downscaler: bool,
     dry_run: bool,
     now: datetime.datetime,
@@ -1080,6 +1098,7 @@ def autoscale_resources(
                 default_downtime_for_namespace,
                 forced_uptime_for_namespace,
                 forced_downtime_for_namespace,
+                upscale_target_only,
                 dry_run,
                 now,
                 grace_period,
@@ -1308,6 +1327,7 @@ def scale(
     downscale_period: str,
     default_uptime: str,
     default_downtime: str,
+    upscale_target_only: bool,
     include_resources: FrozenSet[str],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_deployments: FrozenSet[str],
@@ -1341,6 +1361,7 @@ def scale(
                     default_uptime,
                     default_downtime,
                     forced_uptime,
+                    upscale_target_only,
                     constrained_downscaler,
                     dry_run,
                     now,
