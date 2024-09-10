@@ -17,7 +17,7 @@ flake8 = "*"
 pytest = "*"
 pytest-cov = "*"
 black = "^24.3.0"
-mypy = "^0.761"
+mypy = "^1.11.2"
 pre-commit = "^2.9.2"
 
 [tool.poetry.group.dev.dependencies]
