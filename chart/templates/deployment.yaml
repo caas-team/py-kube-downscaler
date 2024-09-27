@@ -13,6 +13,10 @@ spec:
     metadata:
       labels:
         {{- include "py-kube-downscaler.selectorLabels" . | nindent 8 }}
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
     spec:
       serviceAccountName: {{ include "py-kube-downscaler.serviceAccountName" . }}
       containers:
