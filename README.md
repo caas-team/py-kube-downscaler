@@ -5,7 +5,7 @@
 <a href="/../../issues/" title="GitHub Issues"><img alt="GitHub Issues" src="https://img.shields.io/github/issues/caas-team/py-kube-downscaler"></a>
 <a href="https://communityinviter.com/apps/kube-downscaler/kube-downscaler" title="Slack Workspace"><img alt="Slack Workspace" src="https://img.shields.io/badge/slack-kube--downscaler-dark_green?style=flat&logo=slack"></a>
 
-This is a fork of [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler) which is no longer maintained.
+This is a fork of the no longer maintained [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler).
 
 Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
 `HorizontalPodAutoscalers`, `DaemonSets`, `CronJobs`, `Jobs`, `PodDisruptionBudgets`, `Argo Rollouts` and `Keda ScaledObjects` too !) during non-work hours.
@@ -36,10 +36,12 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Scaling Jobs: Overview](#scaling-jobs-overview)
     - [Scaling Jobs Natively](#scaling-jobs-natively)
     - [Scaling Jobs With Admission Controller](#scaling-jobs-with-admission-controller)
-    - [Scaling Daemonsets](#scaling-daemonset)
+    - [Scaling DaemonSets](#scaling-daemonsets)
     - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
   - [Migrate From Codeberg](#migrate-from-codeberg)
+    - [Migrate From Codeberg - Cluster Wide Installation](#migrate-from-codeberg---cluster-wide-installation)
+    - [Migrate From Codeberg - Limited Access Installation](#migrate-from-codeberg---limited-access-installation)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -585,7 +587,7 @@ Kyverno
 $ kubectl delete policies -A -l origin=kube-downscaler
 ```
 
-### Scaling DaemonSet
+### Scaling DaemonSets
 
 The feature to scale DaemonSets can be very useful for reducing the base occupancy of a node. If enabled, the DaemonSets downscaling algorithm works like this:
 
@@ -715,9 +717,8 @@ $ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set name
 
 ## Contributing
 
-Easiest way to contribute is to provide feedback! We would love to hear
-what you like and what you think is missing. Create an issue or [ping
-try_except\_ on Twitter](https://twitter.com/try_except_).
+Easiest way to contribute is to provide feedback! We would love to hear what you like and what you think is missing.
+Create an issue and we will take a look. PRs are welcome.
 
 PRs are welcome.
 
