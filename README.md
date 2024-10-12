@@ -594,6 +594,26 @@ The feature to scale DaemonSets can be very useful for reducing the base occupan
 1. Downtime Hours: Kube Downscaler will add to each targeted DaemonSet a Node Selector that cannot be satisfied `kube-downscaler-non-existent=true`
 2. Uptime Hours: Kube Downscaler will remove the `kube-downscaler-non-existent=true` Node Selector from each targeted DaemonSet
 
+### Scaling ScaledObjects
+
+The ability to downscale ScaledObjects is very useful for workloads that use Keda to support 
+a wider range of horizontal scaling metrics compared to the native Horizontal Pod Autoscaler (HPA). 
+Keda provides a built-in way to disable ScaledObjects when they are not needed. This can be achieved by using
+the annotation `"autoscaling.keda.sh/paused-replicas"`.
+
+The KubeDownscaler algorithm will apply the annotation `"autoscaling.keda.sh/paused-replicas" `
+during downtime periods, setting its value to what the user specifies through an environment variable
+or the annotation `"downscaler/downtime-replicas"`. During uptime, KubeDownscaler will remove the 
+`"autoscaling.keda.sh/paused-replicas"` annotation, allowing the ScaledObject to operate as originally configured.
+
+**Important**: KubeDownscaler has an automatic mechanism that detects if the `"autoscaling.keda.sh/paused-replicas" `
+annotation is already present on the ScaledObject. If that is the case, KubeDownscaler will overwrite it 
+with the target value specified for downtime and, during uptime, will restore the original value.
+
+**Important**: During downscaling, KubeDownscaler will set the annotation `"downscaler/original-replicas"` to the value 2147483648,
+which is one unit higher than GoLang’s maximum integer value (2147483647). This value acts as a placeholder to indicate
+that the ScaledObject was active during uptime, as ScaledObjects themselves don’t inherently track replica counts.
+
 ### Matching Labels Argument
 
 Labels, in Kubernetes, are key-value pairs that can be used to identify and group resources.

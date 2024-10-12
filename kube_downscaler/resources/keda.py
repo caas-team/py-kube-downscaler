@@ -13,7 +13,7 @@ class ScaledObject(NamespacedAPIObject):
     last_keda_pause_annotation_if_present = "downscaler/original-pause-replicas"
 
     # GoLang 32-bit signed integer max value + 1. The value was choosen because 2147483647 is the max allowed
-    # for Deployment/StatefulSet.spec.template.replicas
+    # for Deployment/StatefulSet.spec.replicas
     KUBERNETES_MAX_ALLOWED_REPLICAS = 2147483647
 
     @property
