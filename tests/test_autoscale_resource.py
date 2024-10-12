@@ -1304,4 +1304,4 @@ def test_upscale_scaledobject_without_keda_pause_annotation():
     # Check if the annotations have been correctly updated for the upscale operation
     assert so.annotations[ScaledObject.keda_pause_annotation] is None
     assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
-    assert so.replicas == 1
+    assert so.replicas == so.KUBERNETES_MAX_ALLOWED_REPLICAS + 1
