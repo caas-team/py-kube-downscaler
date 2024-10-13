@@ -415,11 +415,11 @@ def get_replicas(
         replicas = resource.replicas
         if replicas == KUBERNETES_MAX_ALLOWED_REPLICAS + 1:
             logger.debug(
-                f"{resource.kind} {resource.namespace}/{resource.name} controls some replicas (uptime: {uptime})"
+                f"{resource.kind} {resource.namespace}/{resource.name} is not suspended (uptime: {uptime})"
             )
         else:
             logger.debug(
-                f"{resource.kind} {resource.namespace}/{resource.name} controls {replicas} replicas (original: {original_replicas}, uptime: {uptime})"
+                f"{resource.kind} {resource.namespace}/{resource.name} is suspended (uptime: {uptime})"
             )
     else:
         replicas = resource.replicas
