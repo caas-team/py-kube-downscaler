@@ -16,6 +16,8 @@ class ScaledObject(NamespacedAPIObject):
     # for Deployment/StatefulSet.spec.replicas
     KUBERNETES_MAX_ALLOWED_REPLICAS = 2147483647
 
+    # If keda_pause_annotation is not present return KUBERNETES_MAX_ALLOWED_REPLICAS + 1, which means
+    # the ScaledObject is active. Otherwise returns the amount of replicas specified inside keda_pause_annotation
     @property
     def replicas(self):
         if ScaledObject.keda_pause_annotation in self.annotations:

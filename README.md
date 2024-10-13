@@ -603,8 +603,8 @@ Keda provides a built-in way to disable ScaledObjects when they are not needed. 
 the annotation `"autoscaling.keda.sh/paused-replicas"`.
 
 The KubeDownscaler algorithm will apply the annotation `"autoscaling.keda.sh/paused-replicas" `
-during downtime periods, setting its value to what the user specifies through an environment variable
-or the annotation `"downscaler/downtime-replicas"`. During uptime, KubeDownscaler will remove the 
+during downtime periods, setting its value to what the user specifies through the KubeDownscaler argument `--downtime-replicas`
+or the workload annotation `"downscaler/downtime-replicas"`. During uptime, KubeDownscaler will remove the 
 `"autoscaling.keda.sh/paused-replicas"` annotation, allowing the ScaledObject to operate as originally configured.
 
 **Important**: When using the `"downscaler/downtime-replicas"` annotation at the workload level, it is crucial that
