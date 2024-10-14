@@ -42,7 +42,7 @@ DOWNTIME_REPLICAS_ANNOTATION = "downscaler/downtime-replicas"
 GRACE_PERIOD_ANNOTATION="downscaler/grace-period"
 
 # GoLang 32-bit signed integer max value + 1. The value was choosen because 2147483647 is the max allowed
-# for Deployment/StatefulSet.spec.template.replicas. This value is usefult to allow
+# for Deployment/StatefulSet.spec.template.replicas. This value is used to allow
 # ScaledObject to support "downscaler/downtime-replcas" annotation
 KUBERNETES_MAX_ALLOWED_REPLICAS = 2147483647
 
