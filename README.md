@@ -609,14 +609,15 @@ or the workload annotation `"downscaler/downtime-replicas"`. During uptime, Kube
 
 **Important**: When using the `"downscaler/downtime-replicas"` annotation at the workload level, it is crucial that
 this annotation is included in both the ScaledObject and the corresponding Deployment or StatefulSet that it controls
-and the values of the annotation must match in both locations.
+and the values of the annotation must match in both locations. Alternatively, it is possible to exclude the Deployment 
+or StatefulSet from scaling by using the annotation `"downscaler/exclude"`, while keeping downscaling active only 
+on the ScaledObject.
 
 **Important**: KubeDownscaler has an automatic mechanism that detects if the `"autoscaling.keda.sh/paused-replicas" `
 annotation is already present on the ScaledObject. If that is the case, KubeDownscaler will overwrite it 
 with the target value specified for downtime and, during uptime, will restore the original value.
 
-**Technical Detail**: During downscaling, KubeDownscaler will set the annotation `"downscaler/original-replicas"` to the value 2147483648,
-which is one unit higher than GoLang’s maximum integer value (2147483647). This value acts as a placeholder to indicate
+**Technical Detail**: During downscaling, KubeDownscaler will set the annotation `"downscaler/original-replicas"` to -1, this value acts as a placeholder to indicate
 that the ScaledObject was active during uptime.
 
 ### Matching Labels Argument

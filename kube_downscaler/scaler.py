@@ -944,7 +944,7 @@ def autoscale_resource(
                 and is_uptime
                 and replicas == downtime_replicas
                 and original_replicas
-                and original_replicas > 0
+                and (original_replicas > 0 or original_replicas == -1)
             ):
                 scale_up(
                     resource,
@@ -959,8 +959,8 @@ def autoscale_resource(
             elif (
                 not ignore
                 and not is_uptime
-                and replicas > 0
-                and replicas > downtime_replicas
+                and (replicas > 0 or replicas == -1)
+                and (replicas > downtime_replicas or replicas == -1)
             ):
                 if within_grace_period(
                     resource, grace_period, now, deployment_time_annotation

@@ -2984,7 +2984,7 @@ def test_scaler_downscale_keda_without_pause_annotation(monkeypatch):
                 "creationTimestamp": "2023-08-21T10:00:00Z",
                 "annotations": {
                     "autoscaling.keda.sh/paused-replicas": "0",
-                    "downscaler/original-replicas": "2147483648"
+                    "downscaler/original-replicas": "-1"
                 }
             }
     }
@@ -3141,7 +3141,7 @@ def test_scaler_downscale_keda_with_downscale_replicas_annotation(monkeypatch):
                 "annotations": {
                     "autoscaling.keda.sh/paused-replicas": "1",
                     'downscaler/downtime-replicas': '1',
-                    'downscaler/original-replicas': '2147483648'
+                    'downscaler/original-replicas': '-1'
                 }
             }
     }
@@ -3171,7 +3171,7 @@ def test_scaler_upscale_keda_with_downscale_replicas_annotation(monkeypatch):
                             "annotations": {
                                 "autoscaling.keda.sh/paused-replicas": "1",
                                 "downscaler/downtime-replicas": "1",
-                                "downscaler/original-replicas": "2147483648"
+                                "downscaler/original-replicas": "-1"
                             }
                         }
                     },

@@ -51,7 +51,7 @@ def test_scaledobject():
     scalable_mock = {"metadata": {}}
     api_mock.obj = MagicMock(name="APIObjMock")
     d = ScaledObject(api_mock, scalable_mock)
-    assert d.replicas == d.KUBERNETES_MAX_ALLOWED_REPLICAS + 1
+    assert d.replicas == -1
     d.annotations[ScaledObject.keda_pause_annotation] = "0"
     assert d.replicas == 0
 
