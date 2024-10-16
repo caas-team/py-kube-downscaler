@@ -41,6 +41,11 @@ DOWNTIME_ANNOTATION = "downscaler/downtime"
 DOWNTIME_REPLICAS_ANNOTATION = "downscaler/downtime-replicas"
 GRACE_PERIOD_ANNOTATION="downscaler/grace-period"
 
+# GoLang 32-bit signed integer max value + 1. The value was choosen because 2147483647 is the max allowed
+# for Deployment/StatefulSet.spec.template.replicas. This value is used to allow
+# ScaledObject to support "downscaler/downtime-replcas" annotation
+KUBERNETES_MAX_ALLOWED_REPLICAS = 2147483647
+
 RESOURCE_CLASSES = [
     Deployment,
     StatefulSet,
@@ -406,6 +411,16 @@ def get_replicas(
         logger.debug(
             f"{resource.kind} {resource.namespace}/{resource.name} is {state} (original: {original_state}, uptime: {uptime})"
         )
+    elif resource.kind == "ScaledObject":
+        replicas = resource.replicas
+        if replicas == KUBERNETES_MAX_ALLOWED_REPLICAS + 1:
+            logger.debug(
+                f"{resource.kind} {resource.namespace}/{resource.name} is not suspended (uptime: {uptime})"
+            )
+        else:
+            logger.debug(
+                f"{resource.kind} {resource.namespace}/{resource.name} is suspended (uptime: {uptime})"
+            )
     else:
         replicas = resource.replicas
         logger.debug(
@@ -665,7 +680,7 @@ def scale_down(
             if resource.annotations[ScaledObject.keda_pause_annotation] is not None:
                 paused_replicas = resource.annotations[ScaledObject.keda_pause_annotation]
                 resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = paused_replicas
-        resource.annotations[ScaledObject.keda_pause_annotation] = "0"
+        resource.annotations[ScaledObject.keda_pause_annotation] = str(target_replicas)
         logger.info(
             f"Pausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
@@ -929,7 +944,7 @@ def autoscale_resource(
                 and is_uptime
                 and replicas == downtime_replicas
                 and original_replicas
-                and original_replicas > 0
+                and (original_replicas > 0 or original_replicas == -1)
             ):
                 scale_up(
                     resource,
@@ -944,8 +959,9 @@ def autoscale_resource(
             elif (
                 not ignore
                 and not is_uptime
-                and replicas > 0
-                and replicas > downtime_replicas
+                and (replicas > 0 
+                and replicas > downtime_replicas 
+                or replicas == -1)
             ):
                 if within_grace_period(
                     resource, grace_period, now, deployment_time_annotation

@@ -37,6 +37,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Scaling Jobs Natively](#scaling-jobs-natively)
     - [Scaling Jobs With Admission Controller](#scaling-jobs-with-admission-controller)
     - [Scaling DaemonSets](#scaling-daemonsets)
+    - [Scaling ScaledObjects](#scaling-scaledobjects)
     - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
   - [Migrate From Codeberg](#migrate-from-codeberg)
@@ -593,6 +594,31 @@ The feature to scale DaemonSets can be very useful for reducing the base occupan
 
 1. Downtime Hours: Kube Downscaler will add to each targeted DaemonSet a Node Selector that cannot be satisfied `kube-downscaler-non-existent=true`
 2. Uptime Hours: Kube Downscaler will remove the `kube-downscaler-non-existent=true` Node Selector from each targeted DaemonSet
+
+### Scaling ScaledObjects
+
+The ability to downscale ScaledObjects is very useful for workloads that use Keda to support 
+a wider range of horizontal scaling metrics compared to the native Horizontal Pod Autoscaler (HPA). 
+Keda provides a built-in way to disable ScaledObjects when they are not needed. This can be achieved by using
+the annotation `"autoscaling.keda.sh/paused-replicas"`.
+
+The KubeDownscaler algorithm will apply the annotation `"autoscaling.keda.sh/paused-replicas" `
+during downtime periods, setting its value to what the user specifies through the KubeDownscaler argument `--downtime-replicas`
+or the workload annotation `"downscaler/downtime-replicas"`. During uptime, KubeDownscaler will remove the 
+`"autoscaling.keda.sh/paused-replicas"` annotation, allowing the ScaledObject to operate as originally configured.
+
+**Important**: When using the `"downscaler/downtime-replicas"` annotation at the workload level, it is crucial that
+this annotation is included in both the ScaledObject and the corresponding Deployment or StatefulSet that it controls
+and the values of the annotation must match in both locations. Alternatively, it is possible to exclude the Deployment 
+or StatefulSet from scaling by using the annotation `"downscaler/exclude"`, while keeping downscaling active only 
+on the ScaledObject.
+
+**Important**: KubeDownscaler has an automatic mechanism that detects if the `"autoscaling.keda.sh/paused-replicas" `
+annotation is already present on the ScaledObject. If that is the case, KubeDownscaler will overwrite it 
+with the target value specified for downtime and, during uptime, will restore the original value.
+
+**Technical Detail**: During downscaling, KubeDownscaler will set the annotation `"downscaler/original-replicas"` to -1, this value acts as a placeholder to indicate
+that the ScaledObject was active during uptime.
 
 ### Matching Labels Argument
 
