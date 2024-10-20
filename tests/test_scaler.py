@@ -63,6 +63,7 @@ def test_scaler_always_up(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -128,6 +129,7 @@ def test_scaler_namespace_included(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -213,6 +215,7 @@ def test_scaler_namespace_excluded(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -294,6 +297,7 @@ def test_scaler_namespace_excluded_regex(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -373,6 +377,7 @@ def test_scaler_namespace_excluded_via_annotation(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -447,6 +452,7 @@ def test_scaler_down_to(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=True,
     )
@@ -514,6 +520,7 @@ def test_scaler_down_to_upscale(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=True,
     )
@@ -578,6 +585,7 @@ def test_scaler_no_upscale_on_exclude_with_upscale_target_only(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -636,6 +644,7 @@ def test_scaler_no_upscale_on_exclude_namespace_with_upscale_target_only(monkeyp
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -695,6 +704,7 @@ def test_scaler_no_upscale_on_exclude_without_upscale_target_only(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -761,6 +771,7 @@ def test_scaler_no_upscale_on_exclude_namespace_without_upscale_target_only(monk
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -824,6 +835,7 @@ def test_scaler_always_upscale(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -884,6 +896,7 @@ def test_scaler_namespace_annotation_replicas(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -949,6 +962,7 @@ def test_scaler_daemonset_suspend(monkeypatch):
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1043,6 +1057,7 @@ def test_scaler_daemonset_unsuspend(monkeypatch):
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1123,6 +1138,7 @@ def test_scaler_cronjob_suspend(monkeypatch):
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1203,6 +1219,7 @@ def test_scaler_cronjob_unsuspend(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=True,
     )
@@ -1274,6 +1291,7 @@ def test_scaler_job_suspend_without_admission_controller(monkeypatch):
         grace_period=300,
         admission_controller="",
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1346,6 +1364,7 @@ def test_scaler_job_suspend_without_admission_controller_with_owner_reference(mo
         grace_period=300,
         admission_controller="",
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1413,6 +1432,7 @@ def test_scaler_job_unsuspend_without_admission_controller(monkeypatch):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=True,
     )
@@ -1481,6 +1501,7 @@ def test_scaler_downscale_period_no_error(monkeypatch, caplog):
         dry_run=False,
         grace_period=300,
         admission_controller="",
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -1562,6 +1583,7 @@ def test_scaler_deployment_excluded_until(monkeypatch):
         exclude_deployments=[],
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
+        api_server_timeout=10,
         grace_period=300,
         admission_controller="",
     )
@@ -1647,6 +1669,7 @@ def test_scaler_namespace_excluded_until(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         grace_period=300,
+        api_server_timeout=10,
         admission_controller="",
         downtime_replicas=0,
     )
@@ -1722,6 +1745,7 @@ def test_scaler_name_excluded(monkeypatch):
         exclude_deployments=["sysdep-1"],
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
+        api_server_timeout=10,
         grace_period=300,
         admission_controller="",
     )
@@ -1789,6 +1813,7 @@ def test_scaler_namespace_force_uptime_true(monkeypatch):
         exclude_deployments=[],
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
+        api_server_timeout=10,
         grace_period=300,
         admission_controller="",
     )
@@ -1843,6 +1868,7 @@ def test_scaler_namespace_force_uptime_false(monkeypatch):
         exclude_deployments=[],
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
+        api_server_timeout=10,
         grace_period=300,
         admission_controller="",
     )
@@ -1961,6 +1987,7 @@ def test_scaler_namespace_force_uptime_period(monkeypatch):
         exclude_deployments=[],
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
+        api_server_timeout=10,
         grace_period=300,
         admission_controller="",
     )
@@ -2024,6 +2051,7 @@ def test_scaler_namespace_force_downtime_true(monkeypatch):
         exclude_deployments=[],
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
+        api_server_timeout=10,
         grace_period=300,
         admission_controller="",
     )
@@ -2078,6 +2106,7 @@ def test_scaler_namespace_force_downtime_false(monkeypatch):
         exclude_deployments=[],
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
+        api_server_timeout=10,
         grace_period=300,
         admission_controller="",
     )
@@ -2139,6 +2168,7 @@ def test_scaler_namespace_force_uptime_and_downtime_true(monkeypatch):
         exclude_deployments=[],
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
+        api_server_timeout=10,
         grace_period=300,
         admission_controller="",
     )
@@ -2234,6 +2264,7 @@ def test_scaler_namespace_force_downtime_period(monkeypatch):
         exclude_deployments=[],
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
+        api_server_timeout=10,
         grace_period=300,
         admission_controller="",
     )
@@ -2510,6 +2541,7 @@ def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
         admission_controller="",
         dry_run=False,
         grace_period=300,
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
@@ -2588,6 +2620,7 @@ def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
         admission_controller="",
         dry_run=False,
         grace_period=300,
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
@@ -2659,6 +2692,7 @@ def test_scaler_pdb_suspend_min_available(monkeypatch):
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -2737,6 +2771,7 @@ def test_scaler_pdb_unsuspend_min_available(monkeypatch):
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -2812,6 +2847,7 @@ def test_scaler_downscale_keda_already_with_pause_annotation(monkeypatch):
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -2892,6 +2928,7 @@ def test_scaler_upscale_keda_already_with_pause_annotation(monkeypatch):
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -2970,6 +3007,7 @@ def test_scaler_downscale_keda_without_pause_annotation(monkeypatch):
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -3049,6 +3087,7 @@ def test_scaler_upscale_keda_without_pause_annotation(monkeypatch):
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -3126,6 +3165,7 @@ def test_scaler_downscale_keda_with_downscale_replicas_annotation(monkeypatch):
         dry_run=False,
         grace_period=300,
         downtime_replicas=0,
+        api_server_timeout=10,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -3206,6 +3246,7 @@ def test_scaler_upscale_keda_with_downscale_replicas_annotation(monkeypatch):
         admission_controller="",
         dry_run=False,
         grace_period=300,
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
@@ -3285,6 +3326,7 @@ def test_scaler_downscale_keda_already_with_pause_annotation_and_downtime_replic
         admission_controller="",
         dry_run=False,
         grace_period=300,
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
@@ -3367,6 +3409,7 @@ def test_scaler_upscale_keda_already_with_pause_annotation_and_downtime_replicas
         admission_controller="",
         dry_run=False,
         grace_period=300,
+        api_server_timeout=10,
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),

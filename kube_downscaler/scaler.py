@@ -1351,6 +1351,7 @@ def scale(
     grace_period: int,
     admission_controller: str,
     constrained_downscaler: bool,
+    api_server_timeout: int,
     downtime_replicas: int = 0,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
@@ -1360,6 +1361,7 @@ def scale(
 
     now = datetime.datetime.now(datetime.timezone.utc)
     forced_uptime = pods_force_uptime(api, namespaces)
+    pykube.http.DEFAULT_HTTP_TIMEOUT=api_server_timeout
 
     for clazz in RESOURCE_CLASSES:
         plural = clazz.endpoint
