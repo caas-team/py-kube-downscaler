@@ -457,6 +457,13 @@ Supported Admission Controllers are
 > Make sure to read the [Scaling Jobs With Admission Controller](#scaling-jobs-with-admission-controller) section
 > to understand how to use the `--admission-controller` feature correctly
 
+`--api-server-timeout`
+
+: Optional: This is an advanced option that allows setting a timeout duration for all
+calls made by Kube Downscaler to the Kubernetes API Server. It can only take integer values
+(default: 10). This setting should only be added to Kube Downscaler arguments if timeout 
+issues are observed in the logs.
+
 ### Constrained Mode (Limited Access Mode)
 
 The Constrained Mode (also known as Limited Access Mode) is designed for users who do not have full cluster access.
