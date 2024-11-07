@@ -66,6 +66,12 @@ def get_parser():
         help="Grace period in seconds for deployments before scaling down (default: 15min)",
         default=os.getenv("GRACE_PERIOD", 900),
     )
+    parser.add_argument(
+        "--api-server-timeout",
+        type=int,
+        help="Timeout to be used when kubedownscaler performs call to the Kubernetes API Server (default: 10s)",
+        default=os.getenv("API_SERVER_TIMEOUT", 10),
+    )
     upscale_group.add_argument(
         "--upscale-period",
         help="Default time period to scale up once (default: never)",
