@@ -11,22 +11,20 @@ from typing import Pattern
 from typing import Tuple
 
 import pykube
+from pykube import HTTPClient
 import requests
 from pykube import CronJob
 from pykube import CustomResourceDefinition
 from pykube import DaemonSet
-from pykube import HTTPClient
 from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
 from pykube import Job
 from pykube import Namespace
 from pykube import StatefulSet
-from pykube import Job
-from pykube import CustomResourceDefinition
 from pykube.exceptions import HTTPError
-from pykube.objects import NamespacedAPIObject, APIObject
-from pykube import DaemonSet
-from pykube.objects import NamespacedAPIObject, PodDisruptionBudget
+from pykube.objects import NamespacedAPIObject
+from pykube.objects import APIObject
+from pykube.objects import PodDisruptionBudget
 
 from kube_downscaler import helper
 from kube_downscaler.helper import matches_time_spec

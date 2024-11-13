@@ -12,6 +12,7 @@ from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
 from pykube import PodDisruptionBudget
 from pykube.exceptions import HTTPError
+from pykube import PodDisruptionBudget
 
 from kube_downscaler.resources.keda import ScaledObject
 from kube_downscaler.resources.stack import Stack
