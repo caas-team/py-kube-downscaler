@@ -65,4 +65,3 @@ jobs:
             exit 1
           fi
           echo "Deployment py-kube-downscaler OK"
-
