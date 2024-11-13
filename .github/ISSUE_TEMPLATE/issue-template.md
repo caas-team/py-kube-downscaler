@@ -1,20 +1,20 @@
 ---
 name: Issue Template
 about: The general template for issues
-title: ''
-labels: ''
-assignees: ''
-
+title: ""
+labels: ""
+assignees: ""
 ---
 
 <!--
 Use this issue template for pointing out a general issue.
 -->
+
 ## Issue
+
 <!--
 Briefly describe the issue.
 -->
-
 
 ### Problem to solve
 

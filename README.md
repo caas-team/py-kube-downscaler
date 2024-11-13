@@ -284,7 +284,7 @@ Each time specification can be in one of two formats:
   `<YYYY>-<MM>-<DD>T<HH>:<MM>:<SS>[+-]<TZHH>:<TZMM>`.
 
 If you are using the first format (recurring specifications) it is important
-to note that the  downscaler can only interpret configurations within
+to note that the downscaler can only interpret configurations within
 a single day and cannot process intervals that stretch across two different days.
 As a result, overlapping time intervals are not supported.
 
@@ -399,14 +399,14 @@ annotation `downscaler/downtime` on each deployment
 
 `--upscale-target-only`
 
-:   When this optional argument is used, only the namespaces currently
-    targeted by the downscaler will be upscaled during wake-up times.
-    For instance, if your downscaler initially manages namespaces
-    A, B, and C, but is later reconfigured to target only namespaces
-    B and C, namespace A will remain downscaled if it was downscaled
-    at the time of reconfiguration. If the parameter is not used,
-    all previously downscaled namespaces may be upscaled, even if
-    they are no longer targeted by the downscaler.
+: When this optional argument is used, only the namespaces currently
+targeted by the downscaler will be upscaled during wake-up times.
+For instance, if your downscaler initially manages namespaces
+A, B, and C, but is later reconfigured to target only namespaces
+B and C, namespace A will remain downscaled if it was downscaled
+at the time of reconfiguration. If the parameter is not used,
+all previously downscaled namespaces may be upscaled, even if
+they are no longer targeted by the downscaler.
 
 `--exclude-namespaces`
 
