@@ -959,8 +959,8 @@ def autoscale_resource(
             elif (
                 not ignore
                 and not is_uptime
-                and (replicas > 0 
-                and replicas > downtime_replicas 
+                and (replicas > 0
+                and replicas > downtime_replicas
                 or replicas == -1)
             ):
                 if within_grace_period(

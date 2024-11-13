@@ -71,7 +71,7 @@ class ConstraintTemplate(APIObject):
             key_equals_contact := concat("", [k, "="])
             equals_value_contact := concat("", [key_equals_contact, value])
             regex.match(pattern, equals_value_contact)
-        }        
+        }
         """
 
         obj = {
