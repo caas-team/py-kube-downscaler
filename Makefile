@@ -1,6 +1,6 @@
 .PHONY: test docker push
 
-IMAGE            ?= hjacobs/kube-downscaler
+IMAGE            ?= caas-team/py-kube-downscaler
 VERSION          ?= $(shell git describe --tags --always --dirty)
 TAG              ?= $(VERSION)
 
