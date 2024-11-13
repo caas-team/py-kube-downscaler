@@ -1,14 +1,16 @@
 import datetime
 import json
 import re
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
+from unittest.mock import PropertyMock
 
 from kube_downscaler.resources.policy import KubeDownscalerJobsPolicy
+from kube_downscaler.scaler import autoscale_jobs
 from kube_downscaler.scaler import DOWNTIME_REPLICAS_ANNOTATION
 from kube_downscaler.scaler import EXCLUDE_ANNOTATION
 from kube_downscaler.scaler import ORIGINAL_REPLICAS_ANNOTATION
 from kube_downscaler.scaler import scale
-from kube_downscaler.scaler import autoscale_jobs
 from kube_downscaler.scaler import scale_down_jobs
 from kube_downscaler.scaler import scale_up_jobs
 

@@ -7,11 +7,13 @@ from unittest.mock import MagicMock
 
 import pykube
 import pytest
-from pykube import Deployment, PodDisruptionBudget, DaemonSet
+from pykube import DaemonSet
+from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
+from pykube import PodDisruptionBudget
 
-from kube_downscaler.resources.stack import Stack
 from kube_downscaler.resources.keda import ScaledObject
+from kube_downscaler.resources.stack import Stack
 from kube_downscaler.scaler import autoscale_resource
 from kube_downscaler.scaler import DOWNSCALE_PERIOD_ANNOTATION
 from kube_downscaler.scaler import DOWNTIME_REPLICAS_ANNOTATION
