@@ -339,7 +339,7 @@ Available command line options:
 
 `--interval`
 
-: Loop interval (default: 30s)
+: Loop interval (default: 60s)
 
 `--namespace`
 
