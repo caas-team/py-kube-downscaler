@@ -6,7 +6,7 @@ image:
   tag: ""  # Dynamically set from CI
 
 arguments:
-  - --interval=60
+  - --interval=30
   - --include-resources=deployments,statefulsets,scaledobjects
 
 imagePullSecrets: []
