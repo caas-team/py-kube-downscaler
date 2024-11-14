@@ -1521,7 +1521,9 @@ def test_scaler_deployment_excluded_until(monkeypatch):
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
 
-    one_day_in_future = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)
+    one_day_in_future = datetime.datetime.now(
+        datetime.timezone.utc
+    ) + datetime.timedelta(days=1)
 
     def get(url, version, **kwargs):
         if url == "pods":
