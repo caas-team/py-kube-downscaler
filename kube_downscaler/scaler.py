@@ -3,10 +3,12 @@ import datetime
 import logging
 import re
 import time
+from typing import Any
 from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Pattern
+from typing import Tuple
 
 import pykube
 import requests
@@ -499,7 +501,7 @@ def scale_down_jobs(
     matching_labels: FrozenSet[Pattern],
     dry_run: bool,
     enable_events: bool,
-) -> dict:
+) -> Tuple[Optional[Any], str]:
     policy: APIObject = None
     operation = "no_scale"
     obj = None
@@ -603,7 +605,7 @@ def scale_down_jobs(
             "Normal",
             dry_run,
         )
-    return {"obj": obj, "operation": operation}
+    return obj, operation
 
 
 def scale_up(
