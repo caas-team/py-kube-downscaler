@@ -2,7 +2,6 @@ from pykube.objects import NamespacedAPIObject
 
 
 class ScaledObject(NamespacedAPIObject):
-
     """Support the ScaledObject resource (https://keda.sh/docs/2.7/concepts/scaling-deployments/#scaledobject-spec)."""
 
     version = "keda.sh/v1alpha1"
@@ -21,7 +20,10 @@ class ScaledObject(NamespacedAPIObject):
                 replicas = -1
             elif self.annotations[ScaledObject.keda_pause_annotation] == "0":
                 replicas = 0
-            elif self.annotations[ScaledObject.keda_pause_annotation] != "0" and self.annotations[ScaledObject.keda_pause_annotation] is not None:
+            elif (
+                self.annotations[ScaledObject.keda_pause_annotation] != "0"
+                and self.annotations[ScaledObject.keda_pause_annotation] is not None
+            ):
                 replicas = int(self.annotations[ScaledObject.keda_pause_annotation])
         else:
             replicas = -1

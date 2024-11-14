@@ -2,7 +2,6 @@ from pykube.objects import NamespacedAPIObject
 
 
 class ArgoRollout(NamespacedAPIObject):
-
     """Support the ArgoRollout resource (https://argoproj.github.io/argo-rollouts/features/specification/)."""
 
     version = "argoproj.io/v1alpha1"

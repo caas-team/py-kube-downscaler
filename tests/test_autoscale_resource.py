@@ -1081,12 +1081,8 @@ def test_downscale_daemonset_with_autoscaling():
                 "namespace": "default",
                 "creationTimestamp": "2018-10-23T21:55:00Z",
             },
-            "spec": {
-                "template": {
-                    "spec": {}
-                }
-            }
-        }
+            "spec": {"template": {"spec": {}}},
+        },
     )
     now = datetime.strptime("2018-10-23T22:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
         tzinfo=timezone.utc
@@ -1105,7 +1101,12 @@ def test_downscale_daemonset_with_autoscaling():
         matching_labels=frozenset([re.compile("")]),
     )
 
-    assert ds.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] == "true"
+    assert (
+        ds.obj["spec"]["template"]["spec"]["nodeSelector"][
+            "kube-downscaler-non-existent"
+        ]
+        == "true"
+    )
 
 
 def test_upscale_daemonset_with_autoscaling():
@@ -1116,18 +1117,14 @@ def test_upscale_daemonset_with_autoscaling():
                 "name": "daemonset-1",
                 "namespace": "default",
                 "creationTimestamp": "2018-10-23T21:55:00Z",
-                "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"}
+                "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"},
             },
             "spec": {
                 "template": {
-                    "spec": {
-                        "nodeSelector": {
-                            "kube-downscaler-non-existent": "true"
-                        }
-                    }
+                    "spec": {"nodeSelector": {"kube-downscaler-non-existent": "true"}}
                 }
-            }
-        }
+            },
+        },
     )
     print("\n" + str(ds.obj) + "\n")
     now = datetime.strptime("2018-10-23T22:25:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1147,7 +1144,12 @@ def test_upscale_daemonset_with_autoscaling():
         matching_labels=frozenset([re.compile("")]),
     )
 
-    assert ds.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] == None
+    assert (
+        ds.obj["spec"]["template"]["spec"]["nodeSelector"][
+            "kube-downscaler-non-existent"
+        ]
+        is None
+    )
 
 
 def test_downscale_scaledobject_with_pause_annotation_already_present():
@@ -1159,12 +1161,10 @@ def test_downscale_scaledobject_with_pause_annotation_already_present():
                 "name": "scaledobject-1",
                 "namespace": "default",
                 "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {
-                    "autoscaling.keda.sh/paused-replicas": "3"
-                }
+                "annotations": {"autoscaling.keda.sh/paused-replicas": "3"},
             },
-            "spec": {}
-        }
+            "spec": {},
+        },
     )
 
     now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1202,10 +1202,10 @@ def test_upscale_scaledobject_with_pause_annotation_already_present():
                     "autoscaling.keda.sh/paused-replicas": "0",  # Paused replicas
                     "downscaler/original-pause-replicas": "3",  # Original replicas before pause
                     "downscaler/original-replicas": "3",  # Keeping track of original replicas
-                }
+                },
             },
-            "spec": {}
-        }
+            "spec": {},
+        },
     )
 
     now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1229,7 +1229,9 @@ def test_upscale_scaledobject_with_pause_annotation_already_present():
     # Check if the annotations have been correctly updated for the upscale operation
     assert so.annotations[ScaledObject.keda_pause_annotation] == "3"
     assert so.replicas == 3
-    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    assert (
+        so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    )
 
 
 def test_downscale_scaledobject_without_keda_pause_annotation():
@@ -1240,9 +1242,9 @@ def test_downscale_scaledobject_without_keda_pause_annotation():
                 "name": "scaledobject-1",
                 "namespace": "default",
                 "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {}
+                "annotations": {},
             },
-        }
+        },
     )
 
     now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1265,7 +1267,9 @@ def test_downscale_scaledobject_without_keda_pause_annotation():
 
     # Check if the annotations have been correctly updated
     assert so.annotations[ScaledObject.keda_pause_annotation] == "0"
-    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    assert (
+        so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    )
     assert so.replicas == 0
 
 
@@ -1280,9 +1284,9 @@ def test_upscale_scaledobject_without_keda_pause_annotation():
                 "annotations": {
                     "autoscaling.keda.sh/paused-replicas": "0",
                     "downscaler/original-replicas": "3",
-                }
+                },
             },
-        }
+        },
     )
 
     now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1305,5 +1309,7 @@ def test_upscale_scaledobject_without_keda_pause_annotation():
 
     # Check if the annotations have been correctly updated for the upscale operation
     assert so.annotations[ScaledObject.keda_pause_annotation] is None
-    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    assert (
+        so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    )
     assert so.replicas == -1

@@ -5,7 +5,6 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 from unittest.mock import PropertyMock
 
-from kube_downscaler.resources.policy import KubeDownscalerJobsPolicy
 from kube_downscaler.scaler import autoscale_jobs
 from kube_downscaler.scaler import DOWNTIME_REPLICAS_ANNOTATION
 from kube_downscaler.scaler import EXCLUDE_ANNOTATION
@@ -71,6 +70,7 @@ def test_scaler_always_up(monkeypatch):
     )
 
     api.patch.assert_not_called()
+
 
 def test_scaler_namespace_included(monkeypatch):
     api = MagicMock()
@@ -534,6 +534,7 @@ def test_scaler_down_to_upscale(monkeypatch):
         ORIGINAL_REPLICAS_ANNOTATION
     ]
 
+
 def test_scaler_no_upscale_on_exclude_with_upscale_target_only(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -594,6 +595,7 @@ def test_scaler_no_upscale_on_exclude_with_upscale_target_only(monkeypatch):
 
     assert api.patch.call_count == 0
 
+
 def test_scaler_no_upscale_on_exclude_namespace_with_upscale_target_only(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -652,6 +654,7 @@ def test_scaler_no_upscale_on_exclude_namespace_with_upscale_target_only(monkeyp
     )
 
     assert api.patch.call_count == 0
+
 
 def test_scaler_no_upscale_on_exclude_without_upscale_target_only(monkeypatch):
     api = MagicMock()
@@ -721,7 +724,10 @@ def test_scaler_no_upscale_on_exclude_without_upscale_target_only(monkeypatch):
         ORIGINAL_REPLICAS_ANNOTATION
     ]
 
-def test_scaler_no_upscale_on_exclude_namespace_without_upscale_target_only(monkeypatch):
+
+def test_scaler_no_upscale_on_exclude_namespace_without_upscale_target_only(
+    monkeypatch,
+):
     api = MagicMock()
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
@@ -787,6 +793,7 @@ def test_scaler_no_upscale_on_exclude_namespace_without_upscale_target_only(monk
     assert not json.loads(api.patch.call_args[1]["data"])["metadata"]["annotations"][
         ORIGINAL_REPLICAS_ANNOTATION
     ]
+
 
 def test_scaler_always_upscale(monkeypatch):
     api = MagicMock()
@@ -907,6 +914,7 @@ def test_scaler_namespace_annotation_replicas(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/deployments/deploy-1"
     assert json.loads(api.patch.call_args[1]["data"])["spec"]["replicas"] == SCALE_TO
 
+
 def test_scaler_daemonset_suspend(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -928,12 +936,7 @@ def test_scaler_daemonset_suspend(monkeypatch):
                             "namespace": "default",
                             "creationTimestamp": "2024-02-03T16:38:00Z",
                         },
-                        "spec": {
-                            "template": {
-                                "spec": {
-                                }
-                            }
-                        }
+                        "spec": {"template": {"spec": {}}},
                     },
                 ]
             }
@@ -981,15 +984,12 @@ def test_scaler_daemonset_suspend(monkeypatch):
         },
         "spec": {
             "template": {
-                "spec": {
-                    "nodeSelector": {
-                        "kube-downscaler-non-existent": "true"
-                    }
-                }
+                "spec": {"nodeSelector": {"kube-downscaler-non-existent": "true"}}
             }
-        }
+        },
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
 
 def test_scaler_daemonset_unsuspend(monkeypatch):
     api = MagicMock()
@@ -1021,7 +1021,7 @@ def test_scaler_daemonset_unsuspend(monkeypatch):
                                     }
                                 }
                             }
-                        }
+                        },
                     },
                 ]
             }
@@ -1072,15 +1072,11 @@ def test_scaler_daemonset_unsuspend(monkeypatch):
             "name": "daemonset-1",
             "namespace": "default",
             "creationTimestamp": "2024-02-03T16:38:00Z",
-            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: None}
+            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: None},
         },
         "spec": {
             "template": {
-                "spec": {
-                    "nodeSelector": {
-                        "kube-downscaler-non-existent": None
-                    }
-                }
+                "spec": {"nodeSelector": {"kube-downscaler-non-existent": None}}
             }
         },
     }
@@ -1240,6 +1236,7 @@ def test_scaler_cronjob_unsuspend(monkeypatch):
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 
+
 def test_scaler_job_suspend_without_admission_controller(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -1312,7 +1309,10 @@ def test_scaler_job_suspend_without_admission_controller(monkeypatch):
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 
-def test_scaler_job_suspend_without_admission_controller_with_owner_reference(monkeypatch):
+
+def test_scaler_job_suspend_without_admission_controller_with_owner_reference(
+    monkeypatch,
+):
     api = MagicMock()
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
@@ -1332,7 +1332,7 @@ def test_scaler_job_suspend_without_admission_controller_with_owner_reference(mo
                             "name": "job-1",
                             "namespace": "default",
                             "creationTimestamp": "2019-03-01T16:38:00Z",
-                            "ownerReferences": "cron-job-1"
+                            "ownerReferences": "cron-job-1",
                         },
                         "spec": {"suspend": False},
                     },
@@ -1372,6 +1372,7 @@ def test_scaler_job_suspend_without_admission_controller_with_owner_reference(mo
     )
 
     assert api.patch.call_count == 0
+
 
 def test_scaler_job_unsuspend_without_admission_controller(monkeypatch):
     api = MagicMock()
@@ -1452,6 +1453,7 @@ def test_scaler_job_unsuspend_without_admission_controller(monkeypatch):
         "spec": {"suspend": False},
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
 
 def test_scaler_downscale_period_no_error(monkeypatch, caplog):
     api = MagicMock()
@@ -2276,11 +2278,15 @@ def test_scaler_namespace_force_downtime_period(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/deployments/deploy-2"
     assert json.loads(api.patch.call_args[1]["data"])["spec"]["replicas"] == 0
 
+
 @patch("kube_downscaler.scaler.autoscale_jobs_for_namespace")
 @patch("kube_downscaler.scaler.Namespace")
-@patch("kube_downscaler.scaler.gatekeeper_constraint_template_crd_exist", return_value=False)
+@patch(
+    "kube_downscaler.scaler.gatekeeper_constraint_template_crd_exist",
+    return_value=False,
+)
 def test_autoscale_jobs_gatekeeper_not_installed(
-        mock_gatekeeper_exist, mock_namespace, mock_autoscale_jobs_for_namespace
+    mock_gatekeeper_exist, mock_namespace, mock_autoscale_jobs_for_namespace
 ):
     mock_namespace_instance = MagicMock()
     mock_namespace_instance.name = "test-namespace"
@@ -2311,7 +2317,7 @@ def test_autoscale_jobs_gatekeeper_not_installed(
 @patch("kube_downscaler.scaler.autoscale_jobs_for_namespace")
 @patch("kube_downscaler.scaler.Namespace")
 def test_autoscale_jobs_invented_admission_controller(
-        mock_namespace, mock_autoscale_jobs_for_namespace
+    mock_namespace, mock_autoscale_jobs_for_namespace
 ):
     # Mock the Namespace instance
     mock_namespace_instance = MagicMock()
@@ -2339,23 +2345,26 @@ def test_autoscale_jobs_invented_admission_controller(
     mock_autoscale_jobs_for_namespace.assert_not_called()
 
 
-@patch('kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects', autospec=True)
+@patch("kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects", autospec=True)
 def test_scale_up_jobs_gatekeeper_policy_not_none(objects_mock):
-    api = MagicMock()
     objects_instance_mock = objects_mock.return_value
     objects_instance_mock.get_or_none.return_value = "Not None"
 
     policy, operation = scale_up_jobs(
-        MagicMock(), MagicMock(), "uptime_value", "downtime_value",
-        "gatekeeper", False, True
+        MagicMock(),
+        MagicMock(),
+        "uptime_value",
+        "downtime_value",
+        "gatekeeper",
+        False,
+        True,
     )
 
     assert operation == "scale_up"
 
 
-@patch('kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects', autospec=True)
+@patch("kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects", autospec=True)
 def test_scale_up_jobs_kyverno_policy_not_none(objects_mock):
-    api = MagicMock()
     filter_instance_mock = objects_mock.return_value.filter.return_value
     filter_instance_mock.get_or_none.return_value = "Not None"
 
@@ -2366,15 +2375,14 @@ def test_scale_up_jobs_kyverno_policy_not_none(objects_mock):
         "downtime_value",
         "kyverno",
         False,
-        True
+        True,
     )
 
     assert operation == "scale_up"
 
 
-@patch('kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects', autospec=True)
+@patch("kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects", autospec=True)
 def test_scale_up_jobs_gatekeeper_policy_none(objects_mock):
-    api = MagicMock()
     objects_instance_mock = objects_mock.return_value
     objects_instance_mock.get_or_none.return_value = None
 
@@ -2385,14 +2393,14 @@ def test_scale_up_jobs_gatekeeper_policy_none(objects_mock):
         "downtime_value",
         "gatekeeper",
         False,
-        True
+        True,
     )
 
     assert operation == "no_scale"
 
-@patch('kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects', autospec=True)
+
+@patch("kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects", autospec=True)
 def test_scale_up_jobs_kyverno_policy_none(objects_mock):
-    api = MagicMock()
     filter_instance_mock = objects_mock.return_value.filter.return_value
     filter_instance_mock.get_or_none.return_value = None
 
@@ -2403,14 +2411,14 @@ def test_scale_up_jobs_kyverno_policy_none(objects_mock):
         "downtime_value",
         "kyverno",
         False,
-        True
+        True,
     )
 
     assert operation == "no_scale"
 
-@patch('kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects', autospec=True)
+
+@patch("kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects", autospec=True)
 def test_scale_down_jobs_gatekeeper_policy_not_none(objects_mock):
-    api = MagicMock()
     objects_instance_mock = objects_mock.return_value
     objects_instance_mock.get_or_none.return_value = "Not None"
 
@@ -2423,15 +2431,14 @@ def test_scale_down_jobs_gatekeeper_policy_not_none(objects_mock):
         [],
         frozenset([re.compile("")]),
         False,
-        True
+        True,
     )
 
     assert operation == "no_scale"
 
 
-@patch('kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects', autospec=True)
+@patch("kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects", autospec=True)
 def test_scale_down_jobs_kyverno_policy_not_none(objects_mock):
-    api = MagicMock()
     mock_obj = MagicMock()
     type(mock_obj).type = PropertyMock(return_value="with-matching-labels")
     filter_instance_mock = objects_mock.return_value.filter.return_value
@@ -2446,15 +2453,14 @@ def test_scale_down_jobs_kyverno_policy_not_none(objects_mock):
         [],
         frozenset([re.compile(".*")]),
         False,
-        True
+        True,
     )
 
     assert operation == "no_scale"
 
 
-@patch('kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects', autospec=True)
+@patch("kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects", autospec=True)
 def test_scale_down_jobs_gatekeeper_policy_none(objects_mock):
-    api = MagicMock()
     objects_instance_mock = objects_mock.return_value
     objects_instance_mock.get_or_none.return_value = None
 
@@ -2467,14 +2473,14 @@ def test_scale_down_jobs_gatekeeper_policy_none(objects_mock):
         [],
         frozenset([re.compile("")]),
         False,
-        True
+        True,
     )
 
     assert operation == "scale_down"
 
-@patch('kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects', autospec=True)
+
+@patch("kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects", autospec=True)
 def test_scale_down_jobs_kyverno_policy_none(objects_mock):
-    api = MagicMock()
     filter_instance_mock = objects_mock.return_value.filter.return_value
     filter_instance_mock.get_or_none.return_value = None
 
@@ -2487,10 +2493,11 @@ def test_scale_down_jobs_kyverno_policy_none(objects_mock):
         [],
         frozenset([re.compile("")]),
         False,
-        True
+        True,
     )
 
     assert operation == "scale_down"
+
 
 def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
     api = MagicMock()
@@ -2513,7 +2520,7 @@ def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
                             "namespace": "default",
                             "creationTimestamp": "2024-02-03T16:38:00Z",
                         },
-                        "spec": {"maxUnavailable": 1}
+                        "spec": {"maxUnavailable": 1},
                     },
                 ]
             }
@@ -2563,6 +2570,7 @@ def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 
+
 def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -2585,7 +2593,7 @@ def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
                             "creationTimestamp": "2024-02-03T16:38:00Z",
                             "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"},
                         },
-                        "spec": {"maxUnavailable": 0}
+                        "spec": {"maxUnavailable": 0},
                     },
                 ]
             }
@@ -2636,11 +2644,12 @@ def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
             "name": "pdb-1",
             "namespace": "default",
             "creationTimestamp": "2024-02-03T16:38:00Z",
-            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: None}
+            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: None},
         },
         "spec": {"maxUnavailable": 1},
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
 
 def test_scaler_pdb_suspend_min_available(monkeypatch):
     api = MagicMock()
@@ -2663,7 +2672,7 @@ def test_scaler_pdb_suspend_min_available(monkeypatch):
                             "namespace": "default",
                             "creationTimestamp": "2024-02-03T16:38:00Z",
                         },
-                        "spec": {"minAvailable": 1}
+                        "spec": {"minAvailable": 1},
                     },
                 ]
             }
@@ -2713,6 +2722,7 @@ def test_scaler_pdb_suspend_min_available(monkeypatch):
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 
+
 def test_scaler_pdb_unsuspend_min_available(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -2735,7 +2745,7 @@ def test_scaler_pdb_unsuspend_min_available(monkeypatch):
                             "creationTimestamp": "2024-02-03T16:38:00Z",
                             "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"},
                         },
-                        "spec": {"minAvailable": 0}
+                        "spec": {"minAvailable": 0},
                     },
                 ]
             }
@@ -2786,11 +2796,12 @@ def test_scaler_pdb_unsuspend_min_available(monkeypatch):
             "name": "pdb-1",
             "namespace": "default",
             "creationTimestamp": "2024-02-03T16:38:00Z",
-            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: None}
+            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: None},
         },
         "spec": {"minAvailable": 1},
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
 
 def test_scaler_downscale_keda_already_with_pause_annotation(monkeypatch):
     api = MagicMock()
@@ -2814,16 +2825,13 @@ def test_scaler_downscale_keda_already_with_pause_annotation(monkeypatch):
                             "creationTimestamp": "2023-08-21T10:00:00Z",
                             "annotations": {
                                 "autoscaling.keda.sh/paused-replicas": "2",
-                            }
+                            },
                         }
                     },
                 ]
             }
         elif url == "namespaces/default":
-            data = {
-                "metadata": {
-                }
-            }
+            data = {"metadata": {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2858,18 +2866,19 @@ def test_scaler_downscale_keda_already_with_pause_annotation(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
 
     patch_data = {
-            "metadata": {
-                "name": "scaledobject-1",
-                "namespace": "default",
-                "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {
-                    "autoscaling.keda.sh/paused-replicas": "0",
-                    "downscaler/original-pause-replicas": "2",
-                    "downscaler/original-replicas": "2",
-                }
-            }
+        "metadata": {
+            "name": "scaledobject-1",
+            "namespace": "default",
+            "creationTimestamp": "2023-08-21T10:00:00Z",
+            "annotations": {
+                "autoscaling.keda.sh/paused-replicas": "0",
+                "downscaler/original-pause-replicas": "2",
+                "downscaler/original-replicas": "2",
+            },
+        }
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
 
 def test_scaler_upscale_keda_already_with_pause_annotation(monkeypatch):
     api = MagicMock()
@@ -2895,16 +2904,13 @@ def test_scaler_upscale_keda_already_with_pause_annotation(monkeypatch):
                                 "autoscaling.keda.sh/paused-replicas": "0",
                                 "downscaler/original-pause-replicas": "3",
                                 "downscaler/original-replicas": "3",
-                            }
+                            },
                         }
                     },
                 ]
             }
         elif url == "namespaces/default":
-            data = {
-                "metadata": {
-                }
-            }
+            data = {"metadata": {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2939,16 +2945,16 @@ def test_scaler_upscale_keda_already_with_pause_annotation(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
 
     patch_data = {
-            "metadata": {
-                "name": "scaledobject-1",
-                "namespace": "default",
-                "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {
-                    "autoscaling.keda.sh/paused-replicas": "3",
-                    "downscaler/original-pause-replicas": None,
-                    "downscaler/original-replicas": None,
-                }
-            }
+        "metadata": {
+            "name": "scaledobject-1",
+            "namespace": "default",
+            "creationTimestamp": "2023-08-21T10:00:00Z",
+            "annotations": {
+                "autoscaling.keda.sh/paused-replicas": "3",
+                "downscaler/original-pause-replicas": None,
+                "downscaler/original-replicas": None,
+            },
+        }
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 
@@ -2973,17 +2979,13 @@ def test_scaler_downscale_keda_without_pause_annotation(monkeypatch):
                             "name": "scaledobject-1",
                             "namespace": "default",
                             "creationTimestamp": "2023-08-21T10:00:00Z",
-                            "annotations": {
-                            }
+                            "annotations": {},
                         }
                     },
                 ]
             }
         elif url == "namespaces/default":
-            data = {
-                "metadata": {
-                }
-            }
+            data = {"metadata": {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3018,15 +3020,15 @@ def test_scaler_downscale_keda_without_pause_annotation(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
 
     patch_data = {
-            "metadata": {
-                "name": "scaledobject-1",
-                "namespace": "default",
-                "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {
-                    "autoscaling.keda.sh/paused-replicas": "0",
-                    "downscaler/original-replicas": "-1"
-                }
-            }
+        "metadata": {
+            "name": "scaledobject-1",
+            "namespace": "default",
+            "creationTimestamp": "2023-08-21T10:00:00Z",
+            "annotations": {
+                "autoscaling.keda.sh/paused-replicas": "0",
+                "downscaler/original-replicas": "-1",
+            },
+        }
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 
@@ -3053,17 +3055,14 @@ def test_scaler_upscale_keda_without_pause_annotation(monkeypatch):
                             "creationTimestamp": "2023-08-21T10:00:00Z",
                             "annotations": {
                                 "autoscaling.keda.sh/paused-replicas": "0",
-                                "downscaler/original-replicas": "1"
-                            }
+                                "downscaler/original-replicas": "1",
+                            },
                         }
                     },
                 ]
             }
         elif url == "namespaces/default":
-            data = {
-                "metadata": {
-                }
-            }
+            data = {"metadata": {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3098,17 +3097,18 @@ def test_scaler_upscale_keda_without_pause_annotation(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
 
     patch_data = {
-            "metadata": {
-                "name": "scaledobject-1",
-                "namespace": "default",
-                "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {
-                    "autoscaling.keda.sh/paused-replicas": None,
-                    "downscaler/original-replicas": None
-                }
-            }
+        "metadata": {
+            "name": "scaledobject-1",
+            "namespace": "default",
+            "creationTimestamp": "2023-08-21T10:00:00Z",
+            "annotations": {
+                "autoscaling.keda.sh/paused-replicas": None,
+                "downscaler/original-replicas": None,
+            },
+        }
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
 
 def test_scaler_downscale_keda_with_downscale_replicas_annotation(monkeypatch):
     api = MagicMock()
@@ -3130,18 +3130,13 @@ def test_scaler_downscale_keda_with_downscale_replicas_annotation(monkeypatch):
                             "name": "scaledobject-1",
                             "namespace": "default",
                             "creationTimestamp": "2023-08-21T10:00:00Z",
-                            "annotations": {
-                                "downscaler/downtime-replicas": "1"
-                            }
+                            "annotations": {"downscaler/downtime-replicas": "1"},
                         }
                     },
                 ]
             }
         elif url == "namespaces/default":
-            data = {
-                "metadata": {
-                }
-            }
+            data = {"metadata": {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3176,16 +3171,16 @@ def test_scaler_downscale_keda_with_downscale_replicas_annotation(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
 
     patch_data = {
-            "metadata": {
-                "name": "scaledobject-1",
-                "namespace": "default",
-                "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {
-                    "autoscaling.keda.sh/paused-replicas": "1",
-                    'downscaler/downtime-replicas': '1',
-                    'downscaler/original-replicas': '-1'
-                }
-            }
+        "metadata": {
+            "name": "scaledobject-1",
+            "namespace": "default",
+            "creationTimestamp": "2023-08-21T10:00:00Z",
+            "annotations": {
+                "autoscaling.keda.sh/paused-replicas": "1",
+                "downscaler/downtime-replicas": "1",
+                "downscaler/original-replicas": "-1",
+            },
+        }
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 
@@ -3213,17 +3208,14 @@ def test_scaler_upscale_keda_with_downscale_replicas_annotation(monkeypatch):
                             "annotations": {
                                 "autoscaling.keda.sh/paused-replicas": "1",
                                 "downscaler/downtime-replicas": "1",
-                                "downscaler/original-replicas": "-1"
-                            }
+                                "downscaler/original-replicas": "-1",
+                            },
                         }
                     },
                 ]
             }
         elif url == "namespaces/default":
-            data = {
-                "metadata": {
-                }
-            }
+            data = {"metadata": {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3258,20 +3250,23 @@ def test_scaler_upscale_keda_with_downscale_replicas_annotation(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
 
     patch_data = {
-            "metadata": {
-                "name": "scaledobject-1",
-                "namespace": "default",
-                "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {
-                    "autoscaling.keda.sh/paused-replicas": None,
-                    "downscaler/original-replicas": None,
-                    "downscaler/downtime-replicas": "1"
-                }
-            }
+        "metadata": {
+            "name": "scaledobject-1",
+            "namespace": "default",
+            "creationTimestamp": "2023-08-21T10:00:00Z",
+            "annotations": {
+                "autoscaling.keda.sh/paused-replicas": None,
+                "downscaler/original-replicas": None,
+                "downscaler/downtime-replicas": "1",
+            },
+        }
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 
-def test_scaler_downscale_keda_already_with_pause_annotation_and_downtime_replicas(monkeypatch):
+
+def test_scaler_downscale_keda_already_with_pause_annotation_and_downtime_replicas(
+    monkeypatch,
+):
     api = MagicMock()
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
@@ -3293,17 +3288,14 @@ def test_scaler_downscale_keda_already_with_pause_annotation_and_downtime_replic
                             "creationTimestamp": "2023-08-21T10:00:00Z",
                             "annotations": {
                                 "autoscaling.keda.sh/paused-replicas": "2",
-                                "downscaler/downtime-replicas": "1"
-                            }
+                                "downscaler/downtime-replicas": "1",
+                            },
                         }
                     },
                 ]
             }
         elif url == "namespaces/default":
-            data = {
-                "metadata": {
-                }
-            }
+            data = {"metadata": {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3338,21 +3330,24 @@ def test_scaler_downscale_keda_already_with_pause_annotation_and_downtime_replic
     assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
 
     patch_data = {
-            "metadata": {
-                "name": "scaledobject-1",
-                "namespace": "default",
-                "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {
-                    "autoscaling.keda.sh/paused-replicas": "1",
-                    "downscaler/original-pause-replicas": "2",
-                    "downscaler/downtime-replicas": "1",
-                    "downscaler/original-replicas": "2",
-                }
-            }
+        "metadata": {
+            "name": "scaledobject-1",
+            "namespace": "default",
+            "creationTimestamp": "2023-08-21T10:00:00Z",
+            "annotations": {
+                "autoscaling.keda.sh/paused-replicas": "1",
+                "downscaler/original-pause-replicas": "2",
+                "downscaler/downtime-replicas": "1",
+                "downscaler/original-replicas": "2",
+            },
+        }
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 
-def test_scaler_upscale_keda_already_with_pause_annotation_and_downtime_replicas(monkeypatch):
+
+def test_scaler_upscale_keda_already_with_pause_annotation_and_downtime_replicas(
+    monkeypatch,
+):
     api = MagicMock()
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
@@ -3377,16 +3372,13 @@ def test_scaler_upscale_keda_already_with_pause_annotation_and_downtime_replicas
                                 "downscaler/original-pause-replicas": "2",
                                 "downscaler/downtime-replicas": "1",
                                 "downscaler/original-replicas": "2",
-                            }
+                            },
                         }
                     },
                 ]
             }
         elif url == "namespaces/default":
-            data = {
-                "metadata": {
-                }
-            }
+            data = {"metadata": {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3421,16 +3413,16 @@ def test_scaler_upscale_keda_already_with_pause_annotation_and_downtime_replicas
     assert api.patch.call_args[1]["url"] == "/scaledobjects/scaledobject-1"
 
     patch_data = {
-            "metadata": {
-                "name": "scaledobject-1",
-                "namespace": "default",
-                "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {
-                    "autoscaling.keda.sh/paused-replicas": "2",
-                    "downscaler/original-pause-replicas": None,
-                    "downscaler/original-replicas": None,
-                    "downscaler/downtime-replicas": "1"
-                }
-            }
+        "metadata": {
+            "name": "scaledobject-1",
+            "namespace": "default",
+            "creationTimestamp": "2023-08-21T10:00:00Z",
+            "annotations": {
+                "autoscaling.keda.sh/paused-replicas": "2",
+                "downscaler/original-pause-replicas": None,
+                "downscaler/original-replicas": None,
+                "downscaler/downtime-replicas": "1",
+            },
+        }
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data

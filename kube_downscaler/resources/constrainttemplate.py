@@ -4,7 +4,6 @@ from kube_downscaler.helper import logger
 
 
 class ConstraintTemplate(APIObject):
-
     """Support the Gatakeeper Admission Controller Custom CRDs (https://open-policy-agent.github.io/gatekeeper/website/docs)."""
 
     version = "templates.gatekeeper.sh/v1"
@@ -13,8 +12,7 @@ class ConstraintTemplate(APIObject):
 
     @staticmethod
     def create_constraint_template_crd(excluded_jobs, matching_labels):
-
-        excluded_jobs_regex = '^(' + '|'.join(excluded_jobs) + ')$'
+        excluded_jobs_regex = "^(" + "|".join(excluded_jobs) + ")$"
 
         # For backwards compatibility, if the matching_labels FrozenSet has an empty string as the first element,
         # we don't ignore anything
@@ -22,7 +20,9 @@ class ConstraintTemplate(APIObject):
         first_element_str = first_element.pattern
 
         if first_element_str == "":
-            logger.debug("Matching_labels arg set to empty string: all resources are considered in the scaling process")
+            logger.debug(
+                "Matching_labels arg set to empty string: all resources are considered in the scaling process"
+            )
             matching_labels_arg_is_present = False
         else:
             matching_labels_arg_is_present = True
@@ -30,19 +30,29 @@ class ConstraintTemplate(APIObject):
         if matching_labels_arg_is_present:
             matching_labels_rego_string: str = "\n"
             for pattern in matching_labels:
-                matching_labels_rego_string = matching_labels_rego_string + "    has_matched_labels(\"" + pattern.pattern + "\", input.review.object.metadata.labels)\n"
+                matching_labels_rego_string = (
+                    matching_labels_rego_string
+                    + '    has_matched_labels("'
+                    + pattern.pattern
+                    + '", input.review.object.metadata.labels)\n'
+                )
         else:
             matching_labels_rego_string: str = ""
 
-        rego = """
+        rego = (
+            """
         package kubedownscalerjobsconstraint
 
         violation[{"msg": msg}] {
             input.review.kind.kind == "Job"
             not exist_owner_reference
-            not exact_match(\"""" + excluded_jobs_regex + """\", input.review.object.metadata.name)
+            not exact_match(\""""
+            + excluded_jobs_regex
+            + """\", input.review.object.metadata.name)
             not has_exclude_annotation
-            not is_exclude_until_date_reached""" + matching_labels_rego_string + """
+            not is_exclude_until_date_reached"""
+            + matching_labels_rego_string
+            + """
             msg := "Job creation is not allowed in this namespace during a kube-downscaler downtime period."
         }
 
@@ -73,6 +83,7 @@ class ConstraintTemplate(APIObject):
             regex.match(pattern, equals_value_contact)
         }
         """
+        )
 
         obj = {
             "apiVersion": "templates.gatekeeper.sh/v1",
@@ -82,24 +93,13 @@ class ConstraintTemplate(APIObject):
                 "annotations": {
                     "metadata.gatekeeper.sh/title": "Kube Downscaler Jobs Constraint",
                     "metadata.gatekeeper.sh/version": "1.0.0",
-                    "description": "Policy to downscale jobs in certain namespaces."
-                }
+                    "description": "Policy to downscale jobs in certain namespaces.",
+                },
             },
             "spec": {
-                "crd": {
-                    "spec": {
-                        "names": {
-                            "kind": "KubeDownscalerJobsConstraint"
-                        }
-                    }
-                },
-                "targets": [
-                    {
-                        "target": "admission.k8s.gatekeeper.sh",
-                        "rego": rego
-                    }
-                ]
-            }
+                "crd": {"spec": {"names": {"kind": "KubeDownscalerJobsConstraint"}}},
+                "targets": [{"target": "admission.k8s.gatekeeper.sh", "rego": rego}],
+            },
         }
 
         return obj

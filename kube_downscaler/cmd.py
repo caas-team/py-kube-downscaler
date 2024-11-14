@@ -47,12 +47,10 @@ def get_parser():
     parser.add_argument(
         "--upscale-target-only",
         help="Upscale only resource in target when waking up namespaces",
-        action="store_true"
+        action="store_true",
     )
     parser.add_argument(
-        "--namespace",
-        help="Namespace",
-        default=os.getenv("NAMESPACE", "")
+        "--namespace", help="Namespace", default=os.getenv("NAMESPACE", "")
     )
     parser.add_argument(
         "--include-resources",
@@ -100,7 +98,9 @@ def get_parser():
     parser.add_argument(
         "--exclude-deployments",
         help="Exclude specific deployments from downscaling. Despite its name, this option will match the name of any included resource type (Deployment, StatefulSet, CronJob, ..). (default: py-kube-downscaler,kube-downscaler,downscaler)",
-        default=os.getenv("EXCLUDE_DEPLOYMENTS", "py-kube-downscaler,kube-downscaler,downscaler"),
+        default=os.getenv(
+            "EXCLUDE_DEPLOYMENTS", "py-kube-downscaler,kube-downscaler,downscaler"
+        ),
     )
     parser.add_argument(
         "--downtime-replicas",

@@ -56,24 +56,28 @@ def test_scaledobject():
     d.annotations[ScaledObject.keda_pause_annotation] = "0"
     assert d.replicas == 0
 
+
 def test_kubedownscalerjobsconstraint():
     api_mock = MagicMock(spec=APIObject, name="APIMock")
     api_mock.obj = MagicMock(name="APIObjMock")
     d = KubeDownscalerJobsConstraint.create_job_constraint("constraint")
-    assert d['metadata']['name'] == "constraint"
-    assert d['spec']['match']['namespaces'][0] == "constraint"
+    assert d["metadata"]["name"] == "constraint"
+    assert d["spec"]["match"]["namespaces"][0] == "constraint"
+
 
 def test_gatekeeper_crd():
     api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
     api_mock.obj = MagicMock(name="APIObjMock")
-    d = ConstraintTemplate.create_constraint_template_crd(["kube-downscaler, downscaler"], matching_labels=frozenset([re.compile("")]))
-    assert d['metadata']['name'] == "kubedownscalerjobsconstraint"
-    assert "\"^(kube-downscaler, downscaler)$\"" in d['spec']['targets'][0]['rego']
+    d = ConstraintTemplate.create_constraint_template_crd(
+        ["kube-downscaler, downscaler"], matching_labels=frozenset([re.compile("")])
+    )
+    assert d["metadata"]["name"] == "kubedownscalerjobsconstraint"
+    assert '"^(kube-downscaler, downscaler)$"' in d["spec"]["targets"][0]["rego"]
 
 
 def test_kubedownscalerjobspolicy():
     api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
     api_mock.obj = MagicMock(name="APIObjMock")
     d = KubeDownscalerJobsPolicy.create_job_policy("policy")
-    assert d['metadata']['name'] == "kube-downscaler-jobs-policy"
-    assert d['metadata']['namespace'] == "policy"
+    assert d["metadata"]["name"] == "kube-downscaler-jobs-policy"
+    assert d["metadata"]["namespace"] == "policy"
