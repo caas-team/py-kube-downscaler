@@ -1056,7 +1056,7 @@ def autoscale_resource(
 def autoscale_resources(
     api,
     kind,
-    namespace: FrozenSet[Pattern],
+    namespace: FrozenSet[str],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_names: FrozenSet[str],
     matching_labels: FrozenSet[Pattern],
@@ -1363,7 +1363,7 @@ def autoscale_jobs(
         if len(namespaces) >= 1:
             namespaces = namespaces
         else:
-            namespaces = list(Namespace.objects(api).iterator())
+            namespaces = frozenset(Namespace.objects(api).iterator())
 
         excluded_jobs = []
 
@@ -1372,40 +1372,38 @@ def autoscale_jobs(
 
         for current_namespace in namespaces:
             if any(
-                [
-                    pattern.fullmatch(current_namespace.name)
-                    for pattern in exclude_namespaces
-                ]
+                [pattern.fullmatch(current_namespace) for pattern in exclude_namespaces]
             ):
                 logger.debug(
-                    f"Namespace {current_namespace.name} was excluded from job scaling (exclusion list regex matches)"
+                    f"Namespace {current_namespace} was excluded from job scaling (exclusion list regex matches)"
                 )
                 continue
 
-            logger.debug(f"Processing {current_namespace.name} for job scaling..")
+            logger.debug(f"Processing {current_namespace} for job scaling..")
+
+            # Override defaults with (optional) annotations from Namespace
+            namespace_obj = Namespace.objects(api).get_by_name(current_namespace)
 
             excluded = ignore_resource(current_namespace, now)
 
-            default_uptime_for_namespace = current_namespace.annotations.get(
+            default_uptime_for_namespace = namespace_obj.annotations.get(
                 UPTIME_ANNOTATION, default_uptime
             )
-            default_downtime_for_namespace = current_namespace.annotations.get(
+            default_downtime_for_namespace = namespace_obj.annotations.get(
                 DOWNTIME_ANNOTATION, default_downtime
             )
 
-            upscale_period_for_namespace = current_namespace.annotations.get(
+            upscale_period_for_namespace = namespace_obj.annotations.get(
                 UPSCALE_PERIOD_ANNOTATION, upscale_period
             )
-            downscale_period_for_namespace = current_namespace.annotations.get(
+            downscale_period_for_namespace = namespace_obj.annotations.get(
                 DOWNSCALE_PERIOD_ANNOTATION, downscale_period
             )
             forced_uptime_value_for_namespace = str(
-                current_namespace.annotations.get(
-                    FORCE_UPTIME_ANNOTATION, forced_uptime
-                )
+                namespace_obj.annotations.get(FORCE_UPTIME_ANNOTATION, forced_uptime)
             )
             forced_downtime_value_for_namespace = str(
-                current_namespace.annotations.get(FORCE_DOWNTIME_ANNOTATION, False)
+                namespace_obj.annotations.get(FORCE_DOWNTIME_ANNOTATION, False)
             )
             if forced_uptime_value_for_namespace.lower() == "true":
                 forced_uptime_for_namespace = True
