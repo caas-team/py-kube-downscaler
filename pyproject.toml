@@ -1,13 +1,13 @@
 [tool]
 [tool.poetry]
 name = "kube-downscaler"
-version = "2020.1.1dev0"
+version = "24.11.0"
 description = "Scale down Kubernetes deployments after work hours"
-authors = ["Henning Jacobs <henning@jacobs1.de>"]
+authors = ["Jonathan Mayer <jonathan.mayer@telekom.de>", "Jan Taeuber <jan.taeuber@telekom.de>", "Johannes Thiem <johannesthiem6@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4"
-new-pykube = "^24.11.0"
+new-pykube = "*"
 pytz = "*"
 
 [tool.poetry.dev-dependencies]
@@ -16,9 +16,9 @@ coveralls = "*"
 flake8 = "*"
 pytest = "*"
 pytest-cov = "*"
-black = "^24.3.0"
-mypy = "^1.11.2"
-pre-commit = "^2.9.2"
+black = "^24.8.0"
+mypy = "^1.13.0"
+pre-commit = "^3.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest-html = "^4.1.1"
