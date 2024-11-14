@@ -520,9 +520,9 @@ def scale_down_jobs(
             operation = "no_scale"
     if admission_controller == "kyverno":
         # if the matching_labels FrozenSet has an empty string as the first element, we create a different kyverno policy
-        first_element = next(iter(matching_labels), None)
-        first_element_str = first_element.pattern
-        if first_element_str == "":
+        first_element = next(iter(matching_labels), "")
+
+        if first_element == "":
             has_matching_labels_arg = False
         else:
             has_matching_labels_arg = True
