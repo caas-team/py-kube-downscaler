@@ -4,6 +4,7 @@ import logging
 import re
 import time
 from typing import FrozenSet
+from typing import List
 from typing import Optional
 from typing import Pattern
 
@@ -494,7 +495,7 @@ def scale_down_jobs(
     uptime,
     downtime,
     admission_controller: str,
-    excluded_jobs: [str],
+    excluded_jobs: List[str],
     matching_labels: FrozenSet[Pattern],
     dry_run: bool,
     enable_events: bool,
@@ -790,7 +791,7 @@ def autoscale_jobs_for_namespace(
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int,
-    excluded_jobs: [str],
+    excluded_jobs: List[str],
     admission_controller: str,
     deployment_time_annotation: Optional[str] = None,
     namespace_excluded: bool = False,
