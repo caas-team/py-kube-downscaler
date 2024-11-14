@@ -89,7 +89,7 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-pytz]
+        additional_dependencies: [types-pytz, types-requests]
 
   - repo: https://github.com/pryorda/dockerfilelint-precommit-hooks
     rev: v0.1.0
