@@ -603,7 +603,7 @@ def scale_down_jobs(
             "Normal",
             dry_run,
         )
-    return obj, operation
+    return {"obj": obj, "operation": operation}
 
 
 def scale_up(
