@@ -209,7 +209,7 @@ KubeDownscaler offers two installation methods.
 The basic Cluster Wide installation is very simple
 
 ```bash
-$ helm install py-kube-downscaler py-kube-downscaler/py-kube-downscaler
+$ helm install py-kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler
 ```
 
 This command will deploy:
@@ -234,14 +234,14 @@ The Limited Access installation requires the user to fill the following paramete
 It is also recommended to explicitly set the namespace where KubeDownscaler will be installed
 
 ```bash
-$ helm install py-kube-downscaler py-kube-downscaler/py-kube-downscaler --namespace my-release-namespace --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
+$ helm install py-kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler --namespace my-release-namespace --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
 ```
 
 This command will deploy:
 
 - **Deployment**: main deployment
 - **ConfigMap**: used to supply parameters to the deployment
-- **ServiceAccount**: represents the Cluster Idenity of the KubeDownscaler
+- **ServiceAccount**: represents the Cluster Identity of the KubeDownscaler
 
 For each namespace inside constrainedNamespaces, the chart will deploy
 
@@ -514,7 +514,7 @@ To scale down jobs natively, you only need to specify `jobs` inside the `--inclu
 
 Before scaling jobs with an Admission Controller make sure the Admission Controller of your choice is correctly installed inside the
 cluster.
-At startup, Kube-Downscaler will always perform some health checks for the Admission Controller of your choiche that are
+At startup, Kube-Downscaler will always perform some health checks for the Admission Controller of your choice that are
 displayed inside logs when the argument `--debug` arg is present inside the main Deployment.
 
 **<u>Important</u>: In order to use this feature you will need to exclude Kyverno or Gatekeeper resources from downscaling otherwise
@@ -524,7 +524,7 @@ Alternatively `EXCLUDE_DEPLOYMENTS` environment variable
 or `--exclude-deployments` arg to exclude only certain resources inside `"kyverno"` or `"gatekeeper-system"` namespaces
 
 **<u>Important</u>**: `--admission-controller` argument won't take effect if used in conjunction with --namespace argument.
-if you specified `jobs` inside the `--include-resources` argument KubeDonwscaler will
+if you specified `jobs` inside the `--include-resources` argument KubeDownscaler will
 still [downscale jobs natively](#scaling-jobs-natively).
 Please read the [Constrained Mode](#constrained-mode-limited-access-mode) section to understand why
 
@@ -725,13 +725,13 @@ preserve the old nomenclature already present inside your cluster
 Read [Installation](#installation) section to understand what is meant for **Cluster Wide Installation**
 
 ```bash
-$ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
+$ helm install kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
 ```
 
 or extracting and applying the template manually:
 
 ```bash
-$ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
+$ helm template kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
 ```
 
 ### Migrate From Codeberg - Limited Access Installation
@@ -739,21 +739,19 @@ $ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set name
 Read [Installation](#installation) section to understand what is meant for **Limited Access Installation**
 
 ```bash
-$ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
+$ helm install kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
 ```
 
 or extracting and applying the template manually:
 
 ```bash
-$ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
+$ helm template kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
 ```
 
 ## Contributing
 
 Easiest way to contribute is to provide feedback! We would love to hear what you like and what you think is missing.
 Create an issue and we will take a look. PRs are welcome.
-
-PRs are welcome.
 
 ## License
 

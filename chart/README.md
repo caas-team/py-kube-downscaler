@@ -57,20 +57,10 @@ Note: In case RBAC is enabled, a new service account will be created for py-kube
 otherwise the 'default' one will be used.
 
 3. Deploy py-kube-downscaler:
-   You can add our chart repository and deploy it by running:
+   You can deploy the py-kube-downscaler with our Helm Chart by running:
 
 ```bash
-helm repo add caas-team https://caas-team.github.io/helm-charts/
-
-helm install py-kube-downscaler caas-team/py-kube-downscaler -n py-kube-downscaler
-```
-
-**OR**
-
-You can alternatively clone this repository, change the current directory to the py-kube-downscaler repository and run:
-
-```bash
-helm install py-kube-downscaler ./chart -n py-kube-downscaler
+helm install py-kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler -n py-kube-downscaler
 ```
 
 4. Check the deployed release status:
