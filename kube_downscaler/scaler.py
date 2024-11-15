@@ -20,9 +20,12 @@ from pykube import HorizontalPodAutoscaler
 from pykube import Job
 from pykube import Namespace
 from pykube import StatefulSet
-from pykube.objects import APIObject
-from pykube.objects import NamespacedAPIObject
-from pykube.objects import PodDisruptionBudget
+from pykube import Job
+from pykube import CustomResourceDefinition
+from pykube.exceptions import HTTPError
+from pykube.objects import NamespacedAPIObject, APIObject
+from pykube import DaemonSet
+from pykube.objects import NamespacedAPIObject, PodDisruptionBudget
 
 from kube_downscaler import helper
 from kube_downscaler.helper import matches_time_spec
@@ -308,9 +311,29 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
     return resources, excluded_namespaces
 
 
-def scale_jobs_without_admission_controller(
-    plural, admission_controller, constrainted_downscaler
-):
+def get_resource(kind, api, namespace: str, resource_name: str):
+
+    try:
+        resource = kind.objects(api).filter(namespace=namespace).get_or_none(name=resource_name)
+        if resource is not None:
+            logger.debug(f"{kind.endpoint} {namespace}/{resource_name} was correctly retrieved")
+    except requests.HTTPError as e:
+        resource = None
+        if e.response.status_code == 404:
+            logger.warning(
+                f"{kind} {resource_name} not found in namespace {namespace} (404)"
+            )
+        if e.response.status_code == 403:
+            logger.warning(
+                f"KubeDownscaler is not authorized to to retrieve {kind} {namespace}/{resource_name} (403)"
+            )
+        else:
+            raise e
+
+    return resource
+
+
+def scale_jobs_without_admission_controller(plural, admission_controller, constrainted_downscaler):
     return (plural == "jobs" and admission_controller == "") or constrainted_downscaler
 
 
@@ -925,6 +948,9 @@ def autoscale_resource(
     forced_uptime: bool,
     forced_downtime: bool,
     upscale_target_only: bool,
+    max_retries_on_conflict: int,
+    api,
+    kind,
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int = 0,
@@ -1048,11 +1074,54 @@ def autoscale_resource(
                         f"**DRY-RUN**: would update {resource.kind} {resource.namespace}/{resource.name}"
                     )
                 else:
+                    logger.info("Sleeping Zzz Zzz")
+                    time.sleep(60)
                     resource.update()
     except Exception as e:
-        logger.exception(
-            f"Failed to process {resource.kind} {resource.namespace}/{resource.name}: {e}"
-        )
+        if isinstance(e, HTTPError) and "the object has been modified" in str(e).lower():
+            logger.warning(
+                f"Unable to process {resource.kind} {resource.namespace}/{resource.name} because it was recently modified"
+            )
+            if max_retries_on_conflict > 0:
+                logger.info(
+                    f"Retrying processing {resource.kind} {resource.namespace}/{resource.name} (Remaining Retries: {max_retries_on_conflict})")
+                max_retries_on_conflict = max_retries_on_conflict - 1
+                resource = get_resource(kind, api, resource.namespace, resource.name)
+                if resource is not None:
+                    autoscale_resource(
+                        resource,
+                        upscale_period,
+                        downscale_period,
+                        default_uptime,
+                        default_downtime,
+                        forced_uptime,
+                        forced_downtime,
+                        upscale_target_only,
+                        max_retries_on_conflict,
+                        api,
+                        kind,
+                        dry_run,
+                        now,
+                        grace_period,
+                        downtime_replicas,
+                        namespace_excluded=namespace_excluded,
+                        deployment_time_annotation=deployment_time_annotation,
+                        enable_events=enable_events,
+                        matching_labels=matching_labels,
+                    )
+                else:
+                    logger.warning(
+                        f"The retry process on {resource.kind} {resource.namespace}/{resource.name} couldn't be completed, skipping")
+            else:
+                logger.warning(
+                    f"Will retry processing {resource.kind} {resource.namespace}/{resource.name} in the next iteration only if the main cycle is not run once"
+                )
+        elif isinstance(e, HTTPError) and "not found" in str(e).lower():
+            logger.info(f"While waiting to process {resource.kind} {resource.namespace}/{resource.name}, the resource was deleted from the cluster")
+        else:
+            logger.exception(
+                f"Failed to process {resource.kind} {resource.namespace}/{resource.name}: {e}"
+            )
 
 
 def autoscale_resources(
@@ -1069,6 +1138,7 @@ def autoscale_resources(
     forced_uptime: bool,
     upscale_target_only: bool,
     constrained_downscaler: bool,
+    max_retries_on_conflict: int,
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int,
@@ -1174,6 +1244,9 @@ def autoscale_resources(
                 forced_uptime_for_namespace,
                 forced_downtime_for_namespace,
                 upscale_target_only,
+                max_retries_on_conflict,
+                api,
+                kind,
                 dry_run,
                 now,
                 grace_period,
@@ -1471,6 +1544,7 @@ def scale(
     admission_controller: str,
     constrained_downscaler: bool,
     api_server_timeout: int,
+    max_retries_on_conflict: int,
     downtime_replicas: int = 0,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
@@ -1504,6 +1578,7 @@ def scale(
                     forced_uptime,
                     upscale_target_only,
                     constrained_downscaler,
+                    max_retries_on_conflict,
                     dry_run,
                     now,
                     grace_period,
