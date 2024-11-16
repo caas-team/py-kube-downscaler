@@ -3,12 +3,13 @@ import logging
 import re
 from datetime import datetime
 from datetime import timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pykube
 import pytest
 from pykube import Deployment, PodDisruptionBudget, DaemonSet
 from pykube import HorizontalPodAutoscaler
+from pykube.exceptions import HTTPError
 
 from kube_downscaler.resources.stack import Stack
 from kube_downscaler.resources.keda import ScaledObject
@@ -1597,3 +1598,126 @@ def test_upscale_scaledobject_without_keda_pause_annotation(monkeypatch):
     assert so.annotations[ScaledObject.keda_pause_annotation] is None
     assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
     assert so.replicas == -1
+
+
+def test_downscale_resource_concurrently_modified(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+
+    # Mock HTTPError to simulate conflict
+    http_error = HTTPError(409, "Operation cannot be fulfilled on daemonsets.apps "
+                                    "\"daemonset-1\": the object has been modified; "
+                                    "please apply your changes to the latest version and try again")
+
+    # Simulate update behavior: conflict on first call, success on second
+    api.patch.side_effect = [http_error, None]  # First attempt raises, second succeeds
+
+    # Create the DaemonSet mock
+    ds = DaemonSet(
+        api,
+        {
+            "metadata": {
+                "name": "daemonset-1",
+                "namespace": "default",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+            },
+            "spec": {
+                "template": {
+                    "spec": {}
+                }
+            }
+        }
+    )
+
+    # Replace update method to track calls
+    ds.update = MagicMock(side_effect=[http_error, None])  # Simulate conflict and success
+
+    # Mock get_resource with MagicMock
+    mock_get_resource = MagicMock(return_value=ds)
+    monkeypatch.setattr("kube_downscaler.scaler.get_resource", mock_get_resource)
+
+    # Define time
+    now = datetime.strptime("2018-10-23T22:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+
+    autoscale_resource(
+        ds,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=False,
+        max_retries_on_conflict=1,  #1 Retry Allowed
+        api=api,
+        kind=DaemonSet,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    #Assert the kube_downscaler.scaler.get_resource method was called at least once to retrieve the refreshed resource
+    assert mock_get_resource.call_count == 1
+
+
+def test_downscale_resource_concurrently_modified_without_retries_allowed(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+
+    # Mock HTTPError to simulate conflict
+    http_error = HTTPError(409, "Operation cannot be fulfilled on daemonsets.apps "
+                                    "\"daemonset-1\": the object has been modified; "
+                                    "please apply your changes to the latest version and try again")
+
+    # Simulate update behavior: conflict on first call, success on second
+    api.patch.side_effect = [http_error, None]  # First attempt raises, second succeeds
+
+    ds = DaemonSet(
+        api,
+        {
+            "metadata": {
+                "name": "daemonset-1",
+                "namespace": "default",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+            },
+            "spec": {
+                "template": {
+                    "spec": {}
+                }
+            }
+        }
+    )
+
+    # Mock get_resource with MagicMock
+    mock_get_resource = MagicMock(return_value=ds)
+    monkeypatch.setattr("kube_downscaler.scaler.get_resource", mock_get_resource)
+
+    now = datetime.strptime("2018-10-23T22:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+
+    autoscale_resource(
+        ds,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=False,
+        max_retries_on_conflict=0,  #No Retries Allowed
+        api=api,
+        kind=DaemonSet,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    #Assert the kube_downscaler.scaler.get_resource method was not called at all (meaning no retry was performed)
+    assert mock_get_resource.call_count == 0

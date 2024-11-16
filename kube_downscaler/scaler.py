@@ -1051,7 +1051,7 @@ def autoscale_resource(
                         f"The retry process on {resource.kind} {resource.namespace}/{resource.name} couldn't be completed, skipping")
             else:
                 logger.warning(
-                    f"Will retry processing {resource.kind} {resource.namespace}/{resource.name} in the next iteration only if the main cycle is not run once"
+                    f"Will retry processing {resource.kind} {resource.namespace}/{resource.name} in the next iteration, unless the --once argument is specified"
                 )
         elif isinstance(e, HTTPError) and "not found" in str(e).lower():
             logger.info(f"While waiting to process {resource.kind} {resource.namespace}/{resource.name}, the resource was removed from the cluster")
