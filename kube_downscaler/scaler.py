@@ -1013,8 +1013,6 @@ def autoscale_resource(
                         f"**DRY-RUN**: would update {resource.kind} {resource.namespace}/{resource.name}"
                     )
                 else:
-                    logger.info("Sleeping Zzz Zzz")
-                    time.sleep(60)
                     resource.update()
     except Exception as e:
         if isinstance(e, HTTPError) and "the object has been modified" in str(e).lower():
@@ -1056,7 +1054,7 @@ def autoscale_resource(
                     f"Will retry processing {resource.kind} {resource.namespace}/{resource.name} in the next iteration only if the main cycle is not run once"
                 )
         elif isinstance(e, HTTPError) and "not found" in str(e).lower():
-            logger.info(f"While waiting to process {resource.kind} {resource.namespace}/{resource.name}, the resource was deleted from the cluster")
+            logger.info(f"While waiting to process {resource.kind} {resource.namespace}/{resource.name}, the resource was removed from the cluster")
         else:
             logger.exception(
                 f"Failed to process {resource.kind} {resource.namespace}/{resource.name}: {e}"
