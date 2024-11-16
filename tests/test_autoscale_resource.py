@@ -32,8 +32,11 @@ def resource():
     res.annotations = {}
     return res
 
-
 def test_swallow_exception(monkeypatch, resource, caplog):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     caplog.set_level(logging.ERROR)
     resource.annotations = {}
     resource.replicas = 1
@@ -51,6 +54,9 @@ def test_swallow_exception(monkeypatch, resource, caplog):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -62,6 +68,10 @@ def test_swallow_exception(monkeypatch, resource, caplog):
 
 
 def test_swallow_exception_with_event(monkeypatch, resource, caplog):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
     )
@@ -82,6 +92,9 @@ def test_swallow_exception_with_event(monkeypatch, resource, caplog):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
@@ -93,7 +106,11 @@ def test_swallow_exception_with_event(monkeypatch, resource, caplog):
     assert caplog.record_tuples == [("kube_downscaler.scaler", logging.ERROR, msg)]
 
 
-def test_exclude(resource):
+def test_exclude(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {EXCLUDE_ANNOTATION: "true"}
     resource.replicas = 1
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -110,6 +127,9 @@ def test_exclude(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -118,7 +138,11 @@ def test_exclude(resource):
     assert ORIGINAL_REPLICAS_ANNOTATION not in resource.annotations
 
 
-def test_exclude_until_invalid_time(resource, caplog):
+def test_exclude_until_invalid_time(resource, caplog, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     caplog.set_level(logging.WARNING)
     resource.annotations = {EXCLUDE_UNTIL_ANNOTATION: "some-invalid-timestamp"}
     resource.replicas = 1
@@ -136,6 +160,9 @@ def test_exclude_until_invalid_time(resource, caplog):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -149,7 +176,11 @@ def test_exclude_until_invalid_time(resource, caplog):
     assert caplog.record_tuples == [("kube_downscaler.scaler", logging.WARNING, msg)]
 
 
-def test_dry_run(resource):
+def test_dry_run(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {}
     resource.replicas = 1
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -166,6 +197,9 @@ def test_dry_run(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         grace_period=0,
         downtime_replicas=0,
@@ -177,7 +211,11 @@ def test_dry_run(resource):
     resource.update.assert_not_called()
 
 
-def test_grace_period(resource):
+def test_grace_period(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {}
     resource.replicas = 1
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -195,6 +233,9 @@ def test_grace_period(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         grace_period=300,
         matching_labels=frozenset([re.compile("")]),
@@ -204,7 +245,11 @@ def test_grace_period(resource):
     resource.update.assert_not_called()
 
 
-def test_downtime_always(resource):
+def test_downtime_always(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {EXCLUDE_ANNOTATION: "false"}
     resource.replicas = 1
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -221,6 +266,9 @@ def test_downtime_always(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -229,7 +277,11 @@ def test_downtime_always(resource):
     assert resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] == "1"
 
 
-def test_downtime_interval(resource):
+def test_downtime_interval(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {EXCLUDE_ANNOTATION: "false"}
     resource.replicas = 1
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -246,6 +298,9 @@ def test_downtime_interval(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -254,7 +309,11 @@ def test_downtime_interval(resource):
     assert resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] == "1"
 
 
-def test_forced_uptime(resource):
+def test_forced_uptime(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {EXCLUDE_ANNOTATION: "false"}
     resource.replicas = 1
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -271,6 +330,9 @@ def test_forced_uptime(resource):
         forced_uptime=True,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -278,7 +340,11 @@ def test_forced_uptime(resource):
     resource.update.assert_not_called()
 
 
-def test_forced_downtime(resource):
+def test_forced_downtime(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {EXCLUDE_ANNOTATION: "false"}
     resource.replicas = 1
     now = datetime.strptime("2018-10-23T15:00:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -295,6 +361,9 @@ def test_forced_downtime(resource):
         forced_uptime=False,
         forced_downtime=True,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -302,7 +371,11 @@ def test_forced_downtime(resource):
     resource.update.assert_called_once()
 
 
-def test_autoscale_bad_resource():
+def test_autoscale_bad_resource(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
         tzinfo=timezone.utc
     )
@@ -317,6 +390,9 @@ def test_autoscale_bad_resource():
             forced_uptime=False,
             forced_downtime=False,
             dry_run=False,
+            max_retries_on_conflict=0,
+            api=api,
+            kind=Deployment,
             now=now,
             matching_labels=frozenset([re.compile("")]),
         )
@@ -325,7 +401,11 @@ def test_autoscale_bad_resource():
         pass
 
 
-def test_scale_up(resource):
+def test_scale_up(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {
         EXCLUDE_ANNOTATION: "false",
         ORIGINAL_REPLICAS_ANNOTATION: "3",
@@ -345,6 +425,9 @@ def test_scale_up(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -352,7 +435,11 @@ def test_scale_up(resource):
     resource.update.assert_called_once()
 
 
-def test_scale_up_downtime_replicas_annotation(resource):
+def test_scale_up_downtime_replicas_annotation(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     """Cli argument downtime-replicas is 1, but for 1 specific deployment we want 0."""
     resource.annotations = {
         DOWNTIME_REPLICAS_ANNOTATION: "0",
@@ -373,6 +460,9 @@ def test_scale_up_downtime_replicas_annotation(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         downtime_replicas=1,
         matching_labels=frozenset([re.compile("")]),
@@ -381,7 +471,11 @@ def test_scale_up_downtime_replicas_annotation(resource):
     resource.update.assert_called_once()
 
 
-def test_downtime_replicas_annotation_invalid(resource):
+def test_downtime_replicas_annotation_invalid(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {DOWNTIME_REPLICAS_ANNOTATION: "x"}
     resource.replicas = 2
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -398,6 +492,9 @@ def test_downtime_replicas_annotation_invalid(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -405,7 +502,11 @@ def test_downtime_replicas_annotation_invalid(resource):
     resource.update.assert_not_called()
 
 
-def test_downtime_replicas_annotation_valid(resource):
+def test_downtime_replicas_annotation_valid(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {DOWNTIME_REPLICAS_ANNOTATION: "1"}
     resource.replicas = 2
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -422,6 +523,9 @@ def test_downtime_replicas_annotation_valid(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -430,7 +534,11 @@ def test_downtime_replicas_annotation_valid(resource):
     assert resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] == "2"
 
 
-def test_downtime_replicas_invalid(resource):
+def test_downtime_replicas_invalid(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.replicas = 2
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
         tzinfo=timezone.utc
@@ -446,6 +554,9 @@ def test_downtime_replicas_invalid(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         downtime_replicas="x",
         matching_labels=frozenset([re.compile("")]),
@@ -454,7 +565,11 @@ def test_downtime_replicas_invalid(resource):
     resource.update.assert_not_called()
 
 
-def test_downtime_replicas_valid(resource):
+def test_downtime_replicas_valid(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.replicas = 2
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
         tzinfo=timezone.utc
@@ -470,6 +585,9 @@ def test_downtime_replicas_valid(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         downtime_replicas=1,
         matching_labels=frozenset([re.compile("")]),
@@ -502,6 +620,9 @@ def test_set_annotation():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -518,7 +639,11 @@ def test_set_annotation():
     }
 
 
-def test_downscale_always(resource):
+def test_downscale_always(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {EXCLUDE_ANNOTATION: "false"}
     resource.replicas = 1
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -535,6 +660,9 @@ def test_downscale_always(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -543,7 +671,11 @@ def test_downscale_always(resource):
     assert resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] == "1"
 
 
-def test_downscale_period(resource):
+def test_downscale_period(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {EXCLUDE_ANNOTATION: "false"}
     resource.replicas = 1
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -560,6 +692,9 @@ def test_downscale_period(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -568,7 +703,11 @@ def test_downscale_period(resource):
     assert resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] == "1"
 
 
-def test_downscale_period_overlaps(resource):
+def test_downscale_period_overlaps(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {DOWNTIME_REPLICAS_ANNOTATION: "1"}
     resource.replicas = 2
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -585,6 +724,9 @@ def test_downscale_period_overlaps(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -592,7 +734,11 @@ def test_downscale_period_overlaps(resource):
     resource.update.assert_not_called()
 
 
-def test_downscale_period_not_match(resource):
+def test_downscale_period_not_match(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {DOWNTIME_REPLICAS_ANNOTATION: "1"}
     resource.replicas = 2
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -609,6 +755,9 @@ def test_downscale_period_not_match(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -616,7 +765,11 @@ def test_downscale_period_not_match(resource):
     resource.update.assert_not_called()
 
 
-def test_downscale_period_resource_overrides_never(resource):
+def test_downscale_period_resource_overrides_never(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {
         DOWNSCALE_PERIOD_ANNOTATION: "Mon-Fri 20:30-24:00 Europe/Berlin"
     }
@@ -635,6 +788,9 @@ def test_downscale_period_resource_overrides_never(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -642,7 +798,11 @@ def test_downscale_period_resource_overrides_never(resource):
     resource.update.assert_called_once()
 
 
-def test_downscale_period_resource_overrides_namespace(resource):
+def test_downscale_period_resource_overrides_namespace(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {
         DOWNSCALE_PERIOD_ANNOTATION: "Mon-Fri 20:30-24:00 Europe/Berlin"
     }
@@ -661,6 +821,9 @@ def test_downscale_period_resource_overrides_namespace(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -668,7 +831,11 @@ def test_downscale_period_resource_overrides_namespace(resource):
     resource.update.assert_called_once()
 
 
-def test_upscale_period_resource_overrides_never(resource):
+def test_upscale_period_resource_overrides_never(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {
         UPSCALE_PERIOD_ANNOTATION: "Mon-Fri 20:30-24:00 Europe/Berlin",
         ORIGINAL_REPLICAS_ANNOTATION: 1,
@@ -688,6 +855,9 @@ def test_upscale_period_resource_overrides_never(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -695,7 +865,11 @@ def test_upscale_period_resource_overrides_never(resource):
     resource.upd
 
 
-def test_upscale_period_resource_overrides_namespace(resource):
+def test_upscale_period_resource_overrides_namespace(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {
         UPSCALE_PERIOD_ANNOTATION: "Mon-Fri 20:30-24:00 Europe/Berlin",
         ORIGINAL_REPLICAS_ANNOTATION: 1,
@@ -715,6 +889,9 @@ def test_upscale_period_resource_overrides_namespace(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -722,7 +899,11 @@ def test_upscale_period_resource_overrides_namespace(resource):
     resource.upd
 
 
-def test_downscale_stack_deployment_ignored():
+def test_downscale_stack_deployment_ignored(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource = MagicMock()
     resource.kind = Deployment.kind
     resource.version = Deployment.version
@@ -748,6 +929,9 @@ def test_downscale_stack_deployment_ignored():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -756,7 +940,11 @@ def test_downscale_stack_deployment_ignored():
     assert ORIGINAL_REPLICAS_ANNOTATION not in resource.annotations
 
 
-def test_downscale_replicas_not_zero(resource):
+def test_downscale_replicas_not_zero(resource, monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     resource.annotations = {EXCLUDE_ANNOTATION: "false"}
     resource.replicas = 3
     now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -773,6 +961,9 @@ def test_downscale_replicas_not_zero(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         downtime_replicas=1,
         matching_labels=frozenset([re.compile("")]),
@@ -789,6 +980,9 @@ def test_downscale_replicas_not_zero(resource):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
         now=now,
         downtime_replicas=1,
         matching_labels=frozenset([re.compile("")]),
@@ -798,7 +992,11 @@ def test_downscale_replicas_not_zero(resource):
     resource.update.assert_called_once()
 
 
-def test_downscale_stack_with_autoscaling():
+def test_downscale_stack_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     stack = Stack(
         None,
         {
@@ -825,13 +1023,20 @@ def test_downscale_stack_with_autoscaling():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Stack,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
     assert stack.replicas == 0
 
 
-def test_upscale_stack_with_autoscaling():
+def test_upscale_stack_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     stack = Stack(
         None,
         {
@@ -859,6 +1064,9 @@ def test_upscale_stack_with_autoscaling():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Stack,
         enable_events=False,
         now=now,
         matching_labels=frozenset([re.compile("")]),
@@ -868,7 +1076,11 @@ def test_upscale_stack_with_autoscaling():
     assert stack.annotations[ORIGINAL_REPLICAS_ANNOTATION] is None
 
 
-def test_downscale_hpa_with_autoscaling():
+def test_downscale_hpa_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     hpa = HorizontalPodAutoscaler(
         None,
         {
@@ -894,6 +1106,9 @@ def test_downscale_hpa_with_autoscaling():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=HorizontalPodAutoscaler,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -901,7 +1116,11 @@ def test_downscale_hpa_with_autoscaling():
     assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(4)
 
 
-def test_upscale_hpa_with_autoscaling():
+def test_upscale_hpa_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     hpa = HorizontalPodAutoscaler(
         None,
         {
@@ -930,6 +1149,9 @@ def test_upscale_hpa_with_autoscaling():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=HorizontalPodAutoscaler,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -938,7 +1160,11 @@ def test_upscale_hpa_with_autoscaling():
     assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
 
 
-def test_downscale_pdb_minavailable_with_autoscaling():
+def test_downscale_pdb_minavailable_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     pdb = PodDisruptionBudget(
         None,
         {
@@ -964,13 +1190,20 @@ def test_downscale_pdb_minavailable_with_autoscaling():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
         now=now,
     )
     assert pdb.obj["spec"]["minAvailable"] == 1
     assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(4)
 
 
-def test_upscale_pdb_minavailable_with_autoscaling():
+def test_upscale_pdb_minavailable_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     pdb = PodDisruptionBudget(
         None,
         {
@@ -999,13 +1232,20 @@ def test_upscale_pdb_minavailable_with_autoscaling():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
         now=now,
     )
     assert pdb.obj["spec"]["minAvailable"] == 4
     assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
 
 
-def test_downscale_pdb_maxunavailable_with_autoscaling():
+def test_downscale_pdb_maxunavailable_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     pdb = PodDisruptionBudget(
         None,
         {
@@ -1031,13 +1271,20 @@ def test_downscale_pdb_maxunavailable_with_autoscaling():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
         now=now,
     )
     assert pdb.obj["spec"]["maxUnavailable"] == 1
     assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(4)
 
 
-def test_upscale_pdb_maxunavailable_with_autoscaling():
+def test_upscale_pdb_maxunavailable_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     pdb = PodDisruptionBudget(
         None,
         {
@@ -1066,13 +1313,20 @@ def test_upscale_pdb_maxunavailable_with_autoscaling():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
         now=now,
     )
     assert pdb.obj["spec"]["maxUnavailable"] == 4
     assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
 
 
-def test_downscale_daemonset_with_autoscaling():
+def test_downscale_daemonset_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     ds = DaemonSet(
         None,
         {
@@ -1097,6 +1351,9 @@ def test_downscale_daemonset_with_autoscaling():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=DaemonSet,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1109,7 +1366,11 @@ def test_downscale_daemonset_with_autoscaling():
     )
 
 
-def test_upscale_daemonset_with_autoscaling():
+def test_upscale_daemonset_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     ds = DaemonSet(
         None,
         {
@@ -1140,6 +1401,9 @@ def test_upscale_daemonset_with_autoscaling():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=DaemonSet,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1152,7 +1416,11 @@ def test_upscale_daemonset_with_autoscaling():
     )
 
 
-def test_downscale_scaledobject_with_pause_annotation_already_present():
+def test_downscale_scaledobject_with_pause_annotation_already_present(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     # Create a ScaledObject with the annotation present
     so = ScaledObject(
         None,
@@ -1181,6 +1449,9 @@ def test_downscale_scaledobject_with_pause_annotation_already_present():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=ScaledObject,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1190,7 +1461,11 @@ def test_downscale_scaledobject_with_pause_annotation_already_present():
     assert so.replicas == 0
 
 
-def test_upscale_scaledobject_with_pause_annotation_already_present():
+def test_upscale_scaledobject_with_pause_annotation_already_present(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     so = ScaledObject(
         None,
         {
@@ -1222,6 +1497,9 @@ def test_upscale_scaledobject_with_pause_annotation_already_present():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=ScaledObject,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1234,7 +1512,11 @@ def test_upscale_scaledobject_with_pause_annotation_already_present():
     )
 
 
-def test_downscale_scaledobject_without_keda_pause_annotation():
+def test_downscale_scaledobject_without_keda_pause_annotation(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     so = ScaledObject(
         None,
         {
@@ -1261,6 +1543,9 @@ def test_downscale_scaledobject_without_keda_pause_annotation():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=ScaledObject,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1273,7 +1558,11 @@ def test_downscale_scaledobject_without_keda_pause_annotation():
     assert so.replicas == 0
 
 
-def test_upscale_scaledobject_without_keda_pause_annotation():
+def test_upscale_scaledobject_without_keda_pause_annotation(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
     so = ScaledObject(
         None,
         {
@@ -1303,6 +1592,9 @@ def test_upscale_scaledobject_without_keda_pause_annotation():
         forced_uptime=False,
         forced_downtime=False,
         dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=ScaledObject,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
