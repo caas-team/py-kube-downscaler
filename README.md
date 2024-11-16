@@ -464,6 +464,16 @@ calls made by Kube Downscaler to the Kubernetes API Server. It can only take int
 (default: 10). This setting should only be added to Kube Downscaler arguments if timeout
 issues are observed in the logs.
 
+`--max-retries-on-conflict`
+
+: Optional: Specifies the maximum number of retries KubeDownscaler should perform 
+when encountering a conflict error (HTTP 409). These errors occur when one of the
+resources, just before being processed by Kube Downscaler, is modified by another entity,
+such as an HPA, CI/CD pipeline, or manual intervention. If enabled, Kube Downscaler will
+retry the update immediately, without waiting for the next iteration (default: 0). This 
+argument is strongly recommended when using the `--once` argument to process large clusters
+
+
 ### Constrained Mode (Limited Access Mode)
 
 The Constrained Mode (also known as Limited Access Mode) is designed for users who do not have full cluster access.
