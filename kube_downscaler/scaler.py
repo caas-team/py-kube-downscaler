@@ -304,12 +304,12 @@ def get_resource(kind, api, namespace: str, resource_name: str):
 
     try:
         resource = kind.objects(api).filter(namespace=namespace).get_or_none(name=resource_name)
-        if resource is not None:
-            logger.debug(f"{kind.endpoint} {namespace}/{resource_name} was correctly retrieved")
+        if resource is None:
+            logger.debug(f"{kind.endpoint} {namespace}/{resource_name} not found")
     except requests.HTTPError as e:
         resource = None
         if e.response.status_code == 404:
-            logger.warning(
+            logger.debug(
                 f"{kind} {resource_name} not found in namespace {namespace} (404)"
             )
         if e.response.status_code == 403:
@@ -1023,10 +1023,10 @@ def autoscale_resource(
                 logger.info(
                     f"Retrying processing {resource.kind} {resource.namespace}/{resource.name} (Remaining Retries: {max_retries_on_conflict})")
                 max_retries_on_conflict = max_retries_on_conflict - 1
-                resource = get_resource(kind, api, resource.namespace, resource.name)
-                if resource is not None:
+                refreshed_resource = get_resource(kind, api, resource.namespace, resource.name)
+                if refreshed_resource is not None:
                     autoscale_resource(
-                        resource,
+                        refreshed_resource,
                         upscale_period,
                         downscale_period,
                         default_uptime,
@@ -1048,7 +1048,7 @@ def autoscale_resource(
                     )
                 else:
                     logger.warning(
-                        f"The retry process on {resource.kind} {resource.namespace}/{resource.name} couldn't be completed, skipping")
+                        f"Retry process failed for {resource.kind} {resource.namespace}/{resource.name} because the resource cannot be found, it may have been deleted from the cluster")
             else:
                 logger.warning(
                     f"Will retry processing {resource.kind} {resource.namespace}/{resource.name} in the next iteration, unless the --once argument is specified"
