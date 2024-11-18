@@ -73,7 +73,7 @@ def get_parser():
     parser.add_argument(
         "--max-retries-on-conflict",
         type=int,
-        help="Max number of retries maximum number of retries for handling concurrent update conflicts (default: 0)",
+        help="Maximum number of retries for handling concurrent update conflicts (default: 0)",
         default=os.getenv("MAX_RETRIES_ON_CONFLICT", 0)
     )
     upscale_group.add_argument(
