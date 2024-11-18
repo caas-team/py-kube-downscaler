@@ -311,7 +311,7 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
     return resources, excluded_namespaces
 
 
-def get_resource(kind, api, namespace: str, resource_name: str):
+def get_resource(kind, api, namespace, resource_name: str):
 
     try:
         resource = kind.objects(api).filter(namespace=namespace).get_or_none(name=resource_name)
