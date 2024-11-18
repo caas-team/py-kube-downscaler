@@ -6,17 +6,15 @@ description = "Scale down Kubernetes deployments after work hours"
 authors = ["Jonathan Mayer <jonathan.mayer@telekom.de>", "Jan Taeuber <jan.taeuber@telekom.de>", "Samuel Esposito <samuel-esp@hotmail.it>", "Johannes Thiem <johannesthiem6@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4"
+python = ">=3.9,<4"
 new-pykube = "*"
 pytz = "*"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "*"
 coveralls = "*"
-flake8 = "*"
 pytest = "*"
 pytest-cov = "*"
-black = "^24.8.0"
 mypy = "^1.13.0"
-pre-commit = "^3.5.0"
+pre-commit = "^4.0.1"
 pytest-html = "^4.1.1"
