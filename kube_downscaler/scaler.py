@@ -9,7 +9,7 @@ from typing import Optional
 from typing import Pattern
 
 import pykube
-from pykube import CronJob
+from pykube import CronJob, HTTPClient
 from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
 from pykube import Namespace
@@ -888,7 +888,7 @@ def autoscale_resource(
     forced_downtime: bool,
     upscale_target_only: bool,
     max_retries_on_conflict: int,
-    api,
+    api: HTTPClient,
     kind,
     dry_run: bool,
     now: datetime.datetime,
@@ -1062,7 +1062,7 @@ def autoscale_resource(
 
 
 def autoscale_resources(
-    api,
+    api: HTTPClient,
     kind,
     namespace: FrozenSet[Pattern],
     exclude_namespaces: FrozenSet[Pattern],
