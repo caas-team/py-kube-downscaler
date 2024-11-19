@@ -1125,7 +1125,7 @@ def autoscale_resource(
 
 def autoscale_resources(
     api: HTTPClient,
-    kind,
+    kind: NamespacedAPIObject,
     namespace: FrozenSet[str],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_names: FrozenSet[str],
