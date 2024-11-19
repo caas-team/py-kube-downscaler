@@ -15,6 +15,7 @@ import requests
 from pykube import CronJob
 from pykube import CustomResourceDefinition
 from pykube import DaemonSet
+from pykube import HTTPClient
 from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
 from pykube import Job
@@ -949,7 +950,7 @@ def autoscale_resource(
     forced_downtime: bool,
     upscale_target_only: bool,
     max_retries_on_conflict: int,
-    api,
+    api: HTTPClient,
     kind,
     dry_run: bool,
     now: datetime.datetime,
@@ -1123,7 +1124,7 @@ def autoscale_resource(
 
 
 def autoscale_resources(
-    api,
+    api: HTTPClient,
     kind,
     namespace: FrozenSet[str],
     exclude_namespaces: FrozenSet[Pattern],
