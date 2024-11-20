@@ -1357,11 +1357,10 @@ def scale(
     enable_events: bool = False,
     matching_labels: FrozenSet[Pattern] = frozenset(),
 ):
-    api = helper.get_kube_api()
+    api = helper.get_kube_api(api_server_timeout)
 
     now = datetime.datetime.now(datetime.timezone.utc)
     forced_uptime = pods_force_uptime(api, namespaces)
-    pykube.http.DEFAULT_HTTP_TIMEOUT=api_server_timeout
 
     for clazz in RESOURCE_CLASSES:
         plural = clazz.endpoint
