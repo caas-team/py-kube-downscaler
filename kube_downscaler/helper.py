@@ -65,9 +65,9 @@ def _matches_absolute_time_spec(time: datetime.datetime, match: Match):
     return time_from <= time <= time_to
 
 
-def get_kube_api():
+def get_kube_api(timeout: int):
     config = pykube.KubeConfig.from_env()
-    api = pykube.HTTPClient(config)
+    api = pykube.HTTPClient(config, timeout=timeout)
     return api
 
 
