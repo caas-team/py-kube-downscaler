@@ -951,7 +951,7 @@ def autoscale_resource(
     upscale_target_only: bool,
     max_retries_on_conflict: int,
     api: HTTPClient,
-    kind,
+    kind: NamespacedAPIObject,
     dry_run: bool,
     now: datetime.datetime,
     grace_period: int = 0,
