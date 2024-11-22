@@ -1211,8 +1211,7 @@ def apply_kubedownscalerjobsconstraint_crd(excluded_names, matching_labels, api)
         time.sleep(0.02)
 
 
-def gatekeeper_constraint_template_crd_exist() -> bool:
-    api = helper.get_kube_api()
+def gatekeeper_constraint_template_crd_exist(api) -> bool:
     constraint_template_crd = CustomResourceDefinition.objects(api).get_or_none(
         name="constrainttemplates.templates.gatekeeper.sh"
     )
@@ -1337,10 +1336,8 @@ def autoscale_jobs(
     enable_events: bool = False,
 ):
     if admission_controller != "" and admission_controller in ADMISSION_CONTROLLERS:
-        if (
-            admission_controller == "gatekeeper"
-            and gatekeeper_constraint_template_crd_exist()
-        ):
+
+        if admission_controller == "gatekeeper" and gatekeeper_constraint_template_crd_exist(api):
             apply_kubedownscalerjobsconstraint_crd(exclude_names, matching_labels, api)
             if admission_controller == "gatekeeper" and not gatekeeper_healthy(api):
                 logging.error(
