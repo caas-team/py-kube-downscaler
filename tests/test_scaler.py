@@ -99,6 +99,7 @@ def test_scaler_always_up(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -165,6 +166,7 @@ def test_scaler_namespace_included(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -251,6 +253,7 @@ def test_scaler_namespace_excluded(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -333,6 +336,7 @@ def test_scaler_namespace_excluded_regex(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -413,6 +417,7 @@ def test_scaler_namespace_excluded_via_annotation(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -488,6 +493,7 @@ def test_scaler_down_to(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=True,
     )
@@ -556,6 +562,7 @@ def test_scaler_down_to_upscale(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=True,
     )
@@ -621,6 +628,7 @@ def test_scaler_no_upscale_on_exclude_with_upscale_target_only(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -680,6 +688,7 @@ def test_scaler_no_upscale_on_exclude_namespace_with_upscale_target_only(monkeyp
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -740,6 +749,7 @@ def test_scaler_no_upscale_on_exclude_without_upscale_target_only(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -807,6 +817,7 @@ def test_scaler_no_upscale_on_exclude_namespace_without_upscale_target_only(monk
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -871,6 +882,7 @@ def test_scaler_always_upscale(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -932,6 +944,7 @@ def test_scaler_namespace_annotation_replicas(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -998,6 +1011,7 @@ def test_scaler_daemonset_suspend(monkeypatch):
         grace_period=300,
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1093,6 +1107,7 @@ def test_scaler_daemonset_unsuspend(monkeypatch):
         grace_period=300,
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1174,6 +1189,7 @@ def test_scaler_cronjob_suspend(monkeypatch):
         grace_period=300,
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1255,6 +1271,7 @@ def test_scaler_cronjob_unsuspend(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=True,
     )
@@ -1327,6 +1344,7 @@ def test_scaler_job_suspend_without_admission_controller(monkeypatch):
         admission_controller="",
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1400,6 +1418,7 @@ def test_scaler_job_suspend_without_admission_controller_with_owner_reference(mo
         admission_controller="",
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -1468,6 +1487,7 @@ def test_scaler_job_unsuspend_without_admission_controller(monkeypatch):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=True,
     )
@@ -1537,6 +1557,7 @@ def test_scaler_downscale_period_no_error(monkeypatch, caplog):
         grace_period=300,
         admission_controller="",
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=False,
     )
@@ -1619,6 +1640,7 @@ def test_scaler_deployment_excluded_until(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         grace_period=300,
         admission_controller="",
     )
@@ -1705,6 +1727,7 @@ def test_scaler_namespace_excluded_until(monkeypatch):
         dry_run=False,
         grace_period=300,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         admission_controller="",
         downtime_replicas=0,
     )
@@ -1781,6 +1804,7 @@ def test_scaler_name_excluded(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         grace_period=300,
         admission_controller="",
     )
@@ -1849,6 +1873,7 @@ def test_scaler_namespace_force_uptime_true(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         grace_period=300,
         admission_controller="",
     )
@@ -1904,6 +1929,7 @@ def test_scaler_namespace_force_uptime_false(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         grace_period=300,
         admission_controller="",
     )
@@ -2023,6 +2049,7 @@ def test_scaler_namespace_force_uptime_period(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         grace_period=300,
         admission_controller="",
     )
@@ -2087,6 +2114,7 @@ def test_scaler_namespace_force_downtime_true(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         grace_period=300,
         admission_controller="",
     )
@@ -2142,6 +2170,7 @@ def test_scaler_namespace_force_downtime_false(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         grace_period=300,
         admission_controller="",
     )
@@ -2204,6 +2233,7 @@ def test_scaler_namespace_force_uptime_and_downtime_true(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         grace_period=300,
         admission_controller="",
     )
@@ -2300,6 +2330,7 @@ def test_scaler_namespace_force_downtime_period(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
         dry_run=False,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         grace_period=300,
         admission_controller="",
     )
@@ -2577,6 +2608,7 @@ def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
         dry_run=False,
         grace_period=300,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
@@ -2656,6 +2688,7 @@ def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
         dry_run=False,
         grace_period=300,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
@@ -2728,6 +2761,7 @@ def test_scaler_pdb_suspend_min_available(monkeypatch):
         grace_period=300,
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -2807,6 +2841,7 @@ def test_scaler_pdb_unsuspend_min_available(monkeypatch):
         grace_period=300,
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -2883,6 +2918,7 @@ def test_scaler_downscale_keda_already_with_pause_annotation(monkeypatch):
         grace_period=300,
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -2964,6 +3000,7 @@ def test_scaler_upscale_keda_already_with_pause_annotation(monkeypatch):
         grace_period=300,
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -3043,6 +3080,7 @@ def test_scaler_downscale_keda_without_pause_annotation(monkeypatch):
         grace_period=300,
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -3123,6 +3161,7 @@ def test_scaler_upscale_keda_without_pause_annotation(monkeypatch):
         grace_period=300,
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -3201,6 +3240,7 @@ def test_scaler_downscale_keda_with_downscale_replicas_annotation(monkeypatch):
         grace_period=300,
         downtime_replicas=0,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
     )
@@ -3282,6 +3322,7 @@ def test_scaler_upscale_keda_with_downscale_replicas_annotation(monkeypatch):
         dry_run=False,
         grace_period=300,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
@@ -3362,6 +3403,7 @@ def test_scaler_downscale_keda_already_with_pause_annotation_and_downtime_replic
         dry_run=False,
         grace_period=300,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
@@ -3445,6 +3487,7 @@ def test_scaler_upscale_keda_already_with_pause_annotation_and_downtime_replicas
         dry_run=False,
         grace_period=300,
         api_server_timeout=10,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         enable_events=True,
         matching_labels=frozenset([re.compile("")]),
