@@ -38,6 +38,7 @@ def test_scale_custom_timeout(monkeypatch):
         admission_controller="",
         constrained_downscaler=False,
         api_server_timeout=api_server_timeout,
+        max_retries_on_conflict=0,
         downtime_replicas=0,
         deployment_time_annotation=None,
         enable_events=False,
