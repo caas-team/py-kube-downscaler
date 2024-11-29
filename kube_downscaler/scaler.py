@@ -15,7 +15,6 @@ import requests
 from pykube import CronJob
 from pykube import CustomResourceDefinition
 from pykube import DaemonSet
-from pykube import HTTPClient
 from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
 from pykube import HTTPClient
@@ -312,6 +311,7 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
 
 
 def get_resource(kind, api, namespace, resource_name: str):
+    try:
         resource = kind.objects(api).filter(namespace=namespace).get_or_none(name=resource_name)
         if resource is None:
             logger.debug(f"{kind.endpoint} {namespace}/{resource_name} not found")
