@@ -473,7 +473,6 @@ such as an HPA, CI/CD pipeline, or manual intervention. If enabled, Kube Downsca
 retry the update immediately, without waiting for the next iteration (default: 0). This
 argument is strongly recommended when using the `--once` argument to process large clusters
 
-
 ### Constrained Mode (Limited Access Mode)
 
 The Constrained Mode (also known as Limited Access Mode) is designed for users who do not have full cluster access.
