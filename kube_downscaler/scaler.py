@@ -15,6 +15,7 @@ import requests
 from pykube import CronJob
 from pykube import CustomResourceDefinition
 from pykube import DaemonSet
+from pykube import HTTPClient
 from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
 from pykube import HTTPClient
@@ -311,12 +312,7 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
 
 
 def get_resource(kind, api, namespace, resource_name: str):
-    try:
-        resource = (
-            kind.objects(api)
-            .filter(namespace=namespace)
-            .get_or_none(name=resource_name)
-        )
+        resource = kind.objects(api).filter(namespace=namespace).get_or_none(name=resource_name)
         if resource is None:
             logger.debug(f"{kind.endpoint} {namespace}/{resource_name} not found")
     except requests.HTTPError as e:
@@ -335,9 +331,7 @@ def get_resource(kind, api, namespace, resource_name: str):
     return resource
 
 
-def scale_jobs_without_admission_controller(
-    plural, admission_controller, constrainted_downscaler
-):
+def scale_jobs_without_admission_controller(plural, admission_controller, constrainted_downscaler):
     return (plural == "jobs" and admission_controller == "") or constrainted_downscaler
 
 
@@ -1080,10 +1074,7 @@ def autoscale_resource(
                 else:
                     resource.update()
     except Exception as e:
-        if (
-            isinstance(e, HTTPError)
-            and "the object has been modified" in str(e).lower()
-        ):
+        if isinstance(e, HTTPError) and "the object has been modified" in str(e).lower():
             logger.warning(
                 f"Unable to process {resource.kind} {resource.namespace}/{resource.name} because it was recently modified"
             )

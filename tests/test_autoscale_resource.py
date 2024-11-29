@@ -3,7 +3,7 @@ import logging
 import re
 from datetime import datetime
 from datetime import timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pykube
 import pytest
@@ -32,7 +32,6 @@ def resource():
     res.name = "res-1"
     res.annotations = {}
     return res
-
 
 def test_swallow_exception(monkeypatch, resource, caplog):
     api = MagicMock()
@@ -1635,14 +1634,16 @@ def test_downscale_resource_concurrently_modified(monkeypatch):
                 "namespace": "default",
                 "creationTimestamp": "2018-10-23T21:55:00Z",
             },
-            "spec": {"template": {"spec": {}}},
-        },
+            "spec": {
+                "template": {
+                    "spec": {}
+                }
+            }
+        }
     )
 
     # Replace update method to track calls
-    ds.update = MagicMock(
-        side_effect=[http_error, None]
-    )  # Simulate conflict and success
+    ds.update = MagicMock(side_effect=[http_error, None])  # Simulate conflict and success
 
     # Mock get_resource with MagicMock
     mock_get_resource = MagicMock(return_value=ds)
@@ -1699,8 +1700,12 @@ def test_downscale_resource_concurrently_modified_without_retries_allowed(monkey
                 "namespace": "default",
                 "creationTimestamp": "2018-10-23T21:55:00Z",
             },
-            "spec": {"template": {"spec": {}}},
-        },
+            "spec": {
+                "template": {
+                    "spec": {}
+                }
+            }
+        }
     )
 
     # Mock get_resource with MagicMock

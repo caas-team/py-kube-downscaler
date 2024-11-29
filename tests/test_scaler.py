@@ -13,6 +13,42 @@ from kube_downscaler.scaler import scale
 from kube_downscaler.scaler import scale_down_jobs
 from kube_downscaler.scaler import scale_up_jobs
 
+def test_scale_custom_timeout(monkeypatch):
+    api_server_timeout = 15  # Defined by the user
+    api = MagicMock()
+    api.timeout = 15  # Expected timeout
+
+    mock_get_kube_api = MagicMock(return_value=api)
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", mock_get_kube_api
+    )
+
+    scale(
+        namespaces=frozenset({"default"}),
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        upscale_target_only=False,
+        include_resources=frozenset(["pods"]),
+        exclude_namespaces=frozenset(),
+        exclude_deployments=frozenset(),
+        dry_run=False,
+        grace_period=300,
+        admission_controller="",
+        constrained_downscaler=False,
+        api_server_timeout=api_server_timeout,
+        max_retries_on_conflict=0,
+        downtime_replicas=0,
+        deployment_time_annotation=None,
+        enable_events=False,
+        matching_labels=frozenset(),
+    )
+
+    # ensure get_kube_api is called with the correct timeout value
+    mock_get_kube_api.assert_called_once_with(api_server_timeout)
+    # ensure timeout value is correctly set on the returned object
+    assert api.timeout == api_server_timeout
 
 def test_scale_custom_timeout(monkeypatch):
     api_server_timeout = 15  # Defined by the user
