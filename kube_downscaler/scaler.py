@@ -11,19 +11,19 @@ from typing import Pattern
 from typing import Tuple
 
 import pykube
-from pykube import HTTPClient
 import requests
 from pykube import CronJob
 from pykube import CustomResourceDefinition
 from pykube import DaemonSet
 from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
+from pykube import HTTPClient
 from pykube import Job
 from pykube import Namespace
 from pykube import StatefulSet
 from pykube.exceptions import HTTPError
-from pykube.objects import NamespacedAPIObject
 from pykube.objects import APIObject
+from pykube.objects import NamespacedAPIObject
 from pykube.objects import PodDisruptionBudget
 
 from kube_downscaler import helper
@@ -311,9 +311,12 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
 
 
 def get_resource(kind, api, namespace, resource_name: str):
-
     try:
-        resource = kind.objects(api).filter(namespace=namespace).get_or_none(name=resource_name)
+        resource = (
+            kind.objects(api)
+            .filter(namespace=namespace)
+            .get_or_none(name=resource_name)
+        )
         if resource is None:
             logger.debug(f"{kind.endpoint} {namespace}/{resource_name} not found")
     except requests.HTTPError as e:
@@ -332,7 +335,9 @@ def get_resource(kind, api, namespace, resource_name: str):
     return resource
 
 
-def scale_jobs_without_admission_controller(plural, admission_controller, constrainted_downscaler):
+def scale_jobs_without_admission_controller(
+    plural, admission_controller, constrainted_downscaler
+):
     return (plural == "jobs" and admission_controller == "") or constrainted_downscaler
 
 
@@ -1075,15 +1080,21 @@ def autoscale_resource(
                 else:
                     resource.update()
     except Exception as e:
-        if isinstance(e, HTTPError) and "the object has been modified" in str(e).lower():
+        if (
+            isinstance(e, HTTPError)
+            and "the object has been modified" in str(e).lower()
+        ):
             logger.warning(
                 f"Unable to process {resource.kind} {resource.namespace}/{resource.name} because it was recently modified"
             )
             if max_retries_on_conflict > 0:
                 logger.info(
-                    f"Retrying processing {resource.kind} {resource.namespace}/{resource.name} (Remaining Retries: {max_retries_on_conflict})")
+                    f"Retrying processing {resource.kind} {resource.namespace}/{resource.name} (Remaining Retries: {max_retries_on_conflict})"
+                )
                 max_retries_on_conflict = max_retries_on_conflict - 1
-                refreshed_resource = get_resource(kind, api, resource.namespace, resource.name)
+                refreshed_resource = get_resource(
+                    kind, api, resource.namespace, resource.name
+                )
                 if refreshed_resource is not None:
                     autoscale_resource(
                         refreshed_resource,
@@ -1108,13 +1119,16 @@ def autoscale_resource(
                     )
                 else:
                     logger.warning(
-                        f"Retry process failed for {resource.kind} {resource.namespace}/{resource.name} because the resource cannot be found, it may have been deleted from the cluster")
+                        f"Retry process failed for {resource.kind} {resource.namespace}/{resource.name} because the resource cannot be found, it may have been deleted from the cluster"
+                    )
             else:
                 logger.warning(
                     f"Will retry processing {resource.kind} {resource.namespace}/{resource.name} in the next iteration, unless the --once argument is specified"
                 )
         elif isinstance(e, HTTPError) and "not found" in str(e).lower():
-            logger.info(f"While waiting to process {resource.kind} {resource.namespace}/{resource.name}, the resource was removed from the cluster")
+            logger.info(
+                f"While waiting to process {resource.kind} {resource.namespace}/{resource.name}, the resource was removed from the cluster"
+            )
         else:
             logger.exception(
                 f"Failed to process {resource.kind} {resource.namespace}/{resource.name}: {e}"
@@ -1406,8 +1420,10 @@ def autoscale_jobs(
     enable_events: bool = False,
 ):
     if admission_controller != "" and admission_controller in ADMISSION_CONTROLLERS:
-
-        if admission_controller == "gatekeeper" and gatekeeper_constraint_template_crd_exist(api):
+        if (
+            admission_controller == "gatekeeper"
+            and gatekeeper_constraint_template_crd_exist(api)
+        ):
             apply_kubedownscalerjobsconstraint_crd(exclude_names, matching_labels, api)
             if admission_controller == "gatekeeper" and not gatekeeper_healthy(api):
                 logging.error(
@@ -1417,7 +1433,7 @@ def autoscale_jobs(
                 return
         elif (
             admission_controller == "gatekeeper"
-            and not gatekeeper_constraint_template_crd_exist()
+            and not gatekeeper_constraint_template_crd_exist(api)
         ):
             logging.warning(
                 "unable to scale jobs with gatekeeper until you install constrainttemplates.templates.gatekeeper.sh "

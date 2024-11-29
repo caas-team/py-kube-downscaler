@@ -3,7 +3,7 @@ import logging
 import re
 from datetime import datetime
 from datetime import timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pykube
 import pytest
@@ -12,7 +12,6 @@ from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
 from pykube import PodDisruptionBudget
 from pykube.exceptions import HTTPError
-from pykube import PodDisruptionBudget
 
 from kube_downscaler.resources.keda import ScaledObject
 from kube_downscaler.resources.stack import Stack
@@ -33,6 +32,7 @@ def resource():
     res.name = "res-1"
     res.annotations = {}
     return res
+
 
 def test_swallow_exception(monkeypatch, resource, caplog):
     api = MagicMock()
@@ -1616,9 +1616,12 @@ def test_downscale_resource_concurrently_modified(monkeypatch):
     )
 
     # Mock HTTPError to simulate conflict
-    http_error = HTTPError(409, "Operation cannot be fulfilled on daemonsets.apps "
-                                    "\"daemonset-1\": the object has been modified; "
-                                    "please apply your changes to the latest version and try again")
+    http_error = HTTPError(
+        409,
+        "Operation cannot be fulfilled on daemonsets.apps "
+        '"daemonset-1": the object has been modified; '
+        "please apply your changes to the latest version and try again",
+    )
 
     # Simulate update behavior: conflict on first call, success on second
     api.patch.side_effect = [http_error, None]  # First attempt raises, second succeeds
@@ -1632,16 +1635,14 @@ def test_downscale_resource_concurrently_modified(monkeypatch):
                 "namespace": "default",
                 "creationTimestamp": "2018-10-23T21:55:00Z",
             },
-            "spec": {
-                "template": {
-                    "spec": {}
-                }
-            }
-        }
+            "spec": {"template": {"spec": {}}},
+        },
     )
 
     # Replace update method to track calls
-    ds.update = MagicMock(side_effect=[http_error, None])  # Simulate conflict and success
+    ds.update = MagicMock(
+        side_effect=[http_error, None]
+    )  # Simulate conflict and success
 
     # Mock get_resource with MagicMock
     mock_get_resource = MagicMock(return_value=ds)
@@ -1662,14 +1663,14 @@ def test_downscale_resource_concurrently_modified(monkeypatch):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
-        max_retries_on_conflict=1,  #1 Retry Allowed
+        max_retries_on_conflict=1,  # 1 Retry Allowed
         api=api,
         kind=DaemonSet,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
 
-    #Assert the kube_downscaler.scaler.get_resource method was called at least once to retrieve the refreshed resource
+    # Assert the kube_downscaler.scaler.get_resource method was called at least once to retrieve the refreshed resource
     assert mock_get_resource.call_count == 1
 
 
@@ -1680,9 +1681,12 @@ def test_downscale_resource_concurrently_modified_without_retries_allowed(monkey
     )
 
     # Mock HTTPError to simulate conflict
-    http_error = HTTPError(409, "Operation cannot be fulfilled on daemonsets.apps "
-                                    "\"daemonset-1\": the object has been modified; "
-                                    "please apply your changes to the latest version and try again")
+    http_error = HTTPError(
+        409,
+        "Operation cannot be fulfilled on daemonsets.apps "
+        '"daemonset-1": the object has been modified; '
+        "please apply your changes to the latest version and try again",
+    )
 
     # Simulate update behavior: conflict on first call, success on second
     api.patch.side_effect = [http_error, None]  # First attempt raises, second succeeds
@@ -1695,12 +1699,8 @@ def test_downscale_resource_concurrently_modified_without_retries_allowed(monkey
                 "namespace": "default",
                 "creationTimestamp": "2018-10-23T21:55:00Z",
             },
-            "spec": {
-                "template": {
-                    "spec": {}
-                }
-            }
-        }
+            "spec": {"template": {"spec": {}}},
+        },
     )
 
     # Mock get_resource with MagicMock
@@ -1721,12 +1721,12 @@ def test_downscale_resource_concurrently_modified_without_retries_allowed(monkey
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
-        max_retries_on_conflict=0,  #No Retries Allowed
+        max_retries_on_conflict=0,  # No Retries Allowed
         api=api,
         kind=DaemonSet,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
 
-    #Assert the kube_downscaler.scaler.get_resource method was not called at all (meaning no retry was performed)
+    # Assert the kube_downscaler.scaler.get_resource method was not called at all (meaning no retry was performed)
     assert mock_get_resource.call_count == 0
