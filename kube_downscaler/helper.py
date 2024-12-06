@@ -85,7 +85,7 @@ def add_event(resource, message: str, reason: str, event_type: str, dry_run: boo
         .get_or_none()
     )
     if event and event.obj["message"] == message:
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         timestamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
         event.obj["count"] = event.obj["count"] + 1
         event.obj["lastTimestamp"] = timestamp
@@ -100,7 +100,7 @@ def add_event(resource, message: str, reason: str, event_type: str, dry_run: boo
 
 
 def create_event(resource, message: str, reason: str, event_type: str, dry_run: bool):
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc)
     timestamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     event = pykube.Event(
         resource.api,

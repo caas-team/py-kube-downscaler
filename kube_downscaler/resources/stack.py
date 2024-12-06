@@ -3,7 +3,6 @@ from pykube.objects import ReplicatedMixin
 
 
 class Stack(NamespacedAPIObject, ReplicatedMixin):
-
     """Support the Stack resource (https://github.com/zalando-incubator/stackset-controller)."""
 
     version = "zalando.org/v1"

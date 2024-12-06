@@ -1,25 +1,30 @@
 import collections
 import datetime
 import logging
-import time
-import requests
 import re
+import time
+from typing import Any
 from typing import FrozenSet
+from typing import List
 from typing import Optional
 from typing import Pattern
+from typing import Tuple
 
 import pykube
-from pykube import CronJob, HTTPClient
+import requests
+from pykube import CronJob
+from pykube import CustomResourceDefinition
+from pykube import DaemonSet
 from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
+from pykube import HTTPClient
+from pykube import Job
 from pykube import Namespace
 from pykube import StatefulSet
-from pykube import Job
-from pykube import CustomResourceDefinition
 from pykube.exceptions import HTTPError
-from pykube.objects import NamespacedAPIObject, APIObject
-from pykube import DaemonSet
-from pykube.objects import NamespacedAPIObject, PodDisruptionBudget
+from pykube.objects import APIObject
+from pykube.objects import NamespacedAPIObject
+from pykube.objects import PodDisruptionBudget
 
 from kube_downscaler import helper
 from kube_downscaler.helper import matches_time_spec
@@ -40,7 +45,7 @@ EXCLUDE_UNTIL_ANNOTATION = "downscaler/exclude-until"
 UPTIME_ANNOTATION = "downscaler/uptime"
 DOWNTIME_ANNOTATION = "downscaler/downtime"
 DOWNTIME_REPLICAS_ANNOTATION = "downscaler/downtime-replicas"
-GRACE_PERIOD_ANNOTATION="downscaler/grace-period"
+GRACE_PERIOD_ANNOTATION = "downscaler/grace-period"
 
 # GoLang 32-bit signed integer max value + 1. The value was choosen because 2147483647 is the max allowed
 # for Deployment/StatefulSet.spec.template.replicas. This value is used to allow
@@ -57,7 +62,7 @@ RESOURCE_CLASSES = [
     ScaledObject,
     DaemonSet,
     PodDisruptionBudget,
-    Job
+    Job,
 ]
 
 TIMESTAMP_FORMATS = [
@@ -67,10 +72,7 @@ TIMESTAMP_FORMATS = [
     "%Y-%m-%d",
 ]
 
-ADMISSION_CONTROLLERS = [
-    "gatekeeper",
-    "kyverno"
-]
+ADMISSION_CONTROLLERS = ["gatekeeper", "kyverno"]
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +119,9 @@ def within_grace_period(
 
     grace_period_annotation = resource.annotations.get(GRACE_PERIOD_ANNOTATION, None)
 
-    if grace_period_annotation is not None and is_grace_period_annotation_integer(grace_period_annotation):
+    if grace_period_annotation is not None and is_grace_period_annotation_integer(
+        grace_period_annotation
+    ):
         grace_period_annotation_integer = int(grace_period_annotation)
 
         if grace_period_annotation_integer > 0:
@@ -152,17 +156,20 @@ def within_grace_period(
     delta = now - update_time
     return delta.total_seconds() <= grace_period
 
+
 def within_grace_period_namespace(
-        resource: APIObject,
-        grace_period: int,
-        now: datetime.datetime,
-        deployment_time_annotation: Optional[str] = None,
+    resource: APIObject,
+    grace_period: int,
+    now: datetime.datetime,
+    deployment_time_annotation: Optional[str] = None,
 ):
     update_time = parse_time(resource.metadata["creationTimestamp"])
 
     grace_period_annotation = resource.annotations.get(GRACE_PERIOD_ANNOTATION, None)
 
-    if grace_period_annotation is not None and is_grace_period_annotation_integer(grace_period_annotation):
+    if grace_period_annotation is not None and is_grace_period_annotation_integer(
+        grace_period_annotation
+    ):
         grace_period_annotation_integer = int(grace_period_annotation)
 
         if grace_period_annotation_integer > 0:
@@ -197,6 +204,7 @@ def within_grace_period_namespace(
     delta = now - update_time
     return delta.total_seconds() <= grace_period
 
+
 def pods_force_uptime(api, namespace: FrozenSet[str]):
     """Return True if there are any running pods which require the deployments to be scaled back up."""
     pods = get_pod_resources(api, namespace)
@@ -209,6 +217,7 @@ def pods_force_uptime(api, namespace: FrozenSet[str]):
             return True
     return False
 
+
 def get_pod_resources(api, namespaces: FrozenSet[str]):
     if len(namespaces) >= 1:
         pods = []
@@ -218,9 +227,7 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
                 pods += pods_query_result
             except requests.HTTPError as e:
                 if e.response.status_code == 404:
-                    logger.debug(
-                        f"No {kind.endpoint} found in namespace {namespace} (404)"
-                    )
+                    logger.debug(f"No pods found in namespace {namespace} (404)")
                 if e.response.status_code == 403:
                     logger.warning(
                         f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
@@ -235,12 +242,12 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
         except requests.HTTPError as e:
             if e.response.status_code == 403:
                 logger.warning(
-                    f"KubeDownscaler is not authorized to perform a cluster wide query to retrieve Pods (403)"
+                    "KubeDownscaler is not authorized to perform a cluster wide query to retrieve Pods (403)"
                 )
             else:
                 raise e
 
-    return pods;
+    return pods
 
 
 def create_excluded_namespaces_regex(namespaces: FrozenSet[str]):
@@ -254,12 +261,15 @@ def create_excluded_namespaces_regex(namespaces: FrozenSet[str]):
     escaped_namespaces = [re.escape(ns) for ns in namespaces]
 
     # Combine the escaped names into a single alternation pattern
-    combined_pattern = '|'.join(escaped_namespaces)
+    combined_pattern = "|".join(escaped_namespaces)
 
     # Create a regex pattern that matches any string not exactly one of the namespaces
-    excluded_pattern = f'^(?!{combined_pattern}$).+'
+    excluded_pattern = f"^(?!{combined_pattern}$).+"
 
-    logging.info("--namespace arg is not empty the --exclude-namespaces argument was modified to the following regex pattern: " + excluded_pattern)
+    logging.info(
+        "--namespace arg is not empty the --exclude-namespaces argument was modified to the following regex pattern: "
+        + excluded_pattern
+    )
 
     # Compile and return the regex pattern
     return [re.compile(excluded_pattern)]
@@ -297,13 +307,16 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
             else:
                 raise e
 
-    return resources, excluded_namespaces;
+    return resources, excluded_namespaces
 
 
 def get_resource(kind, api, namespace, resource_name: str):
-
     try:
-        resource = kind.objects(api).filter(namespace=namespace).get_or_none(name=resource_name)
+        resource = (
+            kind.objects(api)
+            .filter(namespace=namespace)
+            .get_or_none(name=resource_name)
+        )
         if resource is None:
             logger.debug(f"{kind.endpoint} {namespace}/{resource_name} not found")
     except requests.HTTPError as e:
@@ -322,8 +335,11 @@ def get_resource(kind, api, namespace, resource_name: str):
     return resource
 
 
-def scale_jobs_without_admission_controller(plural, admission_controller, constrainted_downscaler):
+def scale_jobs_without_admission_controller(
+    plural, admission_controller, constrainted_downscaler
+):
     return (plural == "jobs" and admission_controller == "") or constrainted_downscaler
+
 
 def is_stack_deployment(resource: NamespacedAPIObject) -> bool:
     if resource.kind == Deployment.kind and resource.version == Deployment.version:
@@ -339,7 +355,6 @@ def is_stack_deployment(resource: NamespacedAPIObject) -> bool:
 def ignore_if_labels_dont_match(
     resource: NamespacedAPIObject, labels: FrozenSet[Pattern]
 ) -> bool:
-
     # For backwards compatibility, if there is no label filter, we don't ignore anything
     if not any(label.pattern for label in labels):
         return False
@@ -418,7 +433,9 @@ def get_replicas(
         )
     elif resource.kind == "DaemonSet":
         if "nodeSelector" in resource.obj["spec"]["template"]["spec"]:
-            kube_downscaler_node_selector_dict = resource.obj["spec"]["template"]["spec"]["nodeSelector"]
+            kube_downscaler_node_selector_dict = resource.obj["spec"]["template"][
+                "spec"
+            ]["nodeSelector"]
         else:
             kube_downscaler_node_selector_dict = None
         if kube_downscaler_node_selector_dict is None:
@@ -451,21 +468,24 @@ def get_replicas(
         )
     return replicas
 
+
 def scale_up_jobs(
-        api,
-        resource: NamespacedAPIObject,
-        uptime,
-        downtime,
-        admission_controller: str,
-        dry_run: bool,
-        enable_events: bool,
+    api,
+    resource: NamespacedAPIObject,
+    uptime,
+    downtime,
+    admission_controller: str,
+    dry_run: bool,
+    enable_events: bool,
 ) -> APIObject:
     policy: APIObject = None
     operation = "no_scale"
 
     event_message = "Scaling up jobs"
     if admission_controller == "gatekeeper":
-        policy = KubeDownscalerJobsConstraint.objects(api).get_or_none(name=resource.name)
+        policy = KubeDownscalerJobsConstraint.objects(api).get_or_none(
+            name=resource.name
+        )
         if policy is not None:
             operation = "scale_up"
             logger.info(
@@ -475,7 +495,11 @@ def scale_up_jobs(
             operation = "no_scale"
     if admission_controller == "kyverno":
         policy_name = "kube-downscaler-jobs-policy"
-        policy = KubeDownscalerJobsPolicy.objects(api).filter(namespace=resource.name).get_or_none(name=policy_name)
+        policy = (
+            KubeDownscalerJobsPolicy.objects(api)
+            .filter(namespace=resource.name)
+            .get_or_none(name=policy_name)
+        )
         if policy is not None:
             operation = "scale_up"
             logger.info(
@@ -495,23 +519,25 @@ def scale_up_jobs(
 
 
 def scale_down_jobs(
-        api,
-        resource: NamespacedAPIObject,
-        uptime,
-        downtime,
-        admission_controller: str,
-        excluded_jobs: [str],
-        matching_labels: FrozenSet[Pattern],
-        dry_run: bool,
-        enable_events: bool,
-) -> dict:
+    api,
+    resource: NamespacedAPIObject,
+    uptime,
+    downtime,
+    admission_controller: str,
+    excluded_jobs: List[str],
+    matching_labels: FrozenSet[Pattern],
+    dry_run: bool,
+    enable_events: bool,
+) -> Tuple[Optional[Any], str]:
     policy: APIObject = None
     operation = "no_scale"
     obj = None
 
     event_message = "Scaling down jobs"
     if admission_controller == "gatekeeper":
-        policy = KubeDownscalerJobsConstraint.objects(api).get_or_none(name=resource.name)
+        policy = KubeDownscalerJobsConstraint.objects(api).get_or_none(
+            name=resource.name
+        )
         if policy is None:
             obj = KubeDownscalerJobsConstraint.create_job_constraint(resource.name)
             operation = "scale_down"
@@ -522,26 +548,33 @@ def scale_down_jobs(
             obj = policy
             operation = "no_scale"
     if admission_controller == "kyverno":
-
         # if the matching_labels FrozenSet has an empty string as the first element, we create a different kyverno policy
-        first_element = next(iter(matching_labels), None)
-        first_element_str = first_element.pattern
-        if first_element_str == "":
+        first_element = next(iter(matching_labels), "")
+
+        if first_element == "":
             has_matching_labels_arg = False
         else:
             has_matching_labels_arg = True
 
         policy_name = "kube-downscaler-jobs-policy"
-        policy = KubeDownscalerJobsPolicy.objects(api).filter(namespace=resource.name).get_or_none(name=policy_name)
+        policy = (
+            KubeDownscalerJobsPolicy.objects(api)
+            .filter(namespace=resource.name)
+            .get_or_none(name=policy_name)
+        )
 
         if policy is None:
             if has_matching_labels_arg:
-                obj = KubeDownscalerJobsPolicy.create_job_policy_with_matching_labels(resource.name, matching_labels)
+                obj = KubeDownscalerJobsPolicy.create_job_policy_with_matching_labels(
+                    resource.name, matching_labels
+                )
             else:
                 obj = KubeDownscalerJobsPolicy.create_job_policy(resource.name)
 
             if len(excluded_jobs) > 0:
-                obj = KubeDownscalerJobsPolicy.append_excluded_jobs_condition(obj, excluded_jobs, has_matching_labels_arg)
+                obj = KubeDownscalerJobsPolicy.append_excluded_jobs_condition(
+                    obj, excluded_jobs, has_matching_labels_arg
+                )
             operation = "scale_down"
             logger.info(
                 f"Suspending jobs for {resource.kind}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
@@ -550,29 +583,47 @@ def scale_down_jobs(
             if has_matching_labels_arg and policy.type == "with-matching-labels":
                 obj = policy
                 operation = "no_scale"
-                logging.debug("No need to update kyverno policy, correctly found a policy with matching label")
+                logging.debug(
+                    "No need to update kyverno policy, correctly found a policy with matching label"
+                )
             elif has_matching_labels_arg and policy.type != "with-matching-labels":
                 operation = "kyverno_update"
-                obj = KubeDownscalerJobsPolicy.create_job_policy_with_matching_labels(resource.name, matching_labels)
+                obj = KubeDownscalerJobsPolicy.create_job_policy_with_matching_labels(
+                    resource.name, matching_labels
+                )
                 if len(excluded_jobs) > 0:
-                    obj = KubeDownscalerJobsPolicy.append_excluded_jobs_condition(obj, excluded_jobs,
-                                                                                  has_matching_labels_arg)
-                logging.debug("Update needed for kyverno policy, found a policy without matching label but need a policy with matching label")
-            elif not has_matching_labels_arg and policy.type == "without-matching-labels":
+                    obj = KubeDownscalerJobsPolicy.append_excluded_jobs_condition(
+                        obj, excluded_jobs, has_matching_labels_arg
+                    )
+                logging.debug(
+                    "Update needed for kyverno policy, found a policy without matching label but need a policy with matching label"
+                )
+            elif (
+                not has_matching_labels_arg and policy.type == "without-matching-labels"
+            ):
                 obj = policy
                 operation = "no_scale"
-                logging.debug("No need to update kyverno policy, correctly found a policy without matching label")
-            elif not has_matching_labels_arg and policy.type != "without-matching-labels":
+                logging.debug(
+                    "No need to update kyverno policy, correctly found a policy without matching label"
+                )
+            elif (
+                not has_matching_labels_arg and policy.type != "without-matching-labels"
+            ):
                 operation = "kyverno_update"
                 obj = KubeDownscalerJobsPolicy.create_job_policy(resource.name)
                 if len(excluded_jobs) > 0:
-                    obj = KubeDownscalerJobsPolicy.append_excluded_jobs_condition(obj, excluded_jobs,
-                                                                                  has_matching_labels_arg)
-                logging.debug("Update needed for kyverno policy, found a policy with matching label but need a policy without matching label")
+                    obj = KubeDownscalerJobsPolicy.append_excluded_jobs_condition(
+                        obj, excluded_jobs, has_matching_labels_arg
+                    )
+                logging.debug(
+                    "Update needed for kyverno policy, found a policy with matching label but need a policy without matching label"
+                )
             else:
                 obj = policy
                 operation = "no_scale"
-                logging.debug("No Update Needed For Policy, all conditions were not met")
+                logging.debug(
+                    "No Update Needed For Policy, all conditions were not met"
+                )
     if enable_events:
         helper.add_event(
             resource,
@@ -582,6 +633,7 @@ def scale_down_jobs(
             dry_run,
         )
     return obj, operation
+
 
 def scale_up(
     resource: NamespacedAPIObject,
@@ -594,7 +646,9 @@ def scale_up(
 ):
     event_message = "Scaling up replicas"
     if resource.kind == "DaemonSet":
-        resource.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] = None
+        resource.obj["spec"]["template"]["spec"]["nodeSelector"][
+            "kube-downscaler-non-existent"
+        ] = None
         logger.info(
             f"Unsuspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
@@ -628,10 +682,19 @@ def scale_up(
         )
     elif resource.kind == "ScaledObject":
         if ScaledObject.last_keda_pause_annotation_if_present in resource.annotations:
-            if resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] is not None:
-                paused_replicas = resource.annotations[ScaledObject.last_keda_pause_annotation_if_present]
-                resource.annotations[ScaledObject.keda_pause_annotation] = paused_replicas
-                resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = None
+            if (
+                resource.annotations[ScaledObject.last_keda_pause_annotation_if_present]
+                is not None
+            ):
+                paused_replicas = resource.annotations[
+                    ScaledObject.last_keda_pause_annotation_if_present
+                ]
+                resource.annotations[ScaledObject.keda_pause_annotation] = (
+                    paused_replicas
+                )
+                resource.annotations[
+                    ScaledObject.last_keda_pause_annotation_if_present
+                ] = None
         else:
             resource.annotations[ScaledObject.keda_pause_annotation] = None
         logger.info(
@@ -666,7 +729,9 @@ def scale_down(
     if resource.kind == "DaemonSet":
         if "nodeSelector" not in resource.obj["spec"]["template"]["spec"]:
             resource.obj["spec"]["template"]["spec"]["nodeSelector"] = {}
-        resource.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] = "true"
+        resource.obj["spec"]["template"]["spec"]["nodeSelector"][
+            "kube-downscaler-non-existent"
+        ] = "true"
         logger.info(
             f"Suspending {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
@@ -701,8 +766,12 @@ def scale_down(
     elif resource.kind == "ScaledObject":
         if ScaledObject.keda_pause_annotation in resource.annotations:
             if resource.annotations[ScaledObject.keda_pause_annotation] is not None:
-                paused_replicas = resource.annotations[ScaledObject.keda_pause_annotation]
-                resource.annotations[ScaledObject.last_keda_pause_annotation_if_present] = paused_replicas
+                paused_replicas = resource.annotations[
+                    ScaledObject.keda_pause_annotation
+                ]
+                resource.annotations[
+                    ScaledObject.last_keda_pause_annotation_if_present
+                ] = paused_replicas
         resource.annotations[ScaledObject.keda_pause_annotation] = str(target_replicas)
         logger.info(
             f"Pausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
@@ -737,30 +806,28 @@ def get_annotation_value_as_int(
             f"Could not read annotation '{annotation_name}' as integer: {e}"
         )
 
+
 def autoscale_jobs_for_namespace(
-        api,
-        resource: NamespacedAPIObject,  # resource here is a namespace object
-        upscale_period: str,
-        downscale_period: str,
-        default_uptime: str,
-        default_downtime: str,
-        forced_uptime: bool,
-        forced_downtime: bool,
-        matching_labels: FrozenSet[Pattern],
-        dry_run: bool,
-        now: datetime.datetime,
-        grace_period: int,
-        excluded_jobs: [str],
-        admission_controller: str,
-        deployment_time_annotation: Optional[str] = None,
-        namespace_excluded: bool = False,
-        enable_events: bool = False,
+    api,
+    resource: NamespacedAPIObject,  # resource here is a namespace object
+    upscale_period: str,
+    downscale_period: str,
+    default_uptime: str,
+    default_downtime: str,
+    forced_uptime: bool,
+    forced_downtime: bool,
+    matching_labels: FrozenSet[Pattern],
+    dry_run: bool,
+    now: datetime.datetime,
+    grace_period: int,
+    excluded_jobs: List[str],
+    admission_controller: str,
+    deployment_time_annotation: Optional[str] = None,
+    namespace_excluded: bool = False,
+    enable_events: bool = False,
 ):
     try:
-
-        exclude = (
-                namespace_excluded
-        )
+        exclude = namespace_excluded
 
         if exclude:
             logger.debug(
@@ -811,11 +878,7 @@ def autoscale_jobs_for_namespace(
 
             update_needed = False
 
-            if (
-                    not ignore
-                    and is_uptime
-            ):
-
+            if not ignore and is_uptime:
                 policy, operation = scale_up_jobs(
                     api,
                     resource,
@@ -826,18 +889,14 @@ def autoscale_jobs_for_namespace(
                     enable_events=enable_events,
                 )
                 update_needed = True
-            elif (
-                    not ignore
-                    and not is_uptime
-            ):
+            elif not ignore and not is_uptime:
                 if within_grace_period_namespace(
-                        resource, grace_period, now, deployment_time_annotation
+                    resource, grace_period, now, deployment_time_annotation
                 ):
                     logger.info(
                         f"{resource.kind}/{resource.name} within grace period ({grace_period}s), not scaling down jobs (yet)"
                     )
                 else:
-
                     policy, operation = scale_down_jobs(
                         api,
                         resource,
@@ -857,10 +916,15 @@ def autoscale_jobs_for_namespace(
                         f"**DRY-RUN**: would update {policy.kind}/{policy.name} for jobs scaling inside {resource.kind}/{resource.name}"
                     )
                 else:
-                    if operation == "scale_down" and admission_controller == "gatekeeper":
+                    if (
+                        operation == "scale_down"
+                        and admission_controller == "gatekeeper"
+                    ):
                         logger.debug("Creating KubeDownscalerJobsConstraint")
                         KubeDownscalerJobsConstraint(api, policy).create()
-                    elif operation == "scale_down" and admission_controller == "kyverno":
+                    elif (
+                        operation == "scale_down" and admission_controller == "kyverno"
+                    ):
                         logger.debug("Creating KubeDownscalerJobsPolicy")
                         KubeDownscalerJobsPolicy(api, policy).create()
                     elif operation == "scale_up":
@@ -871,12 +935,13 @@ def autoscale_jobs_for_namespace(
                     elif operation == "no_scale":
                         pass
                     else:
-                        logging.error(f"there was an error scaling scaling inside {resource.kind}/{resource.name}")
+                        logging.error(
+                            f"there was an error scaling scaling inside {resource.kind}/{resource.name}"
+                        )
 
     except Exception as e:
-        logger.exception(
-            f"Failed to process {resource.kind} {resource.name}: {e}"
-        )
+        logger.exception(f"Failed to process {resource.kind} {resource.name}: {e}")
+
 
 def autoscale_resource(
     resource: NamespacedAPIObject,
@@ -914,7 +979,9 @@ def autoscale_resource(
         if downtime_replicas_from_annotation is not None:
             downtime_replicas = downtime_replicas_from_annotation
 
-        exclude_condition = define_scope(exclude, original_replicas, upscale_target_only)
+        exclude_condition = define_scope(
+            exclude, original_replicas, upscale_target_only
+        )
 
         if exclude_condition:
             logger.debug(
@@ -985,9 +1052,7 @@ def autoscale_resource(
             elif (
                 not ignore
                 and not is_uptime
-                and (replicas > 0 
-                and replicas > downtime_replicas 
-                or replicas == -1)
+                and (replicas > 0 and replicas > downtime_replicas or replicas == -1)
             ):
                 if within_grace_period(
                     resource, grace_period, now, deployment_time_annotation
@@ -1015,15 +1080,21 @@ def autoscale_resource(
                 else:
                     resource.update()
     except Exception as e:
-        if isinstance(e, HTTPError) and "the object has been modified" in str(e).lower():
+        if (
+            isinstance(e, HTTPError)
+            and "the object has been modified" in str(e).lower()
+        ):
             logger.warning(
                 f"Unable to process {resource.kind} {resource.namespace}/{resource.name} because it was recently modified"
             )
             if max_retries_on_conflict > 0:
                 logger.info(
-                    f"Retrying processing {resource.kind} {resource.namespace}/{resource.name} (Remaining Retries: {max_retries_on_conflict})")
+                    f"Retrying processing {resource.kind} {resource.namespace}/{resource.name} (Remaining Retries: {max_retries_on_conflict})"
+                )
                 max_retries_on_conflict = max_retries_on_conflict - 1
-                refreshed_resource = get_resource(kind, api, resource.namespace, resource.name)
+                refreshed_resource = get_resource(
+                    kind, api, resource.namespace, resource.name
+                )
                 if refreshed_resource is not None:
                     autoscale_resource(
                         refreshed_resource,
@@ -1048,13 +1119,16 @@ def autoscale_resource(
                     )
                 else:
                     logger.warning(
-                        f"Retry process failed for {resource.kind} {resource.namespace}/{resource.name} because the resource cannot be found, it may have been deleted from the cluster")
+                        f"Retry process failed for {resource.kind} {resource.namespace}/{resource.name} because the resource cannot be found, it may have been deleted from the cluster"
+                    )
             else:
                 logger.warning(
                     f"Will retry processing {resource.kind} {resource.namespace}/{resource.name} in the next iteration, unless the --once argument is specified"
                 )
         elif isinstance(e, HTTPError) and "not found" in str(e).lower():
-            logger.info(f"While waiting to process {resource.kind} {resource.namespace}/{resource.name}, the resource was removed from the cluster")
+            logger.info(
+                f"While waiting to process {resource.kind} {resource.namespace}/{resource.name}, the resource was removed from the cluster"
+            )
         else:
             logger.exception(
                 f"Failed to process {resource.kind} {resource.namespace}/{resource.name}: {e}"
@@ -1064,7 +1138,7 @@ def autoscale_resource(
 def autoscale_resources(
     api: HTTPClient,
     kind: NamespacedAPIObject,
-    namespace: FrozenSet[Pattern],
+    namespace: FrozenSet[str],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_names: FrozenSet[str],
     matching_labels: FrozenSet[Pattern],
@@ -1084,7 +1158,9 @@ def autoscale_resources(
     enable_events: bool = False,
 ):
     resources_by_namespace = collections.defaultdict(list)
-    resources, exclude_namespaces = get_resources(kind, api, namespace, exclude_namespaces)
+    resources, exclude_namespaces = get_resources(
+        kind, api, namespace, exclude_namespaces
+    )
 
     try:
         for resource in resources:
@@ -1093,7 +1169,7 @@ def autoscale_resources(
                     f"{resource.kind} {resource.namespace}/{resource.name} was excluded (name matches exclusion list)"
                 )
                 continue
-            if resource.kind == 'Job' and 'ownerReferences' in resource.metadata:
+            if resource.kind == "Job" and "ownerReferences" in resource.metadata:
                 logger.debug(
                     f"{resource.kind} {resource.namespace}/{resource.name} was excluded (Job with ownerReferences)"
                 )
@@ -1101,13 +1177,9 @@ def autoscale_resources(
             resources_by_namespace[resource.namespace].append(resource)
     except requests.HTTPError as e:
         if e.response.status_code == 404:
-            logger.debug(
-                f"No {kind.endpoint} found in namespace {namespace} (404)"
-            )
+            logger.debug(f"No {kind.endpoint} found in namespace {namespace} (404)")
         else:
             raise e
-
-
 
     for current_namespace, resources in sorted(resources_by_namespace.items()):
         if any(
@@ -1196,117 +1268,177 @@ def autoscale_resources(
                 matching_labels=matching_labels,
             )
 
+
 def apply_kubedownscalerjobsconstraint_crd(excluded_names, matching_labels, api):
-    kube_downscaler_jobs_constraint_crd = CustomResourceDefinition.objects(api).get_or_none(
-        name="kubedownscalerjobsconstraint.constraints.gatekeeper.sh")
-    obj = ConstraintTemplate.create_constraint_template_crd(excluded_names, matching_labels)
+    kube_downscaler_jobs_constraint_crd = CustomResourceDefinition.objects(
+        api
+    ).get_or_none(name="kubedownscalerjobsconstraint.constraints.gatekeeper.sh")
+    obj = ConstraintTemplate.create_constraint_template_crd(
+        excluded_names, matching_labels
+    )
     if kube_downscaler_jobs_constraint_crd is not None:
         if obj == kube_downscaler_jobs_constraint_crd:
-            logger.debug("kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD already present")
+            logger.debug(
+                "kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD already present"
+            )
             return
         else:
-            logger.debug("kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD updated")
+            logger.debug(
+                "kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD updated"
+            )
             ConstraintTemplate(api, obj).update(obj)
     else:
-        logger.debug("kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD created")
+        logger.debug(
+            "kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD created"
+        )
         ConstraintTemplate(api, obj).create()
         time.sleep(0.02)
 
 
 def gatekeeper_constraint_template_crd_exist(api) -> bool:
     constraint_template_crd = CustomResourceDefinition.objects(api).get_or_none(
-        name="constrainttemplates.templates.gatekeeper.sh")
+        name="constrainttemplates.templates.gatekeeper.sh"
+    )
 
     if constraint_template_crd is None:
-        logging.error("constrainttemplates.templates.gatekeeper.sh CRD not found inside the cluster")
+        logging.error(
+            "constrainttemplates.templates.gatekeeper.sh CRD not found inside the cluster"
+        )
         return False
     else:
-        logging.debug("constrainttemplates.templates.gatekeeper.sh CRD present inside the cluster")
+        logging.debug(
+            "constrainttemplates.templates.gatekeeper.sh CRD present inside the cluster"
+        )
         return True
 
 
 def gatekeeper_healthy(api) -> bool:
-    gatekeeper_audit = Deployment.objects(api).filter(namespace="gatekeeper-system").get_or_none(
-        name="gatekeeper-audit")
-    gatekeeper_controller_manager = Deployment.objects(api).filter(namespace="gatekeeper-system").get_or_none(
-        name="gatekeeper-controller-manager")
+    gatekeeper_audit = (
+        Deployment.objects(api)
+        .filter(namespace="gatekeeper-system")
+        .get_or_none(name="gatekeeper-audit")
+    )
+    gatekeeper_controller_manager = (
+        Deployment.objects(api)
+        .filter(namespace="gatekeeper-system")
+        .get_or_none(name="gatekeeper-controller-manager")
+    )
 
     kubedownscalerjobsconstraint = CustomResourceDefinition.objects(api).get_or_none(
-        name="kubedownscalerjobsconstraint.constraints.gatekeeper.sh")
+        name="kubedownscalerjobsconstraint.constraints.gatekeeper.sh"
+    )
 
     if gatekeeper_audit is None or gatekeeper_controller_manager is None:
-        logging.debug("Health Check: gatekeeper deployments not found inside the default \"gatekeeper-system\" "
-                      "namespace. While this is not a problem, downscaling jobs policy may not be enforced unless "
-                      "gatekeeper is installed and healthy inside another namespace")
+        logging.debug(
+            'Health Check: gatekeeper deployments not found inside the default "gatekeeper-system" '
+            "namespace. While this is not a problem, downscaling jobs policy may not be enforced unless "
+            "gatekeeper is installed and healthy inside another namespace"
+        )
     else:
-        if gatekeeper_audit.obj["spec"]["replicas"] > 0 and gatekeeper_controller_manager.obj["spec"]["replicas"] > 0:
-            logging.debug("Health Check: gatekeeper deployments are healthy inside the \"gatekeeper-system\" namespace")
+        if (
+            gatekeeper_audit.obj["spec"]["replicas"] > 0
+            and gatekeeper_controller_manager.obj["spec"]["replicas"] > 0
+        ):
+            logging.debug(
+                'Health Check: gatekeeper deployments are healthy inside the "gatekeeper-system" namespace'
+            )
         else:
             logging.debug(
-                "Health Check: gatekeeper deployments are not healthy inside the \"gatekeeper-system\" namespace "
-                "downscaling jobs policy may not be enforced")
+                'Health Check: gatekeeper deployments are not healthy inside the "gatekeeper-system" namespace '
+                "downscaling jobs policy may not be enforced"
+            )
 
     if kubedownscalerjobsconstraint is None:
-        logging.error("kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD not found inside the cluster")
+        logging.error(
+            "kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD not found inside the cluster"
+        )
         return False
     else:
         return True
 
 
 def kyverno_healthy(api):
-    kyverno_admission_controller = Deployment.objects(api).filter(namespace="kyverno").get_or_none(
-        name="kyverno-admission-controller").obj
-    kyverno_background_controller = Deployment.objects(api).filter(namespace="kyverno").get_or_none(
-        name="kyverno-background-controller").obj
-    kyverno_policy_crd = CustomResourceDefinition.objects(api).get_or_none(name="policies.kyverno.io")
+    kyverno_admission_controller = (
+        Deployment.objects(api)
+        .filter(namespace="kyverno")
+        .get_or_none(name="kyverno-admission-controller")
+        .obj
+    )
+    kyverno_background_controller = (
+        Deployment.objects(api)
+        .filter(namespace="kyverno")
+        .get_or_none(name="kyverno-background-controller")
+        .obj
+    )
+    kyverno_policy_crd = CustomResourceDefinition.objects(api).get_or_none(
+        name="policies.kyverno.io"
+    )
 
     if kyverno_admission_controller is None or kyverno_background_controller is None:
-        logging.debug("Health Check: kyverno deployments not found inside the default \"kyverno\" "
-                      "namespace. While this is not a problem, downscaling jobs policy may not be enforced unless "
-                      "kyverno is installed and healthy inside another namespace")
+        logging.debug(
+            'Health Check: kyverno deployments not found inside the default "kyverno" '
+            "namespace. While this is not a problem, downscaling jobs policy may not be enforced unless "
+            "kyverno is installed and healthy inside another namespace"
+        )
     else:
-        if kyverno_admission_controller["spec"]["replicas"] > 0 and kyverno_background_controller["spec"][
-            "replicas"] > 0:
-            logging.debug("Health Check: kyverno deployments are healthy inside the \"kyverno\" namespace")
+        if (
+            kyverno_admission_controller["spec"]["replicas"] > 0
+            and kyverno_background_controller["spec"]["replicas"] > 0
+        ):
+            logging.debug(
+                'Health Check: kyverno deployments are healthy inside the "kyverno" namespace'
+            )
         else:
-            logging.debug("Health Check: kyverno deployments are not healthy inside the \"kyverno\" namespace "
-                          "downscaling jobs policy may not be enforced")
+            logging.debug(
+                'Health Check: kyverno deployments are not healthy inside the "kyverno" namespace '
+                "downscaling jobs policy may not be enforced"
+            )
 
     if kyverno_policy_crd is None:
         logging.error("policies.kyverno.io CRD not found inside the cluster")
         return False
     else:
         return True
+
+
 def autoscale_jobs(
-        api,
-        namespaces: FrozenSet[str],
-        exclude_namespaces: FrozenSet[Pattern],
-        upscale_period: str,
-        downscale_period: str,
-        default_uptime: str,
-        default_downtime: str,
-        forced_uptime: bool,
-        matching_labels: FrozenSet[Pattern],
-        dry_run: bool,
-        now: datetime.datetime,
-        grace_period: int,
-        admission_controller: str,
-        exclude_names: FrozenSet[str],
-        deployment_time_annotation: Optional[str] = None,
-        enable_events: bool = False,
+    api,
+    namespaces: FrozenSet[str],
+    exclude_namespaces: FrozenSet[Pattern],
+    upscale_period: str,
+    downscale_period: str,
+    default_uptime: str,
+    default_downtime: str,
+    forced_uptime: bool,
+    matching_labels: FrozenSet[Pattern],
+    dry_run: bool,
+    now: datetime.datetime,
+    grace_period: int,
+    admission_controller: str,
+    exclude_names: FrozenSet[str],
+    deployment_time_annotation: Optional[str] = None,
+    enable_events: bool = False,
 ):
     if admission_controller != "" and admission_controller in ADMISSION_CONTROLLERS:
-
-        if admission_controller == "gatekeeper" and gatekeeper_constraint_template_crd_exist(api):
+        if (
+            admission_controller == "gatekeeper"
+            and gatekeeper_constraint_template_crd_exist(api)
+        ):
             apply_kubedownscalerjobsconstraint_crd(exclude_names, matching_labels, api)
             if admission_controller == "gatekeeper" and not gatekeeper_healthy(api):
-                logging.error("unable to scale jobs, there was a problem applying kubedownscalerjobsconstraint crd or it was deleted"
-                              " from the cluster. The crd will be automatically re-applied")
+                logging.error(
+                    "unable to scale jobs, there was a problem applying kubedownscalerjobsconstraint crd or it was deleted"
+                    " from the cluster. The crd will be automatically re-applied"
+                )
                 return
-        elif admission_controller == "gatekeeper" and not gatekeeper_constraint_template_crd_exist():
+        elif (
+            admission_controller == "gatekeeper"
+            and not gatekeeper_constraint_template_crd_exist(api)
+        ):
             logging.warning(
                 "unable to scale jobs with gatekeeper until you install constrainttemplates.templates.gatekeeper.sh "
-                "CRD")
+                "CRD"
+            )
             return
 
         if admission_controller == "kyverno" and not kyverno_healthy(api):
@@ -1316,7 +1448,7 @@ def autoscale_jobs(
         if len(namespaces) >= 1:
             namespaces = namespaces
         else:
-            namespaces = list(Namespace.objects(api).iterator())
+            namespaces = frozenset(Namespace.objects(api).iterator())
 
         excluded_jobs = []
 
@@ -1324,39 +1456,39 @@ def autoscale_jobs(
             excluded_jobs.append(name)
 
         for current_namespace in namespaces:
-
             if any(
-                    [pattern.fullmatch(current_namespace.name) for pattern in exclude_namespaces]
+                [pattern.fullmatch(current_namespace) for pattern in exclude_namespaces]
             ):
                 logger.debug(
-                    f"Namespace {current_namespace.name} was excluded from job scaling (exclusion list regex matches)"
+                    f"Namespace {current_namespace} was excluded from job scaling (exclusion list regex matches)"
                 )
                 continue
 
-            logger.debug(
-                f"Processing {current_namespace.name} for job scaling.."
-            )
+            logger.debug(f"Processing {current_namespace} for job scaling..")
+
+            # Override defaults with (optional) annotations from Namespace
+            namespace_obj = Namespace.objects(api).get_by_name(current_namespace)
 
             excluded = ignore_resource(current_namespace, now)
 
-            default_uptime_for_namespace = current_namespace.annotations.get(
+            default_uptime_for_namespace = namespace_obj.annotations.get(
                 UPTIME_ANNOTATION, default_uptime
             )
-            default_downtime_for_namespace = current_namespace.annotations.get(
+            default_downtime_for_namespace = namespace_obj.annotations.get(
                 DOWNTIME_ANNOTATION, default_downtime
             )
 
-            upscale_period_for_namespace = current_namespace.annotations.get(
+            upscale_period_for_namespace = namespace_obj.annotations.get(
                 UPSCALE_PERIOD_ANNOTATION, upscale_period
             )
-            downscale_period_for_namespace = current_namespace.annotations.get(
+            downscale_period_for_namespace = namespace_obj.annotations.get(
                 DOWNSCALE_PERIOD_ANNOTATION, downscale_period
             )
             forced_uptime_value_for_namespace = str(
-                current_namespace.annotations.get(FORCE_UPTIME_ANNOTATION, forced_uptime)
+                namespace_obj.annotations.get(FORCE_UPTIME_ANNOTATION, forced_uptime)
             )
             forced_downtime_value_for_namespace = str(
-                current_namespace.annotations.get(FORCE_DOWNTIME_ANNOTATION, False)
+                namespace_obj.annotations.get(FORCE_DOWNTIME_ANNOTATION, False)
             )
             if forced_uptime_value_for_namespace.lower() == "true":
                 forced_uptime_for_namespace = True
@@ -1401,11 +1533,14 @@ def autoscale_jobs(
             )
     else:
         if admission_controller == "":
-            logger.warning("admission controller arg was not specified, unable to scale jobs")
+            logger.warning(
+                "admission controller arg was not specified, unable to scale jobs"
+            )
         else:
             logger.warning(
                 "admission controller arg is not written correctly or not supported"
             )
+
 
 def scale(
     namespaces: FrozenSet[str],
@@ -1436,7 +1571,12 @@ def scale(
     for clazz in RESOURCE_CLASSES:
         plural = clazz.endpoint
         if plural in include_resources:
-            if scale_jobs_without_admission_controller(plural, admission_controller, constrained_downscaler) or plural != "jobs":
+            if (
+                scale_jobs_without_admission_controller(
+                    plural, admission_controller, constrained_downscaler
+                )
+                or plural != "jobs"
+            ):
                 autoscale_resources(
                     api,
                     clazz,

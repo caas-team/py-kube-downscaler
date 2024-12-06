@@ -5,11 +5,11 @@ This repository offers a Helm chart for the `py-kube-downscaler`.
 ## Important values
 
 | Key                | Type   | Example                                                                                               | Description                                     |
-|--------------------|--------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------|
+| ------------------ | ------ | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | image.tag          | string | `"23.2.0@sha256:4129e7e7551eb451ee2b43680ef818f3057304ad50888f79ec9722afab6c29ff"`                    | Tag of the image to use                         |
 | arguments          | list   | `[--interval=60,--include-resources=deployments,statefulsets,horizontalpodautoscalers,scaledobjects]` | Arguments to pass to the kube-downscaler binary |
 | excludedNamespaces | list   | `["namespace-a", "namespace-b"]`                                                                      | Namespaces to exclude from downscaling          |
-| extraConfig        | string | `"DOWNSCALE_PERIOD: 'Mon-Sun 19:00-20:00 Europe/Berlin'"`                                              | Additional configuration in ConfigMap format    |
+| extraConfig        | string | `"DOWNSCALE_PERIOD: 'Mon-Sun 19:00-20:00 Europe/Berlin'"`                                             | Additional configuration in ConfigMap format    |
 
 # Deploy py-kube-downscaler using Helm chart
 
@@ -57,18 +57,10 @@ Note: In case RBAC is enabled, a new service account will be created for py-kube
 otherwise the 'default' one will be used.
 
 3. Deploy py-kube-downscaler:
-You can add our chart repository and deploy it by running:
+   You can deploy the py-kube-downscaler with our Helm Chart by running:
+
 ```bash
-helm repo add caas-team https://caas-team.github.io/helm-charts/
-
-helm install py-kube-downscaler caas-team/py-kube-downscaler -n py-kube-downscaler
-```
-
-**OR**
-
-You can alternatively clone this repository, change the current directory to the py-kube-downscaler repository and run:
-```bash
-helm install py-kube-downscaler ./chart -n py-kube-downscaler
+helm install py-kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler -n py-kube-downscaler
 ```
 
 4. Check the deployed release status:

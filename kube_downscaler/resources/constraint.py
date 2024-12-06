@@ -2,7 +2,6 @@ from pykube.objects import APIObject
 
 
 class KubeDownscalerJobsConstraint(APIObject):
-
     """Support the Gatakeeper Admission Controller Custom CRDs (https://open-policy-agent.github.io/gatekeeper/website/docs)."""
 
     version = "constraints.gatekeeper.sh/v1beta1"
@@ -24,15 +23,9 @@ class KubeDownscalerJobsConstraint(APIObject):
             "kind": "KubeDownscalerJobsConstraint",
             "metadata": {
                 "name": resource_name,
-                "labels": {
-                    "origin": "kube-downscaler"
-                }
+                "labels": {"origin": "kube-downscaler"},
             },
-            "spec": {
-                "match": {
-                    "namespaces": [resource_name]
-                }
-            }
+            "spec": {"match": {"namespaces": [resource_name]}},
         }
 
         return obj

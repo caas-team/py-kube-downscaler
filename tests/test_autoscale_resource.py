@@ -3,16 +3,18 @@ import logging
 import re
 from datetime import datetime
 from datetime import timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pykube
 import pytest
-from pykube import Deployment, PodDisruptionBudget, DaemonSet
+from pykube import DaemonSet
+from pykube import Deployment
 from pykube import HorizontalPodAutoscaler
+from pykube import PodDisruptionBudget
 from pykube.exceptions import HTTPError
 
-from kube_downscaler.resources.stack import Stack
 from kube_downscaler.resources.keda import ScaledObject
+from kube_downscaler.resources.stack import Stack
 from kube_downscaler.scaler import autoscale_resource
 from kube_downscaler.scaler import DOWNSCALE_PERIOD_ANNOTATION
 from kube_downscaler.scaler import DOWNTIME_REPLICAS_ANNOTATION
@@ -30,6 +32,7 @@ def resource():
     res.name = "res-1"
     res.annotations = {}
     return res
+
 
 def test_swallow_exception(monkeypatch, resource, caplog):
     api = MagicMock()
@@ -1334,12 +1337,8 @@ def test_downscale_daemonset_with_autoscaling(monkeypatch):
                 "namespace": "default",
                 "creationTimestamp": "2018-10-23T21:55:00Z",
             },
-            "spec": {
-                "template": {
-                    "spec": {}
-                }
-            }
-        }
+            "spec": {"template": {"spec": {}}},
+        },
     )
     now = datetime.strptime("2018-10-23T22:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
         tzinfo=timezone.utc
@@ -1361,7 +1360,12 @@ def test_downscale_daemonset_with_autoscaling(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
     )
 
-    assert ds.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] == "true"
+    assert (
+        ds.obj["spec"]["template"]["spec"]["nodeSelector"][
+            "kube-downscaler-non-existent"
+        ]
+        == "true"
+    )
 
 
 def test_upscale_daemonset_with_autoscaling(monkeypatch):
@@ -1376,18 +1380,14 @@ def test_upscale_daemonset_with_autoscaling(monkeypatch):
                 "name": "daemonset-1",
                 "namespace": "default",
                 "creationTimestamp": "2018-10-23T21:55:00Z",
-                "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"}
+                "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1"},
             },
             "spec": {
                 "template": {
-                    "spec": {
-                        "nodeSelector": {
-                            "kube-downscaler-non-existent": "true"
-                        }
-                    }
+                    "spec": {"nodeSelector": {"kube-downscaler-non-existent": "true"}}
                 }
-            }
-        }
+            },
+        },
     )
     print("\n" + str(ds.obj) + "\n")
     now = datetime.strptime("2018-10-23T22:25:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1410,7 +1410,12 @@ def test_upscale_daemonset_with_autoscaling(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
     )
 
-    assert ds.obj["spec"]["template"]["spec"]["nodeSelector"]["kube-downscaler-non-existent"] == None
+    assert (
+        ds.obj["spec"]["template"]["spec"]["nodeSelector"][
+            "kube-downscaler-non-existent"
+        ]
+        is None
+    )
 
 
 def test_downscale_scaledobject_with_pause_annotation_already_present(monkeypatch):
@@ -1426,12 +1431,10 @@ def test_downscale_scaledobject_with_pause_annotation_already_present(monkeypatc
                 "name": "scaledobject-1",
                 "namespace": "default",
                 "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {
-                    "autoscaling.keda.sh/paused-replicas": "3"
-                }
+                "annotations": {"autoscaling.keda.sh/paused-replicas": "3"},
             },
-            "spec": {}
-        }
+            "spec": {},
+        },
     )
 
     now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1476,10 +1479,10 @@ def test_upscale_scaledobject_with_pause_annotation_already_present(monkeypatch)
                     "autoscaling.keda.sh/paused-replicas": "0",  # Paused replicas
                     "downscaler/original-pause-replicas": "3",  # Original replicas before pause
                     "downscaler/original-replicas": "3",  # Keeping track of original replicas
-                }
+                },
             },
-            "spec": {}
-        }
+            "spec": {},
+        },
     )
 
     now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1506,7 +1509,9 @@ def test_upscale_scaledobject_with_pause_annotation_already_present(monkeypatch)
     # Check if the annotations have been correctly updated for the upscale operation
     assert so.annotations[ScaledObject.keda_pause_annotation] == "3"
     assert so.replicas == 3
-    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    assert (
+        so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    )
 
 
 def test_downscale_scaledobject_without_keda_pause_annotation(monkeypatch):
@@ -1521,9 +1526,9 @@ def test_downscale_scaledobject_without_keda_pause_annotation(monkeypatch):
                 "name": "scaledobject-1",
                 "namespace": "default",
                 "creationTimestamp": "2023-08-21T10:00:00Z",
-                "annotations": {}
+                "annotations": {},
             },
-        }
+        },
     )
 
     now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1549,7 +1554,9 @@ def test_downscale_scaledobject_without_keda_pause_annotation(monkeypatch):
 
     # Check if the annotations have been correctly updated
     assert so.annotations[ScaledObject.keda_pause_annotation] == "0"
-    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    assert (
+        so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    )
     assert so.replicas == 0
 
 
@@ -1568,9 +1575,9 @@ def test_upscale_scaledobject_without_keda_pause_annotation(monkeypatch):
                 "annotations": {
                     "autoscaling.keda.sh/paused-replicas": "0",
                     "downscaler/original-replicas": "3",
-                }
+                },
             },
-        }
+        },
     )
 
     now = datetime.strptime("2023-08-21T10:30:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1596,7 +1603,9 @@ def test_upscale_scaledobject_without_keda_pause_annotation(monkeypatch):
 
     # Check if the annotations have been correctly updated for the upscale operation
     assert so.annotations[ScaledObject.keda_pause_annotation] is None
-    assert so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    assert (
+        so.annotations.get(ScaledObject.last_keda_pause_annotation_if_present) is None
+    )
     assert so.replicas == -1
 
 
@@ -1607,9 +1616,12 @@ def test_downscale_resource_concurrently_modified(monkeypatch):
     )
 
     # Mock HTTPError to simulate conflict
-    http_error = HTTPError(409, "Operation cannot be fulfilled on daemonsets.apps "
-                                    "\"daemonset-1\": the object has been modified; "
-                                    "please apply your changes to the latest version and try again")
+    http_error = HTTPError(
+        409,
+        "Operation cannot be fulfilled on daemonsets.apps "
+        '"daemonset-1": the object has been modified; '
+        "please apply your changes to the latest version and try again",
+    )
 
     # Simulate update behavior: conflict on first call, success on second
     api.patch.side_effect = [http_error, None]  # First attempt raises, second succeeds
@@ -1623,16 +1635,14 @@ def test_downscale_resource_concurrently_modified(monkeypatch):
                 "namespace": "default",
                 "creationTimestamp": "2018-10-23T21:55:00Z",
             },
-            "spec": {
-                "template": {
-                    "spec": {}
-                }
-            }
-        }
+            "spec": {"template": {"spec": {}}},
+        },
     )
 
     # Replace update method to track calls
-    ds.update = MagicMock(side_effect=[http_error, None])  # Simulate conflict and success
+    ds.update = MagicMock(
+        side_effect=[http_error, None]
+    )  # Simulate conflict and success
 
     # Mock get_resource with MagicMock
     mock_get_resource = MagicMock(return_value=ds)
@@ -1653,14 +1663,14 @@ def test_downscale_resource_concurrently_modified(monkeypatch):
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
-        max_retries_on_conflict=1,  #1 Retry Allowed
+        max_retries_on_conflict=1,  # 1 Retry Allowed
         api=api,
         kind=DaemonSet,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
 
-    #Assert the kube_downscaler.scaler.get_resource method was called at least once to retrieve the refreshed resource
+    # Assert the kube_downscaler.scaler.get_resource method was called at least once to retrieve the refreshed resource
     assert mock_get_resource.call_count == 1
 
 
@@ -1671,9 +1681,12 @@ def test_downscale_resource_concurrently_modified_without_retries_allowed(monkey
     )
 
     # Mock HTTPError to simulate conflict
-    http_error = HTTPError(409, "Operation cannot be fulfilled on daemonsets.apps "
-                                    "\"daemonset-1\": the object has been modified; "
-                                    "please apply your changes to the latest version and try again")
+    http_error = HTTPError(
+        409,
+        "Operation cannot be fulfilled on daemonsets.apps "
+        '"daemonset-1": the object has been modified; '
+        "please apply your changes to the latest version and try again",
+    )
 
     # Simulate update behavior: conflict on first call, success on second
     api.patch.side_effect = [http_error, None]  # First attempt raises, second succeeds
@@ -1686,12 +1699,8 @@ def test_downscale_resource_concurrently_modified_without_retries_allowed(monkey
                 "namespace": "default",
                 "creationTimestamp": "2018-10-23T21:55:00Z",
             },
-            "spec": {
-                "template": {
-                    "spec": {}
-                }
-            }
-        }
+            "spec": {"template": {"spec": {}}},
+        },
     )
 
     # Mock get_resource with MagicMock
@@ -1712,12 +1721,12 @@ def test_downscale_resource_concurrently_modified_without_retries_allowed(monkey
         forced_uptime=False,
         forced_downtime=False,
         dry_run=False,
-        max_retries_on_conflict=0,  #No Retries Allowed
+        max_retries_on_conflict=0,  # No Retries Allowed
         api=api,
         kind=DaemonSet,
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
 
-    #Assert the kube_downscaler.scaler.get_resource method was not called at all (meaning no retry was performed)
+    # Assert the kube_downscaler.scaler.get_resource method was not called at all (meaning no retry was performed)
     assert mock_get_resource.call_count == 0

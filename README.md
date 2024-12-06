@@ -209,7 +209,7 @@ KubeDownscaler offers two installation methods.
 The basic Cluster Wide installation is very simple
 
 ```bash
-$ helm install py-kube-downscaler py-kube-downscaler/py-kube-downscaler
+$ helm install py-kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler
 ```
 
 This command will deploy:
@@ -234,14 +234,14 @@ The Limited Access installation requires the user to fill the following paramete
 It is also recommended to explicitly set the namespace where KubeDownscaler will be installed
 
 ```bash
-$ helm install py-kube-downscaler py-kube-downscaler/py-kube-downscaler --namespace my-release-namespace --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
+$ helm install py-kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler --namespace my-release-namespace --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
 ```
 
 This command will deploy:
 
 - **Deployment**: main deployment
 - **ConfigMap**: used to supply parameters to the deployment
-- **ServiceAccount**: represents the Cluster Idenity of the KubeDownscaler
+- **ServiceAccount**: represents the Cluster Identity of the KubeDownscaler
 
 For each namespace inside constrainedNamespaces, the chart will deploy
 
@@ -283,8 +283,8 @@ Each time specification can be in one of two formats:
   where each `<TIME>` is an ISO 8601 date and time of the format
   `<YYYY>-<MM>-<DD>T<HH>:<MM>:<SS>[+-]<TZHH>:<TZMM>`.
 
-If you are using the first format (recurring specifications) it is important 
-to note that the  downscaler can only interpret configurations within 
+If you are using the first format (recurring specifications) it is important
+to note that the downscaler can only interpret configurations within
 a single day and cannot process intervals that stretch across two different days.
 As a result, overlapping time intervals are not supported.
 
@@ -292,12 +292,12 @@ In the expression `<WEEKDAY-FROM>-<WEEKDAY-TO-INCLUSIVE> <HH>:<MM>-<HH>:<MM> <TI
 the time range `<HH>:<MM>-<HH>:<MM>` should always have the end time later
 than the start time (in 24-hour format)
 
-If you want to schedule downtime from 23:30 to 09:30 the following day, 
+If you want to schedule downtime from 23:30 to 09:30 the following day,
 a configuration like this would be incorrect:
 
 `DEFAULT_DOWNTIME="Mon-Fri 23:30-09:30 Europe/Berlin"`
- 
-The correct configuration would be: 
+
+The correct configuration would be:
 
 `DEFAULT_DOWNTIME="Mon-Fri 23:30-24:00 Europe/Berlin,Mon-Fri 00:00-09:30 Europe/Berlin"`
 
@@ -339,7 +339,7 @@ Available command line options:
 
 `--interval`
 
-: Loop interval (default: 30s)
+: Loop interval (default: 60s)
 
 `--namespace`
 
@@ -399,14 +399,14 @@ annotation `downscaler/downtime` on each deployment
 
 `--upscale-target-only`
 
-:   When this optional argument is used, only the namespaces currently 
-    targeted by the downscaler will be upscaled during wake-up times. 
-    For instance, if your downscaler initially manages namespaces 
-    A, B, and C, but is later reconfigured to target only namespaces
-    B and C, namespace A will remain downscaled if it was downscaled
-    at the time of reconfiguration. If the parameter is not used, 
-    all previously downscaled namespaces may be upscaled, even if
-    they are no longer targeted by the downscaler.
+: When this optional argument is used, only the namespaces currently
+targeted by the downscaler will be upscaled during wake-up times.
+For instance, if your downscaler initially manages namespaces
+A, B, and C, but is later reconfigured to target only namespaces
+B and C, namespace A will remain downscaled if it was downscaled
+at the time of reconfiguration. If the parameter is not used,
+all previously downscaled namespaces may be upscaled, even if
+they are no longer targeted by the downscaler.
 
 `--exclude-namespaces`
 
@@ -461,18 +461,17 @@ Supported Admission Controllers are
 
 : Optional: This is an advanced option that allows setting a timeout duration for all
 calls made by Kube Downscaler to the Kubernetes API Server. It can only take integer values
-(default: 10). This setting should only be added to Kube Downscaler arguments if timeout 
+(default: 10). This setting should only be added to Kube Downscaler arguments if timeout
 issues are observed in the logs.
 
 `--max-retries-on-conflict`
 
-: Optional: Specifies the maximum number of retries KubeDownscaler should perform 
+: Optional: Specifies the maximum number of retries KubeDownscaler should perform
 when encountering a conflict error (HTTP 409). These errors occur when one of the
 resources, just before being processed by Kube Downscaler, is modified by another entity,
 such as an HPA, CI/CD pipeline, or manual intervention. If enabled, Kube Downscaler will
-retry the update immediately, without waiting for the next iteration (default: 0). This 
+retry the update immediately, without waiting for the next iteration (default: 0). This
 argument is strongly recommended when using the `--once` argument to process large clusters
-
 
 ### Constrained Mode (Limited Access Mode)
 
@@ -524,7 +523,7 @@ To scale down jobs natively, you only need to specify `jobs` inside the `--inclu
 
 Before scaling jobs with an Admission Controller make sure the Admission Controller of your choice is correctly installed inside the
 cluster.
-At startup, Kube-Downscaler will always perform some health checks for the Admission Controller of your choiche that are
+At startup, Kube-Downscaler will always perform some health checks for the Admission Controller of your choice that are
 displayed inside logs when the argument `--debug` arg is present inside the main Deployment.
 
 **<u>Important</u>: In order to use this feature you will need to exclude Kyverno or Gatekeeper resources from downscaling otherwise
@@ -534,7 +533,7 @@ Alternatively `EXCLUDE_DEPLOYMENTS` environment variable
 or `--exclude-deployments` arg to exclude only certain resources inside `"kyverno"` or `"gatekeeper-system"` namespaces
 
 **<u>Important</u>**: `--admission-controller` argument won't take effect if used in conjunction with --namespace argument.
-if you specified `jobs` inside the `--include-resources` argument KubeDonwscaler will
+if you specified `jobs` inside the `--include-resources` argument KubeDownscaler will
 still [downscale jobs natively](#scaling-jobs-natively).
 Please read the [Constrained Mode](#constrained-mode-limited-access-mode) section to understand why
 
@@ -614,24 +613,24 @@ The feature to scale DaemonSets can be very useful for reducing the base occupan
 
 ### Scaling ScaledObjects
 
-The ability to downscale ScaledObjects is very useful for workloads that use Keda to support 
-a wider range of horizontal scaling metrics compared to the native Horizontal Pod Autoscaler (HPA). 
+The ability to downscale ScaledObjects is very useful for workloads that use Keda to support
+a wider range of horizontal scaling metrics compared to the native Horizontal Pod Autoscaler (HPA).
 Keda provides a built-in way to disable ScaledObjects when they are not needed. This can be achieved by using
 the annotation `"autoscaling.keda.sh/paused-replicas"`.
 
 The KubeDownscaler algorithm will apply the annotation `"autoscaling.keda.sh/paused-replicas" `
 during downtime periods, setting its value to what the user specifies through the KubeDownscaler argument `--downtime-replicas`
-or the workload annotation `"downscaler/downtime-replicas"`. During uptime, KubeDownscaler will remove the 
+or the workload annotation `"downscaler/downtime-replicas"`. During uptime, KubeDownscaler will remove the
 `"autoscaling.keda.sh/paused-replicas"` annotation, allowing the ScaledObject to operate as originally configured.
 
 **Important**: When using the `"downscaler/downtime-replicas"` annotation at the workload level, it is crucial that
 this annotation is included in both the ScaledObject and the corresponding Deployment or StatefulSet that it controls
-and the values of the annotation must match in both locations. Alternatively, it is possible to exclude the Deployment 
-or StatefulSet from scaling by using the annotation `"downscaler/exclude"`, while keeping downscaling active only 
+and the values of the annotation must match in both locations. Alternatively, it is possible to exclude the Deployment
+or StatefulSet from scaling by using the annotation `"downscaler/exclude"`, while keeping downscaling active only
 on the ScaledObject.
 
 **Important**: KubeDownscaler has an automatic mechanism that detects if the `"autoscaling.keda.sh/paused-replicas" `
-annotation is already present on the ScaledObject. If that is the case, KubeDownscaler will overwrite it 
+annotation is already present on the ScaledObject. If that is the case, KubeDownscaler will overwrite it
 with the target value specified for downtime and, during uptime, will restore the original value.
 
 **Technical Detail**: During downscaling, KubeDownscaler will set the annotation `"downscaler/original-replicas"` to -1, this value acts as a placeholder to indicate
@@ -735,13 +734,13 @@ preserve the old nomenclature already present inside your cluster
 Read [Installation](#installation) section to understand what is meant for **Cluster Wide Installation**
 
 ```bash
-$ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
+$ helm install kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
 ```
 
 or extracting and applying the template manually:
 
 ```bash
-$ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
+$ helm template kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler
 ```
 
 ### Migrate From Codeberg - Limited Access Installation
@@ -749,21 +748,19 @@ $ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set name
 Read [Installation](#installation) section to understand what is meant for **Limited Access Installation**
 
 ```bash
-$ helm install kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
+$ helm install kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
 ```
 
 or extracting and applying the template manually:
 
 ```bash
-$ helm template kube-downscaler py-kube-downscaler/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
+$ helm template kube-downscaler oci://ghcr.io/caas-team/charts/py-kube-downscaler --set nameOverride=kube-downscaler --set configMapName=kube-downscaler --set constrainedDownscaler=true --set "constrainedNamespaces={namespace1,namespace2,namespace3}"
 ```
 
 ## Contributing
 
 Easiest way to contribute is to provide feedback! We would love to hear what you like and what you think is missing.
 Create an issue and we will take a look. PRs are welcome.
-
-PRs are welcome.
 
 ## License
 
