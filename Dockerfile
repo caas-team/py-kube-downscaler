@@ -1,4 +1,4 @@
-FROM python:3.10-alpine3.19
+FROM python:3.12.7-alpine3.20 AS builder
 
 WORKDIR /
 
@@ -13,12 +13,12 @@ COPY pyproject.toml /
 RUN poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-dev --no-ansi
 
-FROM python:3.10-alpine3.19
+FROM python:3.12.7-alpine3.20
 
 WORKDIR /
 
 # copy pre-built packages to this image
-COPY --from=0 /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 
 # now copy the actual code we will execute (poetry install above was just for dependencies)
 COPY kube_downscaler /kube_downscaler
