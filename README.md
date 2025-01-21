@@ -3,9 +3,13 @@
 <a href="/../../releases/" title="GitHub Release"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/caas-team/py-kube-downscaler?style=flat"></a>
 <a href="./LICENSE" title="GitHub License"><img alt="GitHub License" src="https://img.shields.io/github/license/caas-team/py-kube-downscaler?style=flat"></a>
 <a href="/../../issues/" title="GitHub Issues"><img alt="GitHub Issues" src="https://img.shields.io/github/issues/caas-team/py-kube-downscaler"></a>
-<a href="https://communityinviter.com/apps/kube-downscaler/kube-downscaler" title="Slack Workspace"><img alt="Slack Workspace" src="https://img.shields.io/badge/slack-kube--downscaler-dark_green?style=flat&logo=slack"></a>
+<a href="https://inviter.co/kube-downscaler" title="Slack Workspace"><img alt="Slack Workspace" src="https://img.shields.io/badge/slack-kube--downscaler-dark_green?style=flat&logo=slack"></a>
 
 This is a fork of the no longer maintained [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler).
+
+> [!IMPORTANT]  
+> The **py-kube-downscaler** is in **maintenance-only mode**.  
+> If you're still looking to get feature updates, please [migrate to the successor](https://caas-team.github.io/GoKubeDownscaler/guides/migrating), the [**GoKubeDownscaler**](https://github.com/caas-team/GoKubeDownscaler), which is faster, more efficient, and includes additional and comfort features.
 
 Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
 `HorizontalPodAutoscalers`, `DaemonSets`, `CronJobs`, `Jobs`, `PodDisruptionBudgets`, `Argo Rollouts` and `Keda ScaledObjects` too !) during non-work hours.
