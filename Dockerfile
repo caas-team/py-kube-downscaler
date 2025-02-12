@@ -11,7 +11,7 @@ COPY poetry.lock /
 COPY pyproject.toml /
 
 RUN poetry config virtualenvs.create false && \
-    poetry install --no-interaction --without dev --no-ansi
+    poetry install --no-interaction --without dev --no-ansi --no-root
 
 FROM python:3.12.7-alpine3.20
 
