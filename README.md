@@ -44,6 +44,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Scaling ScaledObjects](#scaling-scaledobjects)
     - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
+  - [Verifying Cosign Signature](#verifying-cosign-signature)
   - [Migrate From Codeberg](#migrate-from-codeberg)
     - [Migrate From Codeberg - Cluster Wide Installation](#migrate-from-codeberg---cluster-wide-installation)
     - [Migrate From Codeberg - Limited Access Installation](#migrate-from-codeberg---limited-access-installation)
@@ -726,6 +727,21 @@ The following annotations are supported on the Namespace level:
   namespace until the given timestamp
 - `downscaler/downtime-replicas`: overwrite the default target
   replicas to scale down to (default: zero)
+
+## Verifying Cosign Signature
+
+Public Key:
+
+```text title="cosign.pub"
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgei36FSIhT8a9lOHs1Sem5KvmrT+
+Xi2EcyjLvaJzqu5n0TiygGeO4ZcU30A1PQv6xoI0xBxpyZAw7XeqzrRDOQ==
+-----END PUBLIC KEY-----
+```
+
+```bash
+cosign verify --key cosign.pub --insecure-ignore-tlog ghcr.io/caas-team/py-kube-downscaler:24.12.0
+```
 
 ## Migrate From Codeberg
 
