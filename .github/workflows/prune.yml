@@ -1,0 +1,38 @@
+name: Prune GHCR
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+  packages: write
+  security-events: write
+
+jobs:
+  prune_images:
+    name: Prune old py-kube-downscaler images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: install crane
+        run: |
+          VERSION=$(curl -s "https://api.github.com/repos/google/go-containerregistry/releases/latest" | jq -r '.tag_name')
+          curl -sSL https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_x86_64.tar.gz | tar -zxvf -C /usr/local/bin crane
+
+      - name: get commit checksum
+        run: |
+          CHECKSUM=$(crane digest ghcr.io/caas-team/py-kube-downscaler/${GITHUB_SHA})
+          echo "CHECKSUM=$CHECKSUM" >> $GITHUB_ENV
+
+      - name: Prune Images
+        uses: vlaurin/action-ghcr-prune@v0.6.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          organization: ${{ github.repository_owner }}
+          container: py-kube-downscaler
+          dry-run: true
+          keep-younger-than: 7 # days
+          prune-untagged: true
+          prune-tags-regexes: |
+            ^commit-
+            ${CHECKSUM}

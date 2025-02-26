@@ -13,7 +13,7 @@ jobs:
       - name: Set up K3S
         uses: debianmaster/actions-k3s@master
         with:
-          version: 'v1.26.9-k3s1'
+          version: "v1.26.9-k3s1"
 
       - name: Check Metricsserver Deployment
         run: |
@@ -65,3 +65,8 @@ jobs:
             exit 1
           fi
           echo "Deployment py-kube-downscaler OK"
+
+  prune:
+    needs: end2end
+    uses: ./.github/workflows/prune.yml
+    secrets: inherit
