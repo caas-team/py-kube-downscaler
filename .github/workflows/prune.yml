@@ -2,10 +2,6 @@ name: Prune GHCR
 
 on:
   workflow_call:
-    inputs:
-      image_digest:
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -30,4 +26,4 @@ jobs:
           prune-untagged: true
           prune-tags-regexes: |
             ^commit-
-            ${{ inputs.image_digest }}\.sig
+            ^sha256-${{ github.sha }}\.sig$

@@ -87,6 +87,4 @@ jobs:
   call-e2e:
     needs: build
     uses: ./.github/workflows/end2end.yml
-    with:
-      image_digest: ${{ needs.build.outputs.image_digest }}
     secrets: inherit

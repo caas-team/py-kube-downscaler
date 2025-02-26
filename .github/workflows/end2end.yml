@@ -2,10 +2,6 @@ name: End-to-End Testing
 
 on:
   workflow_call:
-    inputs:
-      image_digest:
-        required: true
-        type: string
 
 jobs:
   end2end:
@@ -73,6 +69,4 @@ jobs:
   prune:
     needs: end2end
     uses: ./.github/workflows/prune.yml
-    with:
-      image_digest: ${{ inputs.image_digest }}
     secrets: inherit
