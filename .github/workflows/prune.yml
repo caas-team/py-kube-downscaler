@@ -15,6 +15,7 @@ permissions:
 jobs:
   prune_images:
     name: Prune old py-kube-downscaler images
+    if: github.ref != 'refs/tags/*'
     runs-on: ubuntu-latest
 
     steps:
