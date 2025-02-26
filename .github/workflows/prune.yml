@@ -2,6 +2,10 @@ name: Prune GHCR
 
 on:
   workflow_call:
+    inputs:
+      image_digest:
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -14,19 +18,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: install crane
-        run: |
-          VERSION=$(curl -s "https://api.github.com/repos/google/go-containerregistry/releases/latest" | jq -r '.tag_name')
-          curl -sSL "https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_x86_64.tar.gz" | sudo tar -zxvf - -C /usr/local/bin
-
-      - name: Authenticate crane with GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | crane auth login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-
-      - name: get commit checksum
-        run: |
-          CHECKSUM=$(crane digest ghcr.io/caas-team/py-kube-downscaler/${GITHUB_SHA})
-          echo "CHECKSUM=$CHECKSUM" >> $GITHUB_ENV
-
       - name: Prune Images
         uses: vlaurin/action-ghcr-prune@v0.6.0
         with:
@@ -38,4 +29,4 @@ jobs:
           prune-untagged: true
           prune-tags-regexes: |
             ^commit-
-            ${CHECKSUM}
+            ${{ inputs.image_digest }}\.sig
