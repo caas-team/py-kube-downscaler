@@ -23,7 +23,6 @@ jobs:
           container: py-kube-downscaler
           dry-run: true
           keep-younger-than: 7 # days
-          prune-untagged: true
+          prune-untagged: false
           prune-tags-regexes: |
-            ^commit-
             ^sha256-${{ github.sha }}\.sig$
