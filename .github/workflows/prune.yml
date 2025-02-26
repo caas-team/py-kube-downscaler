@@ -19,6 +19,9 @@ jobs:
           VERSION=$(curl -s "https://api.github.com/repos/google/go-containerregistry/releases/latest" | jq -r '.tag_name')
           curl -sSL "https://github.com/google/go-containerregistry/releases/download/${VERSION}/go-containerregistry_Linux_x86_64.tar.gz" | sudo tar -zxvf - -C /usr/local/bin
 
+      - name: Authenticate crane with GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | crane auth login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+
       - name: get commit checksum
         run: |
           CHECKSUM=$(crane digest ghcr.io/caas-team/py-kube-downscaler/${GITHUB_SHA})
