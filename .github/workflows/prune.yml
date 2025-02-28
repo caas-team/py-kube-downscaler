@@ -33,19 +33,20 @@ jobs:
           IMAGE_NAME: py-kube-downscaler
         run: |
           REPO="ghcr.io/$GH_OWNER/$IMAGE_NAME"
-          echo "Fetching tags..."
+          echo "Fetching image digests..."
 
-          # Get all remaining tags
-          REMAINING_TAGS=$(gh api -H "Accept: application/vnd.github.v3+json" "/orgs/$GH_OWNER/packages/container/$IMAGE_NAME/versions" | jq -r '.[].metadata.container.tags | join("\n")')
+          # Get all remaining image digests
+          REMAINING_DIGESTS=$(gh api -H "Accept: application/vnd.github.v3+json" "/orgs/$GH_OWNER/packages/container/$IMAGE_NAME/versions" | jq -r '.[].name')
 
-          echo "Fetching Cosign signatures..."
-          SIG_TAGS=$(gh api -H "Accept: application/vnd.github.v3+json" "/orgs/$GH_OWNER/packages/container/$IMAGE_NAME/versions" | jq -r '.[].metadata.container.tags | map(select(test("\\.sig$"))) | join("\n")')
+          echo "Fetching Cosign signature tags..."
+          SIG_TAGS=$(gh api -H "Accept: application/vnd.github.v3+json" "/orgs/$GH_OWNER/packages/container/$IMAGE_NAME/versions" | jq -r '.[].name | select(test("^sha256-[a-f0-9]+\\.sig$"))')
 
           for SIG in $SIG_TAGS; do
-            IMAGE_TAG="${SIG%.sig}"  # Remove ".sig" to get corresponding image tag
+            SIG_DIGEST="${SIG#sha256-}"  # Remove 'sha256-' prefix
+            SIG_DIGEST="${SIG_DIGEST%.sig}"  # Remove '.sig' suffix
 
-            if ! echo "$REMAINING_TAGS" | grep -q "^$IMAGE_TAG$"; then
-              echo "Deleting signature: $SIG"
-              gh api --method DELETE -H "Accept: application/vnd.github.v3+json" "/orgs/$GH_OWNER/packages/container/$IMAGE_NAME/versions/$SIG"
+            if ! echo "$REMAINING_DIGESTS" | grep -q "^$SIG_DIGEST$"; then
+              echo "Deleting orphaned signature: $SIG"
+              # gh api --method DELETE -H "Accept: application/vnd.github.v3+json" "/orgs/$GH_OWNER/packages/container/$IMAGE_NAME/versions/$SIG"
             fi
           done
