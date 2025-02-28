@@ -5,6 +5,8 @@ on:
 
 jobs:
   build:
+    permissions:
+      packages: write
     runs-on: ubuntu-latest
     outputs:
       image_digest: ${{ steps.build-push.outputs.digest }}
@@ -119,7 +121,7 @@ jobs:
       - name: Setup Crane
         uses: imjasonh/setup-crane@v0.1
       - env:
-          auth_token: ${{ secrets.REPO_TOKEN }}
+          auth_token: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "${auth_token}" | crane auth login ghcr.io --username ${{ github.repository_owner }} --password-stdin
 
