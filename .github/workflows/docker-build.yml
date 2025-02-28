@@ -77,6 +77,62 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
+      - name: Get untagged sha256
+        run: |
+          # Get the raw JSON metadata
+          image_metadata=$(docker buildx imagetools inspect ghcr.io/caas-team/py-kube-downscaler:${{ env.TAG2 }} --raw)
+
+          # Initialize variables to store each manifest digest and architecture
+          declare -A digests
+          declare -A architectures
+          attestation_manifests=()
+
+          # Parse the manifests array and process each platform
+          for index in $(echo "$image_metadata" | jq -r '.manifests | keys | .[]'); do
+            platform_architecture=$(echo "$image_metadata" | jq -r ".manifests[$index].platform.architecture")
+            platform_os=$(echo "$image_metadata" | jq -r ".manifests[$index].platform.os")
+            platform_digest=$(echo "$image_metadata" | jq -r ".manifests[$index].digest")
+
+            # If the architecture is not 'unknown', store the digest and architecture as a unique variable
+            if [ "$platform_architecture" != "unknown" ]; then
+              digests["$platform_architecture"]=$platform_digest
+              architectures["$platform_architecture"]=$platform_architecture
+              # Assign each architecture-specific variable for the digest
+              echo "${platform_architecture}_digest=$platform_digest" >> $GITHUB_ENV
+              echo "${platform_architecture}_architecture=$platform_architecture" >> $GITHUB_ENV
+            else
+              # For 'unknown' architecture, compare with reference digest
+              reference_digest=$(echo "$image_metadata" | jq -r ".manifests[$index].annotations.\"vnd.docker.reference.digest\"")
+              # Check if reference_digest matches any known architecture digests and assign a unique variable
+              for arch in "${!digests[@]}"; do
+                if [ "${digests[$arch]}" == "$reference_digest" ]; then
+                  # Create and assign the attestation manifest variable for the matching architecture
+                  attestation_manifest_var="attestation-manifest-$arch"
+                  echo "$attestation_manifest_var=$platform_digest" >> $GITHUB_ENV
+                  echo "Found matching attestation manifest for architecture $arch: $attestation_manifest_var with digest $platform_digest"
+                  break
+                fi
+              done
+            fi
+          done
+
+      - name: Setup Crane
+        uses: imjasonh/setup-crane@v0.1
+      - env:
+          auth_token: ${{ secrets.REPO_TOKEN }}
+        run: |
+          echo "${auth_token}" | crane auth login ghcr.io --username ${{ github.repository_owner }} --password-stdin
+
+      - name: Tag architecture-specific images
+        run: |
+          crane copy ghcr.io/caas-team/py-kube-downscaler@${{ env.amd64_digest }} ghcr.io/caas-team/py-kube-downscaler:${{ env.TAG2 }}-amd64
+
+          crane copy ghcr.io/caas-team/py-kube-downscaler@${{ env.arm64_digest }} ghcr.io/caas-team/py-kube-downscaler:${{ env.TAG2 }}-arm64
+
+          crane copy ghcr.io/caas-team/py-kube-downscaler@${{ env.attestation-manifest-amd64 }} ghcr.io/caas-team/py-kube-downscaler:${{ env.TAG2 }}-attestation-manifest-amd64
+
+          crane copy ghcr.io/caas-team/py-kube-downscaler@${{ env.attestation-manifest-arm64 }} ghcr.io/caas-team/py-kube-downscaler:${{ env.TAG2 }}-attestation-manifest-arm64
+
       - name: Sign Push
         run: |
           cosign sign --key env://COSIGN_KEY --tlog-upload=false ghcr.io/caas-team/py-kube-downscaler@${{ steps.build-push.outputs.digest }}
