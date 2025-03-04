@@ -27,38 +27,9 @@ jobs:
             ^commit-
 
       - name: Delete Cosign Signatures
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_OWNER: ${{ github.repository_owner }}
-          IMAGE_NAME: py-kube-downscaler
-        run: |
-          REPO="ghcr.io/$GH_OWNER/$IMAGE_NAME"
-          echo "Fetching image digests..."
-
-          # Get all remaining image digests
-          REMAINING_DIGESTS=$(gh api -H "Accept: application/vnd.github.v3+json" "/orgs/$GH_OWNER/packages/container/$IMAGE_NAME/versions" | jq -r '.[].name')
-
-          echo "Fetching Cosign signature tags..."
-          SIG_TAGS=$(gh api -H "Accept: application/vnd.github.v3+json" "/orgs/$GH_OWNER/packages/container/$IMAGE_NAME/versions" | jq -r '.[].name | select(test("^sha256-[a-f0-9]+\\.sig$"))')
-
-          PRUNED_SIGS="### Pruned Cosign Signatures\n\n"  # Header for workflow summary
-          SIG_DELETED=false
-
-          for SIG in $SIG_TAGS; do
-            SIG_DIGEST="${SIG#sha256-}"  # Remove 'sha256-' prefix
-            SIG_DIGEST="${SIG_DIGEST%.sig}"  # Remove '.sig' suffix
-
-            if ! echo "$REMAINING_DIGESTS" | grep -q "^$SIG_DIGEST$"; then
-              echo "Deleting orphaned signature: $SIG"
-              # gh api --method DELETE -H "Accept: application/vnd.github.v3+json" "/orgs/$GH_OWNER/packages/container/$IMAGE_NAME/versions/$SIG"
-              PRUNED_SIGS+="- $SIG\n"
-              SIG_DELETED=true
-            fi
-          done
-
-          # Append to GitHub summary only if signatures were deleted
-          if [ "$SIG_DELETED" = true ]; then
-            echo -e "$PRUNED_SIGS" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "No orphaned signatures found." >> $GITHUB_STEP_SUMMARY
-          fi
+        uses: jtaeuber/prune-orphaned-cosign-sig
+        with:
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
+          gh_org: ${{ github.repository_owner }}
+          package_name: py-kube-downscaler
+          dry-run: true
