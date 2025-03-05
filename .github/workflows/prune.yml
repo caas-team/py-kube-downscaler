@@ -1,12 +1,12 @@
 name: Prune GHCR
 
 on:
-  workflow_call:
+  schedule:
+    - cron: "0 0 * * *"
 
 permissions:
   contents: write
   packages: write
-  security-events: write
 
 jobs:
   prune_images:

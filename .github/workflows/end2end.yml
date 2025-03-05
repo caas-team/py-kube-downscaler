@@ -65,8 +65,3 @@ jobs:
             exit 1
           fi
           echo "Deployment py-kube-downscaler OK"
-
-  prune:
-    needs: end2end
-    uses: ./.github/workflows/prune.yml
-    secrets: inherit
