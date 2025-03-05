@@ -22,7 +22,7 @@ jobs:
           container: py-kube-downscaler
           dry-run: true
           keep-younger-than: 7 # days
-          keep-last: 5
+          keep-last: 6
           prune-untagged: true
           prune-tags-regexes: |
             ^commit-
