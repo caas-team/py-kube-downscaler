@@ -20,7 +20,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           organization: ${{ github.repository_owner }}
           container: py-kube-downscaler
-          dry-run: true
           keep-younger-than: 7 # days
           keep-last: 6
           prune-untagged: true
@@ -33,4 +32,3 @@ jobs:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
           gh_org: ${{ github.repository_owner }}
           package_name: py-kube-downscaler
-          dry-run: true
