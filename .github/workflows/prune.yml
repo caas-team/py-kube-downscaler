@@ -1,0 +1,34 @@
+name: Prune GHCR
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  prune_images:
+    name: Prune old py-kube-downscaler images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prune Images
+        uses: vlaurin/action-ghcr-prune@v0.6.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          organization: ${{ github.repository_owner }}
+          container: py-kube-downscaler
+          keep-younger-than: 7 # days
+          keep-last: 6
+          prune-untagged: true
+          prune-tags-regexes: |
+            ^commit-
+
+      - name: Delete Cosign Signatures
+        uses: jtaeuber/prune-orphaned-cosign-sig@v0.1.0
+        with:
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
+          gh_org: ${{ github.repository_owner }}
+          package_name: py-kube-downscaler
