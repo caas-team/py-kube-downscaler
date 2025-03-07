@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/caas-team/py-kube-downscaler
   pullPolicy: IfNotPresent
-  tag: ""  # Dynamically set from CI
+  tag: "" # Dynamically set from CI
 
 arguments:
   - --interval=60

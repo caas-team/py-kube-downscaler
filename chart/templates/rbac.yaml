@@ -3,6 +3,10 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ include "py-kube-downscaler.serviceAccountName" . }}
+{{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
 {{- end }}
 ---
 {{- if .Values.constrainedDownscaler }}
