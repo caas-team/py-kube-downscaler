@@ -58,7 +58,7 @@ repos:
         stages: [pre-push]
 
   - repo: https://github.com/gruntwork-io/pre-commit
-    rev: v0.1.25
+    rev: v0.1.26
     hooks:
       - id: helmlint
 
@@ -69,7 +69,7 @@ repos:
       - id: reorder-python-imports
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
+    rev: v0.9.10
     hooks:
       # Run the linter.
       - id: ruff
@@ -79,14 +79,14 @@ repos:
 
   # linters
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.0
+    rev: 1.8.3
     hooks:
       - id: bandit
         args: ["-x", "tests"]
         stages: [pre-push]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.1
+    rev: v1.15.0
     hooks:
       - id: mypy
         additional_dependencies: [types-pytz, types-requests]
@@ -109,7 +109,7 @@ repos:
       - id: python-check-blanket-noqa
 
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.4.2
+    rev: v3.5.3
     hooks:
       - id: prettier
         files: \.md$
