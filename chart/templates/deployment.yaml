@@ -4,6 +4,7 @@ metadata:
   labels:
     {{- include "py-kube-downscaler.labels" . | nindent 4 }}
   name: {{ include "py-kube-downscaler.fullname" . }}
+  namespace: {{ .Release.Namespace }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
