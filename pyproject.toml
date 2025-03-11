@@ -1,7 +1,7 @@
 [tool]
 [tool.poetry]
 name = "kube-downscaler"
-version = "25.2.0"
+version = "25.3.0"
 description = "Scale down Kubernetes deployments after work hours"
 authors = ["Jonathan Mayer <jonathan.mayer@telekom.de>", "Jan Taeuber <jan.taeuber@telekom.de>", "Samuel Esposito <samuel-esp@hotmail.it>", "Johannes Thiem <johannesthiem6@gmail.com>"]
 
