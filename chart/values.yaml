@@ -74,4 +74,4 @@ excludedNamespaces:
 extraConfig: ""
 
 # Force pod restart when the configuration changes
-forceRestartOnConfigChange: false
+forceRestartOnConfigChange: true
