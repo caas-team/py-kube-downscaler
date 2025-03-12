@@ -1,7 +1,6 @@
 name: Prune GHCR
 
 on:
-  push:
   schedule:
     - cron: "0 0 * * *"
 
@@ -33,4 +32,3 @@ jobs:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
           gh_org: ${{ github.repository_owner }}
           package_name: py-kube-downscaler
-          dry-run: true
