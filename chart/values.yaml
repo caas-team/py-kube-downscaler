@@ -72,3 +72,6 @@ excludedNamespaces:
 # extraConfig: |
 #   DOWNSCALE_PERIOD: "Mon-Sun 19:00-20:00 Europe/Berlin"
 extraConfig: ""
+
+# Force pod restart when the configuration changes
+forceRestartOnConfigChange: true
