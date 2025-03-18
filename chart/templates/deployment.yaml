@@ -14,10 +14,15 @@ spec:
     metadata:
       labels:
         {{- include "py-kube-downscaler.selectorLabels" . | nindent 8 }}
-    {{- with .Values.podAnnotations }}
+      {{- if or .Values.podAnnotations .Values.forceRestartOnConfigChange }}
       annotations:
+        {{- if .Values.forceRestartOnConfigChange }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-    {{- end }}
+        {{- end }}
+      {{- end }}
     spec:
       serviceAccountName: {{ include "py-kube-downscaler.serviceAccountName" . }}
       containers:
@@ -36,9 +41,7 @@ spec:
           {{- toYaml .Values.resources | nindent 10 }}
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
-      {{- with .Values.image.pullPolicy }}
-      imagePullPolicy: {{ toYaml . }}
-      {{- end }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
