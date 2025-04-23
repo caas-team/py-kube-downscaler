@@ -37,6 +37,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Scaling Jobs Natively](#scaling-jobs-natively)
     - [Scaling Jobs With Admission Controller](#scaling-jobs-with-admission-controller)
     - [Scaling DaemonSets](#scaling-daemonsets)
+    - [Scaling PodDisruptionBudgets](#scaling-poddisruptionbudgets)
     - [Scaling ScaledObjects](#scaling-scaledobjects)
     - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
@@ -618,8 +619,7 @@ The feature to scale PodDisruptionBudgets can be useful to relax availability co
 1. Downtime Hours: Kube Downscaler will bring `minAvailable` and `maxUnavailable` to 0
 2. Uptime Hours: Kube Downscaler will bring back `minAvailable` and `maxUnavailable` to their original value
 
-**Important**: Kube Downscaler, actually, cannot process values written in percentages. Resources with `minAvailable` or `maxUnavailable` written as percentages
-will be automatically excluded from scaling
+**Important**: Kube Downscaler, actually, cannot process values written in percentages. Resources with `minAvailable` or `maxUnavailable` written as percentages will be automatically excluded from scaling
 
 ### Scaling ScaledObjects
 
