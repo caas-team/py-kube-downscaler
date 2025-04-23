@@ -611,6 +611,16 @@ The feature to scale DaemonSets can be very useful for reducing the base occupan
 1. Downtime Hours: Kube Downscaler will add to each targeted DaemonSet a Node Selector that cannot be satisfied `kube-downscaler-non-existent=true`
 2. Uptime Hours: Kube Downscaler will remove the `kube-downscaler-non-existent=true` Node Selector from each targeted DaemonSet
 
+### Scaling PodDisruptionBudgets
+
+The feature to scale PodDisruptionBudgets can be useful to relax availability constraints on workloads. If enabled, the PodDisruptionBudget algorithm works like this:
+
+1. Downtime Hours: Kube Downscaler will bring `minAvailable` and `maxUnavailable` to 0
+2. Uptime Hours: Kube Downscaler will bring back `minAvailable` and `maxUnavailable` to their original value
+
+**Important**: Kube Downscaler, actually, cannot process values written in percentages. Resources with `minAvailable` or `maxUnavailable` written as percentages
+will be automatically excluded from scaling
+
 ### Scaling ScaledObjects
 
 The ability to downscale ScaledObjects is very useful for workloads that use Keda to support
