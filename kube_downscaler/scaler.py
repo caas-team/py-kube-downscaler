@@ -413,11 +413,21 @@ def get_replicas(
     elif resource.kind == "PodDisruptionBudget":
         if "minAvailable" in resource.obj["spec"]:
             replicas = resource.obj["spec"]["minAvailable"]
+            if "%" in str(replicas):
+                replicas = 0
+                logger.warning(
+                    f"{resource.kind} {resource.namespace}/{resource.name} has minAvailable field specified in percentage and therefore cannot be scaled"
+                )
             logger.debug(
                 f"{resource.kind} {resource.namespace}/{resource.name} has {replicas} minAvailable (original: {original_replicas}, uptime: {uptime})"
             )
         elif "maxUnavailable" in resource.obj["spec"]:
             replicas = resource.obj["spec"]["maxUnavailable"]
+            if "%" in str(replicas):
+                replicas = 0
+                logger.warning(
+                    f"{resource.kind} {resource.namespace}/{resource.name} has maxUnavailable field specified in percentage and therefore cannot be scaled"
+                )
             logger.debug(
                 f"{resource.kind} {resource.namespace}/{resource.name} has {replicas} maxUnavailable (original: {original_replicas}, uptime: {uptime})"
             )
