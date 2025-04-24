@@ -2567,6 +2567,7 @@ def test_scale_down_jobs_kyverno_policy_none(objects_mock):
 
     assert operation == "scale_down"
 
+
 def test_scaler_pdb_suspend_percentage(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -2626,6 +2627,7 @@ def test_scaler_pdb_suspend_percentage(monkeypatch):
     )
 
     assert api.patch.call_count == 0
+
 
 def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
     api = MagicMock()
