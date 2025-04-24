@@ -474,12 +474,12 @@ files = [
 
 [[package]]
 name = "new-pykube"
-version = "25.2.0"
+version = "25.4.0"
 description = "Python client library for Kubernetes"
 optional = false
 python-versions = "<4,>=3.9"
 files = [
-    {file = "new_pykube-25.2.0-py3-none-any.whl", hash = "sha256:912a58b3ba1964f4aab399d334024b7e26006a7f10ccbf123b22efc05aca3c5e"},
+    {file = "new_pykube-25.4.0-py3-none-any.whl", hash = "sha256:9bd8330780a2c9f412e06db933618c2cc7ca77f4b9110d50fe1acfc82dd5b8d0"},
 ]
 
 [package.dependencies]
