@@ -97,4 +97,6 @@ jobs:
   call-e2e:
     needs: build
     uses: ./.github/workflows/end2end.yml
+    permissions:
+      contents: read
     secrets: inherit

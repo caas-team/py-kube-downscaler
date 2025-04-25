@@ -8,6 +8,9 @@ on:
 jobs:
   helm:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
