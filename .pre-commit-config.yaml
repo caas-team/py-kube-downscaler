@@ -58,7 +58,7 @@ repos:
         stages: [pre-push]
 
   - repo: https://github.com/gruntwork-io/pre-commit
-    rev: v0.1.28
+    rev: v0.1.29
     hooks:
       - id: helmlint
 
@@ -69,7 +69,7 @@ repos:
       - id: reorder-python-imports
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.6
+    rev: v0.11.7
     hooks:
       # Run the linter.
       - id: ruff
