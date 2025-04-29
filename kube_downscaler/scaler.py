@@ -28,6 +28,7 @@ from pykube.objects import PodDisruptionBudget
 
 from kube_downscaler import helper
 from kube_downscaler.helper import matches_time_spec
+from kube_downscaler.resources.arc import AutoscalingRunnerSet
 from kube_downscaler.resources.constraint import KubeDownscalerJobsConstraint
 from kube_downscaler.resources.constrainttemplate import ConstraintTemplate
 from kube_downscaler.resources.keda import ScaledObject
@@ -63,6 +64,7 @@ RESOURCE_CLASSES = [
     DaemonSet,
     PodDisruptionBudget,
     Job,
+    AutoscalingRunnerSet,
 ]
 
 TIMESTAMP_FORMATS = [
@@ -710,6 +712,11 @@ def scale_up(
         logger.info(
             f"Unpausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
+    elif resource.kind == "AutoscalingRunnerSet":
+        resource.obj["spec"]["minRunners"] = original_replicas
+        logger.info(
+            f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} replicas (uptime: {uptime}, downtime: {downtime})"
+        )
     else:
         resource.replicas = original_replicas
         logger.info(
@@ -787,6 +794,11 @@ def scale_down(
             f"Pausing {resource.kind} {resource.namespace}/{resource.name} (uptime: {uptime}, downtime: {downtime})"
         )
         event_message = "Pausing KEDA ScaledObject"
+    elif resource.kind == "AutoscalingRunnerSet":
+        resource.obj["spec"]["minRunners"] = target_replicas
+        logger.info(
+            f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} replicas (uptime: {uptime}, downtime: {downtime})"
+        )
     else:
         resource.replicas = target_replicas
         logger.info(
