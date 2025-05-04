@@ -13,6 +13,7 @@ VALID_RESOURCES = frozenset(
         "jobs",
         "daemonsets",
         "poddisruptionbudgets",
+        "autoscalingrunnersets",
     ]
 )
 
