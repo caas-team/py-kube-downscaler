@@ -39,6 +39,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Scaling DaemonSets](#scaling-daemonsets)
     - [Scaling PodDisruptionBudgets](#scaling-poddisruptionbudgets)
     - [Scaling ScaledObjects](#scaling-scaledobjects)
+    - [Scaling AutoscalingRunnerSet](#scaling-autoscalingrunnerset)
     - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
   - [Migrate From Codeberg](#migrate-from-codeberg)
