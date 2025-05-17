@@ -401,7 +401,7 @@ def ignore_resource(resource: NamespacedAPIObject, now: datetime.datetime) -> bo
 
 def get_replicas(
     resource: NamespacedAPIObject, original_replicas: Optional[int], uptime: str
-) -> int:
+):
     if resource.kind in ["CronJob", "Job"]:
         suspended = resource.obj["spec"]["suspend"]
         replicas = 0 if suspended else 1
@@ -414,20 +414,14 @@ def get_replicas(
         if "minAvailable" in resource.obj["spec"]:
             replicas = resource.obj["spec"]["minAvailable"]
             if "%" in str(replicas):
-                replicas = 0
-                logger.warning(
-                    f"{resource.kind} {resource.namespace}/{resource.name} has minAvailable field specified in percentage and therefore cannot be scaled"
-                )
+                replicas = float(str(replicas).replace("%", "")) / 100
             logger.debug(
                 f"{resource.kind} {resource.namespace}/{resource.name} has {replicas} minAvailable (original: {original_replicas}, uptime: {uptime})"
             )
         elif "maxUnavailable" in resource.obj["spec"]:
             replicas = resource.obj["spec"]["maxUnavailable"]
             if "%" in str(replicas):
-                replicas = 0
-                logger.warning(
-                    f"{resource.kind} {resource.namespace}/{resource.name} has maxUnavailable field specified in percentage and therefore cannot be scaled"
-                )
+                replicas = float(str(replicas).replace("%", "")) / 100
             logger.debug(
                 f"{resource.kind} {resource.namespace}/{resource.name} has {replicas} maxUnavailable (original: {original_replicas}, uptime: {uptime})"
             )
@@ -648,7 +642,7 @@ def scale_down_jobs(
 def scale_up(
     resource: NamespacedAPIObject,
     replicas: int,
-    original_replicas: int,
+    original_replicas,
     uptime,
     downtime,
     dry_run: bool,
@@ -670,13 +664,20 @@ def scale_up(
         )
         event_message = f"Unsuspending {resource.kind}"
     elif resource.kind == "PodDisruptionBudget":
+        original_replicas, original_replicas_type = get_value_as_int_or_float(original_replicas)
         if "minAvailable" in resource.obj["spec"]:
-            resource.obj["spec"]["minAvailable"] = original_replicas
+            if original_replicas_type is float:
+                resource.obj["spec"]["minAvailable"] = f"{original_replicas * 100:.0f}%"
+            else:
+                resource.obj["spec"]["minAvailable"] = original_replicas
             logger.info(
                 f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minAvailable (uptime: {uptime}, downtime: {downtime})"
             )
         elif "maxUnavailable" in resource.obj["spec"]:
-            resource.obj["spec"]["maxUnavailable"] = original_replicas
+            if original_replicas_type is float:
+                resource.obj["spec"]["maxUnavailable"] = f"{original_replicas * 100:.0f}%"
+            else:
+                resource.obj["spec"]["maxUnavailable"] = original_replicas
             logger.info(
                 f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
             )
@@ -728,7 +729,7 @@ def scale_up(
 
 def scale_down(
     resource: NamespacedAPIObject,
-    replicas: int,
+    replicas,
     target_replicas: int,
     uptime,
     downtime,
@@ -753,16 +754,27 @@ def scale_down(
         )
         event_message = f"Suspending {resource.kind}"
     elif resource.kind == "PodDisruptionBudget":
+        _, type = get_value_as_int_or_float(replicas)
         if "minAvailable" in resource.obj["spec"]:
             resource.obj["spec"]["minAvailable"] = target_replicas
-            logger.info(
-                f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} minAvailable (uptime: {uptime}, downtime: {downtime})"
-            )
+            if type is float:
+                logger.info(
+                    f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas}% minAvailable (uptime: {uptime}, downtime: {downtime})"
+                )
+            else:
+                logger.info(
+                    f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} minAvailable (uptime: {uptime}, downtime: {downtime})"
+                )
         elif "maxUnavailable" in resource.obj["spec"]:
             resource.obj["spec"]["maxUnavailable"] = target_replicas
-            logger.info(
-                f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
-            )
+            if type is float:
+                logger.info(
+                    f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas}% maxUnavailable (uptime: {uptime}, downtime: {downtime})"
+                )
+            else:
+                logger.info(
+                    f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
+                )
     elif resource.kind == "HorizontalPodAutoscaler":
         resource.obj["spec"]["minReplicas"] = target_replicas
         logger.info(
@@ -816,6 +828,36 @@ def get_annotation_value_as_int(
             f"Could not read annotation '{annotation_name}' as integer: {e}"
         )
 
+def get_annotation_value_as_int_or_float(
+    resource: NamespacedAPIObject, annotation_name: str
+):
+    value = resource.annotations.get(annotation_name)
+    if value is None:
+        return None
+    try:
+        str_value = value if isinstance(value, str) else str(value)
+        if '.' not in str_value and 'e' not in str_value.lower():
+            return int(value)
+        return float(value)
+    except ValueError as e:
+        raise ValueError(
+            f"Could not read annotation '{annotation_name}' as integer or float: {e}"
+        )
+
+def get_value_as_int_or_float(
+    value
+):
+    if value is None:
+        return None
+    try:
+        str_value = value if isinstance(value, str) else str(value)
+        if '.' not in str_value and 'e' not in str_value.lower():
+            return int(value), int
+        return float(value), float
+    except ValueError as e:
+        raise ValueError(
+            f"Could not read value '{value}' as integer or float: {e}"
+        )
 
 def autoscale_jobs_for_namespace(
     api,
@@ -980,7 +1022,7 @@ def autoscale_resource(
             or ignore_if_labels_dont_match(resource, matching_labels)
             or ignore_resource(resource, now)
         )
-        original_replicas = get_annotation_value_as_int(
+        original_replicas = get_annotation_value_as_int_or_float(
             resource, ORIGINAL_REPLICAS_ANNOTATION
         )
         downtime_replicas_from_annotation = get_annotation_value_as_int(
