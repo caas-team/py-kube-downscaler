@@ -616,10 +616,12 @@ The feature to scale DaemonSets can be very useful for reducing the base occupan
 
 The feature to scale PodDisruptionBudgets can be useful to relax availability constraints on workloads. If enabled, the PodDisruptionBudget algorithm works like this:
 
-1. Downtime Hours: Kube Downscaler will bring `minAvailable` and `maxUnavailable` to 0
+1. Downtime Hours: Kube Downscaler will bring `minAvailable` and `maxUnavailable` to downtime replicas value
 2. Uptime Hours: Kube Downscaler will bring back `minAvailable` and `maxUnavailable` to their original value
 
-**Important**: Kube Downscaler, actually, cannot process values written in percentages. Resources with `minAvailable` or `maxUnavailable` written as percentages will be automatically excluded from scaling
+**Important**: Kube Downscaler can process PodDisruptionBudgets with `minAvailable` or `maxUnavailable` specified as a percentage only if
+either the global argument `--downtime-replicas` or the namespace/workload annotation `downscaler/downtime-replicas` is set to a value greater than 0.
+Otherwise the resource will be ignored
 
 ### Scaling ScaledObjects
 
