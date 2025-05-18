@@ -668,19 +668,25 @@ def scale_up(
         if "minAvailable" in resource.obj["spec"]:
             if original_replicas_type is float:
                 resource.obj["spec"]["minAvailable"] = f"{original_replicas * 100:.0f}%"
+                logger.info(
+                    f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas}% to {original_replicas * 100:.0f}% minAvailable (uptime: {uptime}, downtime: {downtime})"
+                )
             else:
                 resource.obj["spec"]["minAvailable"] = original_replicas
-            logger.info(
-                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minAvailable (uptime: {uptime}, downtime: {downtime})"
-            )
+                logger.info(
+                    f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minAvailable (uptime: {uptime}, downtime: {downtime})"
+                )
         elif "maxUnavailable" in resource.obj["spec"]:
             if original_replicas_type is float:
                 resource.obj["spec"]["maxUnavailable"] = f"{original_replicas * 100:.0f}%"
+                logger.info(
+                    f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas}% to {original_replicas * 100:.0f}% maxUnavailable (uptime: {uptime}, downtime: {downtime})"
+                )
             else:
                 resource.obj["spec"]["maxUnavailable"] = original_replicas
-            logger.info(
-                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
-            )
+                logger.info(
+                    f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
+                )
     elif resource.kind == "HorizontalPodAutoscaler":
         resource.obj["spec"]["minReplicas"] = original_replicas
         logger.info(
@@ -759,7 +765,7 @@ def scale_down(
             resource.obj["spec"]["minAvailable"] = target_replicas
             if type is float:
                 logger.info(
-                    f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas}% minAvailable (uptime: {uptime}, downtime: {downtime})"
+                    f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas * 100:.0f}% to {target_replicas}% minAvailable (uptime: {uptime}, downtime: {downtime})"
                 )
             else:
                 logger.info(
@@ -769,7 +775,7 @@ def scale_down(
             resource.obj["spec"]["maxUnavailable"] = target_replicas
             if type is float:
                 logger.info(
-                    f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas}% maxUnavailable (uptime: {uptime}, downtime: {downtime})"
+                    f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas * 100:.0f}% to {target_replicas}% maxUnavailable (uptime: {uptime}, downtime: {downtime})"
                 )
             else:
                 logger.info(
