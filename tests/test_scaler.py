@@ -2694,7 +2694,7 @@ def test_scaler_pdb_suspend_max_unavailable_percentage(monkeypatch):
             "name": "pdb-1",
             "namespace": "default",
             "creationTimestamp": "2024-02-03T16:38:00Z",
-            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "0.1"},
+            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "10%"},
         },
         "spec": {"maxUnavailable": 0},
     }
@@ -2720,7 +2720,7 @@ def test_scaler_pdb_unsuspend_max_unavailable_percentage(monkeypatch):
                             "name": "pdb-1",
                             "namespace": "default",
                             "creationTimestamp": "2024-02-03T16:38:00Z",
-                            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "0.1"},
+                            "annotations": {ORIGINAL_REPLICAS_ANNOTATION: "1%"},
                         },
                         "spec": {"maxUnavailable": 0},
                     },
@@ -2776,7 +2776,7 @@ def test_scaler_pdb_unsuspend_max_unavailable_percentage(monkeypatch):
             "creationTimestamp": "2024-02-03T16:38:00Z",
             "annotations": {ORIGINAL_REPLICAS_ANNOTATION: None},
         },
-        "spec": {"maxUnavailable": "10%"},
+        "spec": {"maxUnavailable": "1%"},
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
 

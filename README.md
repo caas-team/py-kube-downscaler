@@ -619,9 +619,11 @@ The feature to scale PodDisruptionBudgets can be useful to relax availability co
 1. Downtime Hours: Kube Downscaler will bring `minAvailable` and `maxUnavailable` to downtime replicas value
 2. Uptime Hours: Kube Downscaler will bring back `minAvailable` and `maxUnavailable` to their original value
 
-**Important**: Kube Downscaler can process PodDisruptionBudgets with `minAvailable` or `maxUnavailable` specified as a percentage only if
-either the global argument `--downtime-replicas` or the namespace/workload annotation `downscaler/downtime-replicas` is set to a value greater than 0.
-Otherwise the resource will be ignored
+**Important**: Kube Downscaler can process PodDisruptionBudgets with `minAvailable` or `maxUnavailable`. In this case, during downtime hours, the following behavior applies:
+  1. The `downscaler/original-replicas` annotation will store the original percentage value (e.g., "75%") as a string. 
+  2. The `minAvailable`/`maxUnavailable` field of the object will be updated to the target downtime replicas value (e.g., 0) as an integer.
+
+The original percentage value in the `minAvailable`/`maxUnavailable` field will be restored once the downtime hours end
 
 ### Scaling ScaledObjects
 
