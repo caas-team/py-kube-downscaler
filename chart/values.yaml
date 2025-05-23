@@ -27,6 +27,13 @@ serviceAccount:
 
 podAnnotations: {}
 
+# Optional pod labels
+podLabels: {}
+
+# Optional additional environment variables injected into the container
+# This is especially useful for observability tools
+extraEnv: []
+
 podSecurityContext:
   runAsGroup: 1000
   runAsNonRoot: true
@@ -75,10 +82,3 @@ extraConfig: ""
 
 # Force pod restart when the configuration changes
 forceRestartOnConfigChange: true
-
-# Optional pod labels
-podLabels: {}
-
-# Optional additional environment variables injected into the container
-# This is especially useful for observability tools
-extraEnv: []
