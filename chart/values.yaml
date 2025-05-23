@@ -75,3 +75,10 @@ extraConfig: ""
 
 # Force pod restart when the configuration changes
 forceRestartOnConfigChange: true
+
+# Optional pod labels
+podLabels: {}
+
+# Optional additional environment variables injected into the container
+# This is especially useful for observability tools
+extraEnv: []
