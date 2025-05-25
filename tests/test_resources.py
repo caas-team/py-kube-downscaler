@@ -6,7 +6,7 @@ from pykube import StatefulSet
 from pykube.objects import APIObject
 from pykube.objects import NamespacedAPIObject
 
-from kube_downscaler.resources.arc import AutoscalingRunnerSet
+from kube_downscaler.resources.autoscalingrunnerset import AutoscalingRunnerSet
 from kube_downscaler.resources.constraint import KubeDownscalerJobsConstraint
 from kube_downscaler.resources.constrainttemplate import ConstraintTemplate
 from kube_downscaler.resources.keda import ScaledObject
