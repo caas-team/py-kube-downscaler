@@ -6,6 +6,7 @@ from pykube import StatefulSet
 from pykube.objects import APIObject
 from pykube.objects import NamespacedAPIObject
 
+from kube_downscaler.resources.autoscalingrunnerset import AutoscalingRunnerSet
 from kube_downscaler.resources.constraint import KubeDownscalerJobsConstraint
 from kube_downscaler.resources.constrainttemplate import ConstraintTemplate
 from kube_downscaler.resources.keda import ScaledObject
@@ -81,3 +82,14 @@ def test_kubedownscalerjobspolicy():
     d = KubeDownscalerJobsPolicy.create_job_policy("policy")
     assert d["metadata"]["name"] == "kube-downscaler-jobs-policy"
     assert d["metadata"]["namespace"] == "policy"
+
+
+def test_autoscalingrunnersets():
+    api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
+    scalable_mock = {"spec": {"minRunners": 3}}
+    api_mock.obj = MagicMock(name="APIObjMock")
+    d = AutoscalingRunnerSet(api_mock, scalable_mock)
+    r = d.replicas
+    assert r == 3
+    d.replicas = 10
+    assert scalable_mock["spec"]["minRunners"] == 10

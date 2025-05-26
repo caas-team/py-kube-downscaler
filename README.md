@@ -39,6 +39,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Scaling DaemonSets](#scaling-daemonsets)
     - [Scaling PodDisruptionBudgets](#scaling-poddisruptionbudgets)
     - [Scaling ScaledObjects](#scaling-scaledobjects)
+    - [Scaling AutoscalingRunnerSet](#scaling-autoscalingrunnerset)
     - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
   - [Migrate From Codeberg](#migrate-from-codeberg)
@@ -645,6 +646,14 @@ with the target value specified for downtime and, during uptime, will restore th
 
 **Technical Detail**: During downscaling, KubeDownscaler will set the annotation `"downscaler/original-replicas"` to -1, this value acts as a placeholder to indicate
 that the ScaledObject was active during uptime.
+
+### Scaling AutoscalingRunnerSet
+
+The feature to scale AutoscalingRunnerSet can be useful for reducing warm pool of self-hosted GitHub Action Runners deployed by GitHub's [Actions Runner Controller (ARC)](https://github.com/actions/actions-runner-controller).
+If enabled, the AutoscalingRunnerSet downscaling algorithm works like this:
+
+1. Downtime Hours: Kube Downscaler will bring `minRunners` to 0
+2. Uptime Hours: Kube Downscaler will bring back `minRunners` field to its original value
 
 ### Matching Labels Argument
 
