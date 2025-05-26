@@ -42,7 +42,7 @@ spec:
             optional: true
         env:
         {{- with .Values.extraEnv }}
-        {{- toYaml . | nindent 10 }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
