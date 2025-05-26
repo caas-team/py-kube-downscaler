@@ -623,6 +623,8 @@ The feature to scale PodDisruptionBudgets can be useful to relax availability co
   1. The `downscaler/original-replicas` annotation will store the original percentage value (e.g., "75%") as a string. 
   2. The `minAvailable`/`maxUnavailable` field of the object will be updated to the target downtime replicas value (e.g., 0) as an integer.
 
+Only for PodDisruptionBudgets `downscaler/donwtime-replicas` supports a percentage value
+
 The original percentage value in the `minAvailable`/`maxUnavailable` field will be restored once the downtime hours end
 
 ### Scaling ScaledObjects
