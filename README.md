@@ -630,7 +630,7 @@ The original percentage value in the `minAvailable`/`maxUnavailable` field will 
 annotation `downscaler/donwtime-replicas` (e.g. `--donwtime-replicas="20%"` or `downscaler/donwtime-replicas: "10%"`)
   - If `--include-resources` scales PodDisruptionBudgets and other resources, using a percentage value inside the global argument value `--downtime-replicas` or as a namespace
 annotation `downscaler/donwtime-replicas` will result in all other resources under its scope being ignored (e.g. if you set `--downtime-replicas="10%"` all resources inside the cluster other than PodDisruptionBudgets will be ignored,
-if you set `downscaler/donwtime-replicas: "10%"` at namespace level, all resources other tan PodDisruptionBudgets in that namespace will be ignored)
+if you set `downscaler/donwtime-replicas: "10%"` at namespace level, all resources other than PodDisruptionBudgets in that namespace will be ignored)
 ### Scaling ScaledObjects
 
 The ability to downscale ScaledObjects is very useful for workloads that use Keda to support
