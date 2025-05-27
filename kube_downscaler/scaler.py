@@ -655,6 +655,15 @@ def scale_up(
     enable_events: bool,
 ):
     event_message = "Scaling up replicas"
+    if is_original_replicas_percentage and resource.kind != "PodDisruptionBudget":
+        logger.warn(
+            f"Skipping scale up for {resource.kind} {resource.namespace}/{resource.name}: "
+            f"percentage values for 'downscaler/original-replicas' are supported only on PodDisruptionBudget objects, "
+            f"the user is not supposed to manually add or modify this annotation on resources, please restore it to the original state"
+            f"(uptime: {uptime}, downtime: {downtime})"
+        )
+        return
+
     if resource.kind == "DaemonSet":
         resource.obj["spec"]["template"]["spec"]["nodeSelector"][
             "kube-downscaler-non-existent"
@@ -742,6 +751,16 @@ def scale_down(
     enable_events: bool,
 ):
     event_message = "Scaling down replicas"
+    if replicas_is_percentage and resource.kind != "PodDisruptionBudget":
+        logger.warn(
+            f"Skipping scale down for {resource.kind} {resource.namespace}/{resource.name}: "
+            f"percentage 'donwtime replicas' are supported when scaling only PodDisruptionBudget objects, "
+            f"or when set on PodDisruptionBudget 'downscaler/downtime-replicas' resource annotation. "
+            f"Use integer values in namespace 'downscaler/downtime-replicas' annotations and the --downscale-replicas argument to support scaling PDBs and other resources together. "
+            f"(uptime: {uptime}, downtime: {downtime})"
+        )
+        return
+
     if resource.kind == "DaemonSet":
         if "nodeSelector" not in resource.obj["spec"]["template"]["spec"]:
             resource.obj["spec"]["template"]["spec"]["nodeSelector"] = {}
@@ -760,16 +779,16 @@ def scale_down(
         event_message = f"Suspending {resource.kind}"
     elif resource.kind == "PodDisruptionBudget":
         if "minAvailable" in resource.obj["spec"]:
-            resource.obj["spec"]["minAvailable"] = target_replicas
             starting_replicas = f"{replicas}%" if replicas_is_percentage else str(replicas)
-            target = f"{target_replicas}%" if target_replicas_is_percentage else str(target_replicas)
+            target = f"{target_replicas}%" if target_replicas_is_percentage else target_replicas
+            resource.obj["spec"]["minAvailable"] = target
             logger.info(
                 f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {starting_replicas} to {target} minAvailable (uptime: {uptime}, downtime: {downtime})"
             )
         elif "maxUnavailable" in resource.obj["spec"]:
-            resource.obj["spec"]["maxUnavailable"] = target_replicas
             starting_replicas = f"{replicas}%" if replicas_is_percentage else str(replicas)
-            target = f"{target_replicas}%" if target_replicas_is_percentage else str(target_replicas)
+            target = f"{target_replicas}%" if target_replicas_is_percentage else target_replicas
+            resource.obj["spec"]["maxUnavailable"] = target
             logger.info(
                 f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {starting_replicas} to {target} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
             )
@@ -824,13 +843,8 @@ def get_annotation_value_as_int(
     try:
         str_value = str(value)
         if "%" in str_value:
-            if resource.kind == "PodDisruptionBudget":
-                numeric_part = str_value.strip().rstrip("%").strip()
-                return int(numeric_part), True
-            else:
-                raise ValueError(
-                    f"annotation contains '%', which is only allowed for PodDisruptionBudget resources."
-                )
+            numeric_part = str_value.strip().rstrip("%").strip()
+            return int(numeric_part), True
         return int(str_value), False
     except Exception as e:
         raise ValueError(
@@ -1004,14 +1018,14 @@ def autoscale_resource(
             resource, ORIGINAL_REPLICAS_ANNOTATION
         )
         try:
-            downtime_replicas_from_annotation, is_downtime_replicas_percentage = get_annotation_value_as_int(
+            downtime_replicas_from_annotation, is_downtime_replicas_from_annotation_percentage = get_annotation_value_as_int(
                 resource, DOWNTIME_REPLICAS_ANNOTATION
             )
         except ValueError as e:
             logger.warning(
-                f"Invalid annotation value for '{DOWNTIME_REPLICAS_ANNOTATION}' in resource '{resource.metadata.name}': {e}. Using default downtime replicas value"
+                f"Invalid annotation value for {resource.kind} {resource.namespace}/{resource.name}: {e}. Using default downtime replicas value"
             )
-            default_downtime_replicas_for_namespace = None
+            downtime_replicas_from_annotation = None
 
         if downtime_replicas_from_annotation is not None:
             downtime_replicas = downtime_replicas_from_annotation
@@ -1105,7 +1119,7 @@ def autoscale_resource(
                         replicas,
                         replicas_is_percentage,
                         downtime_replicas,
-                        is_downtime_replicas_percentage,
+                        is_downtime_replicas_from_annotation_percentage,
                         uptime,
                         downtime,
                         dry_run=dry_run,
@@ -1247,12 +1261,12 @@ def autoscale_resources(
             DOWNTIME_ANNOTATION, default_downtime
         )
         try:
-            default_downtime_replicas_for_namespace, _ = get_annotation_value_as_int(
+            default_downtime_replicas_for_namespace, is_default_downtime_replicas_for_namespace_percentage = get_annotation_value_as_int(
                 namespace_obj, DOWNTIME_REPLICAS_ANNOTATION
             )
         except ValueError as e:
             logger.warning(
-                f"Invalid annotation value for '{DOWNTIME_REPLICAS_ANNOTATION}' in namespace '{namespace_obj.metadata.name}': {e}. Using default downtime replicas value"
+                f"Invalid annotation value for {resource.kind} {resource.name}: {e}. Using default downtime replicas value"
             )
             default_downtime_replicas_for_namespace = None
 
