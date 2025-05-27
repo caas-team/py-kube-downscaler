@@ -11,6 +11,22 @@ from kube_downscaler.scaler import scale
 logger = logging.getLogger("downscaler")
 
 
+def parse_downtime_replicas(downtime_replicas):
+    s = str(downtime_replicas).strip()
+
+    match = re.fullmatch(r'(\d{1,3})%', s)
+    if match:
+        value = int(match.group(1))
+        if 0 <= value <= 100:
+            return value, True
+        else:
+            raise ValueError("Percentage must be between 0 and 100.")
+
+    if s.isdigit():
+        return int(s), False
+
+    raise ValueError("Invalid format: must be an integer like '10' or a percentage like '10%'.")
+
 def main(args=None):
     parser = cmd.get_parser()
     args = parser.parse_args(args)
@@ -87,6 +103,8 @@ def run_loop(
     else:
         constrained_downscaler = False
 
+    downtime_replicas, is_downtime_replicas_percentage = parse_downtime_replicas(downtime_replicas)
+
     while True:
         try:
             scale(
@@ -108,6 +126,7 @@ def run_loop(
                 api_server_timeout=api_server_timeout,
                 max_retries_on_conflict=max_retries_on_conflict,
                 downtime_replicas=downtime_replicas,
+                is_downtime_replicas_percentage=is_downtime_replicas_percentage,
                 deployment_time_annotation=deployment_time_annotation,
                 enable_events=enable_events,
                 matching_labels=frozenset(

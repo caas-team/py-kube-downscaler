@@ -751,7 +751,7 @@ def scale_down(
     enable_events: bool,
 ):
     event_message = "Scaling down replicas"
-    if replicas_is_percentage and resource.kind != "PodDisruptionBudget":
+    if target_replicas_is_percentage and resource.kind != "PodDisruptionBudget":
         logger.warn(
             f"Skipping scale down for {resource.kind} {resource.namespace}/{resource.name}: "
             f"percentage 'donwtime replicas' are supported when scaling only PodDisruptionBudget objects, "
@@ -837,19 +837,24 @@ def scale_down(
 def get_annotation_value_as_int(
     resource: NamespacedAPIObject, annotation_name: str
 ):
-    value = resource.annotations.get(annotation_name)
-    if value is None:
+    raw_value = resource.annotations.get(annotation_name)
+    if raw_value is None:
         return None, False
-    try:
-        str_value = str(value)
-        if "%" in str_value:
-            numeric_part = str_value.strip().rstrip("%").strip()
-            return int(numeric_part), True
-        return int(str_value), False
-    except Exception as e:
-        raise ValueError(
-            f"Could not read annotation '{annotation_name}' as integer or valid percentage string: {e}"
-        )
+
+    s = str(raw_value).strip()
+
+    match = re.fullmatch(r'(\d{1,3})%', s)
+    if match:
+        value = int(match.group(1))
+        if 0 <= value <= 100:
+            return value, True
+        else:
+            raise ValueError(f"Percentage value in annotation '{annotation_name}' must be between 0 and 100.")
+
+    if re.fullmatch(r'-?\d+', s):
+        return int(s), False
+
+    raise ValueError(f"Invalid format for annotation '{annotation_name}': must be an integer like '10' or a percentage like '10%'.")
 
 def autoscale_jobs_for_namespace(
     api,
@@ -1003,6 +1008,7 @@ def autoscale_resource(
     now: datetime.datetime,
     grace_period: int = 0,
     downtime_replicas: int = 0,
+    is_downtime_replicas_percentage: bool = False,
     namespace_excluded=False,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
@@ -1026,9 +1032,13 @@ def autoscale_resource(
                 f"Invalid annotation value for {resource.kind} {resource.namespace}/{resource.name}: {e}. Using default downtime replicas value"
             )
             downtime_replicas_from_annotation = None
+            is_downtime_replicas_from_annotation_percentage = None
 
         if downtime_replicas_from_annotation is not None:
             downtime_replicas = downtime_replicas_from_annotation
+
+        if is_downtime_replicas_from_annotation_percentage is not None:
+            is_downtime_replicas_percentage = is_downtime_replicas_from_annotation_percentage
 
         exclude_condition = define_scope(
             exclude, original_replicas, upscale_target_only
@@ -1119,7 +1129,7 @@ def autoscale_resource(
                         replicas,
                         replicas_is_percentage,
                         downtime_replicas,
-                        is_downtime_replicas_from_annotation_percentage,
+                        is_downtime_replicas_percentage,
                         uptime,
                         downtime,
                         dry_run=dry_run,
@@ -1167,6 +1177,7 @@ def autoscale_resource(
                         now,
                         grace_period,
                         downtime_replicas,
+                        is_downtime_replicas_percentage,
                         namespace_excluded=namespace_excluded,
                         deployment_time_annotation=deployment_time_annotation,
                         enable_events=enable_events,
@@ -1209,6 +1220,7 @@ def autoscale_resources(
     now: datetime.datetime,
     grace_period: int,
     downtime_replicas: int,
+    is_downtime_replicas_percentage: bool,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
 ):
@@ -1269,9 +1281,13 @@ def autoscale_resources(
                 f"Invalid annotation value for {resource.kind} {resource.name}: {e}. Using default downtime replicas value"
             )
             default_downtime_replicas_for_namespace = None
+            is_default_downtime_replicas_for_namespace_percentage = None
 
         if default_downtime_replicas_for_namespace is None:
             default_downtime_replicas_for_namespace = downtime_replicas
+
+        if is_default_downtime_replicas_for_namespace_percentage is None:
+            is_default_downtime_replicas_for_namespace_percentage = is_downtime_replicas_percentage
 
         upscale_period_for_namespace = namespace_obj.annotations.get(
             UPSCALE_PERIOD_ANNOTATION, upscale_period
@@ -1324,6 +1340,7 @@ def autoscale_resources(
                 now,
                 grace_period,
                 default_downtime_replicas_for_namespace,
+                is_default_downtime_replicas_for_namespace_percentage,
                 namespace_excluded=excluded,
                 deployment_time_annotation=deployment_time_annotation,
                 enable_events=enable_events,
@@ -1621,6 +1638,7 @@ def scale(
     api_server_timeout: int,
     max_retries_on_conflict: int,
     downtime_replicas: int = 0,
+    is_downtime_replicas_percentage: bool = False,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
     matching_labels: FrozenSet[Pattern] = frozenset(),
@@ -1658,6 +1676,7 @@ def scale(
                     now,
                     grace_period,
                     downtime_replicas,
+                    is_downtime_replicas_percentage,
                     deployment_time_annotation,
                     enable_events,
                 )
