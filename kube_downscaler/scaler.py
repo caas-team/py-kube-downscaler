@@ -838,7 +838,7 @@ def get_annotation_value_as_positive_int(
 ):
     raw_value = resource.annotations.get(annotation_name)
     if raw_value is None:
-        return None, False
+        return None, None
     return helper.parse_int_or_percent(raw_value, context="annotation", allow_negative=False)
 
 def get_annotation_value_as_int(
@@ -846,7 +846,7 @@ def get_annotation_value_as_int(
 ):
     raw_value = resource.annotations.get(annotation_name)
     if raw_value is None:
-        return None, False
+        return None, None
     return helper.parse_int_or_percent(raw_value, context="annotation", allow_negative=True)
 
 def autoscale_jobs_for_namespace(
@@ -1020,7 +1020,6 @@ def autoscale_resource(
         downtime_replicas_from_annotation, is_downtime_replicas_from_annotation_percentage = get_annotation_value_as_positive_int(
             resource, DOWNTIME_REPLICAS_ANNOTATION
         )
-
 
         if downtime_replicas_from_annotation is not None:
             downtime_replicas = downtime_replicas_from_annotation
