@@ -661,7 +661,7 @@ def scale_up(
             f"the user is not supposed to manually add or modify this annotation on resources, please restore it to the original state"
             f"(uptime: {uptime}, downtime: {downtime})"
         )
-        return
+        raise ValueError(f"percentage 'original-replicas' are not supported for {resource.kind}")
 
     if resource.kind == "DaemonSet":
         resource.obj["spec"]["template"]["spec"]["nodeSelector"][
@@ -758,7 +758,7 @@ def scale_down(
             f"Use integer values in namespace 'downscaler/downtime-replicas' annotations and the --downscale-replicas argument to support scaling PDBs and other resources together. "
             f"(uptime: {uptime}, downtime: {downtime})"
         )
-        return
+        raise ValueError(f"percentage 'donwtime-replicas' are not supported for {resource.kind}")
 
     if resource.kind == "DaemonSet":
         if "nodeSelector" not in resource.obj["spec"]["template"]["spec"]:
@@ -1087,18 +1087,21 @@ def autoscale_resource(
                 and original_replicas
                 and (original_replicas > 0 or original_replicas == -1)
             ):
-                scale_up(
-                    resource,
-                    replicas,
-                    replicas_is_percentage,
-                    original_replicas,
-                    is_original_replicas_percentage,
-                    uptime,
-                    downtime,
-                    dry_run=dry_run,
-                    enable_events=enable_events,
-                )
-                update_needed = True
+                try:
+                    scale_up(
+                        resource,
+                        replicas,
+                        replicas_is_percentage,
+                        original_replicas,
+                        is_original_replicas_percentage,
+                        uptime,
+                        downtime,
+                        dry_run=dry_run,
+                        enable_events=enable_events,
+                    )
+                    update_needed = True
+                except ValueError as e:
+                    update_needed = False
             elif (
                 not ignore
                 and not is_uptime
@@ -1111,18 +1114,21 @@ def autoscale_resource(
                         f"{resource.kind} {resource.namespace}/{resource.name} within grace period ({grace_period}s), not scaling down (yet)"
                     )
                 else:
-                    scale_down(
-                        resource,
-                        replicas,
-                        replicas_is_percentage,
-                        downtime_replicas,
-                        is_downtime_replicas_percentage,
-                        uptime,
-                        downtime,
-                        dry_run=dry_run,
-                        enable_events=enable_events,
-                    )
-                    update_needed = True
+                    try:
+                        scale_down(
+                            resource,
+                            replicas,
+                            replicas_is_percentage,
+                            downtime_replicas,
+                            is_downtime_replicas_percentage,
+                            uptime,
+                            downtime,
+                            dry_run=dry_run,
+                            enable_events=enable_events,
+                        )
+                        update_needed = True
+                    except ValueError as e:
+                        update_needed = False
 
             if update_needed:
                 if dry_run:
