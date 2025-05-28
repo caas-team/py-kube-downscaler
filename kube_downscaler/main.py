@@ -7,25 +7,14 @@ from kube_downscaler import __version__
 from kube_downscaler import cmd
 from kube_downscaler import shutdown
 from kube_downscaler.scaler import scale
+from kube_downscaler import helper
 
 logger = logging.getLogger("downscaler")
 
 
 def parse_downtime_replicas(downtime_replicas):
-    s = str(downtime_replicas).strip()
-
-    match = re.fullmatch(r'(\d{1,3})%', s)
-    if match:
-        value = int(match.group(1))
-        if 0 <= value <= 100:
-            return value, True
-        else:
-            raise ValueError("Percentage must be between 0 and 100.")
-
-    if s.isdigit():
-        return int(s), False
-
-    raise ValueError("Invalid format: must be an integer like '10' or a percentage like '10%'.")
+    value, is_percentage = helper.parse_int_or_percent(downtime_replicas, context="--downtime-replicas", allow_negative=False)
+    return value, is_percentage
 
 def main(args=None):
     parser = cmd.get_parser()

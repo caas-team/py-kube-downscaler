@@ -505,7 +505,6 @@ def test_scaler_down_to(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/deployments/deploy-1"
     assert json.loads(api.patch.call_args[1]["data"])["spec"]["replicas"] == SCALE_TO
 
-
 def test_scaler_down_to_upscale(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(

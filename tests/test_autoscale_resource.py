@@ -500,7 +500,8 @@ def test_downtime_replicas_annotation_invalid(resource, monkeypatch):
         now=now,
         matching_labels=frozenset([re.compile("")]),
     )
-    assert resource.replicas == 0
+    assert resource.replicas == 2
+    resource.update.assert_not_called()
 
 
 def test_downtime_replicas_annotation_valid(resource, monkeypatch):

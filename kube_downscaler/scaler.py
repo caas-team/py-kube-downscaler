@@ -334,7 +334,6 @@ def get_resource(kind, api, namespace, resource_name: str):
 
     return resource
 
-
 def scale_jobs_without_admission_controller(
     plural, admission_controller, constrainted_downscaler
 ):
@@ -834,27 +833,21 @@ def scale_down(
     else:
         resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] = str(replicas)
 
+def get_annotation_value_as_positive_int(
+    resource: NamespacedAPIObject, annotation_name: str
+):
+    raw_value = resource.annotations.get(annotation_name)
+    if raw_value is None:
+        return None, False
+    return helper.parse_int_or_percent(raw_value, context="annotation", allow_negative=False)
+
 def get_annotation_value_as_int(
     resource: NamespacedAPIObject, annotation_name: str
 ):
     raw_value = resource.annotations.get(annotation_name)
     if raw_value is None:
         return None, False
-
-    s = str(raw_value).strip()
-
-    match = re.fullmatch(r'(\d{1,3})%', s)
-    if match:
-        value = int(match.group(1))
-        if 0 <= value <= 100:
-            return value, True
-        else:
-            raise ValueError(f"Percentage value in annotation '{annotation_name}' must be between 0 and 100.")
-
-    if re.fullmatch(r'-?\d+', s):
-        return int(s), False
-
-    raise ValueError(f"Invalid format for annotation '{annotation_name}': must be an integer like '10' or a percentage like '10%'.")
+    return helper.parse_int_or_percent(raw_value, context="annotation", allow_negative=True)
 
 def autoscale_jobs_for_namespace(
     api,
@@ -1023,16 +1016,11 @@ def autoscale_resource(
         original_replicas, is_original_replicas_percentage = get_annotation_value_as_int(
             resource, ORIGINAL_REPLICAS_ANNOTATION
         )
-        try:
-            downtime_replicas_from_annotation, is_downtime_replicas_from_annotation_percentage = get_annotation_value_as_int(
-                resource, DOWNTIME_REPLICAS_ANNOTATION
-            )
-        except ValueError as e:
-            logger.warning(
-                f"Invalid annotation value for {resource.kind} {resource.namespace}/{resource.name}: {e}. Using default downtime replicas value"
-            )
-            downtime_replicas_from_annotation = None
-            is_downtime_replicas_from_annotation_percentage = None
+
+        downtime_replicas_from_annotation, is_downtime_replicas_from_annotation_percentage = get_annotation_value_as_positive_int(
+            resource, DOWNTIME_REPLICAS_ANNOTATION
+        )
+
 
         if downtime_replicas_from_annotation is not None:
             downtime_replicas = downtime_replicas_from_annotation
@@ -1272,16 +1260,9 @@ def autoscale_resources(
         default_downtime_for_namespace = namespace_obj.annotations.get(
             DOWNTIME_ANNOTATION, default_downtime
         )
-        try:
-            default_downtime_replicas_for_namespace, is_default_downtime_replicas_for_namespace_percentage = get_annotation_value_as_int(
-                namespace_obj, DOWNTIME_REPLICAS_ANNOTATION
-            )
-        except ValueError as e:
-            logger.warning(
-                f"Invalid annotation value for {resource.kind} {resource.name}: {e}. Using default downtime replicas value"
-            )
-            default_downtime_replicas_for_namespace = None
-            is_default_downtime_replicas_for_namespace_percentage = None
+        default_downtime_replicas_for_namespace, is_default_downtime_replicas_for_namespace_percentage = get_annotation_value_as_positive_int(
+            namespace_obj, DOWNTIME_REPLICAS_ANNOTATION
+        )
 
         if default_downtime_replicas_for_namespace is None:
             default_downtime_replicas_for_namespace = downtime_replicas
