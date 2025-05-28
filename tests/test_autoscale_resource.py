@@ -1117,6 +1117,46 @@ def test_downscale_hpa_with_autoscaling(monkeypatch):
     assert hpa.obj["spec"]["minReplicas"] == 1
     assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(4)
 
+def test_downscale_hpa_wrong_annotation_value_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    hpa = HorizontalPodAutoscaler(
+        None,
+        {
+            "metadata": {
+                "name": "my-hpa",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {DOWNTIME_REPLICAS_ANNOTATION: "3%"},
+            },
+            "spec": {"minReplicas": 4},
+        },
+    )
+    now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        hpa,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=HorizontalPodAutoscaler,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    #if the DOWNTIME_REPLICAS_ANNOTATION has a percentage value on non pdb objects, they will be skipped
+    assert hpa.obj["spec"]["minReplicas"] == 4
+
 
 def test_upscale_hpa_with_autoscaling(monkeypatch):
     api = MagicMock()

@@ -28,7 +28,7 @@ def matches_time_spec(time: datetime.datetime, spec: str):
         spec_ = spec_.strip()
         recurring_match = TIME_SPEC_PATTERN.match(spec_)
         if recurring_match is not None and _matches_recurring_time_spec(
-            time, recurring_match
+                time, recurring_match
         ):
             return True
         absolute_match = ABSOLUTE_TIME_SPEC_PATTERN.match(spec_)
@@ -69,6 +69,30 @@ def get_kube_api(timeout: int):
     config = pykube.KubeConfig.from_env()
     api = pykube.HTTPClient(config, timeout=timeout)
     return api
+
+
+def parse_int_or_percent(value, context, allow_negative):
+    s = str(value).strip()
+
+    if s.endswith("%"):
+        number_part = s[:-1].strip()
+        if number_part.isdigit():
+            val = int(number_part)
+            if 0 <= val <= 100:
+                return val, True
+            else:
+                raise ValueError(f"Percentage in {context} must be between 0 and 100.")
+        else:
+            raise ValueError(f"Invalid percentage format in {context}: must be digits before '%'.")
+
+    if allow_negative:
+        if (s.startswith("-") and s[1:].isdigit()) or s.isdigit():
+            return int(s), False
+    else:
+        if s.isdigit():
+            return int(s), False
+
+    raise ValueError(f"Invalid format for {context}: must be an integer like '10' or a percentage like '10%'.")
 
 
 def add_event(resource, message: str, reason: str, event_type: str, dry_run: bool):
