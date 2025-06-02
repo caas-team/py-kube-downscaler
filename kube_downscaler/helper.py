@@ -28,7 +28,7 @@ def matches_time_spec(time: datetime.datetime, spec: str):
         spec_ = spec_.strip()
         recurring_match = TIME_SPEC_PATTERN.match(spec_)
         if recurring_match is not None and _matches_recurring_time_spec(
-                time, recurring_match
+            time, recurring_match
         ):
             return True
         absolute_match = ABSOLUTE_TIME_SPEC_PATTERN.match(spec_)
