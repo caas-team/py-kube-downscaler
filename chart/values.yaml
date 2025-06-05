@@ -1,4 +1,5 @@
 replicaCount: 1
+revisionHistoryLimit: 10
 
 image:
   repository: ghcr.io/caas-team/py-kube-downscaler
