@@ -336,7 +336,6 @@ def get_resource(kind, api, namespace, resource_name: str):
 
     return resource
 
-
 def scale_jobs_without_admission_controller(
     plural, admission_controller, constrainted_downscaler
 ):
@@ -403,7 +402,9 @@ def ignore_resource(resource: NamespacedAPIObject, now: datetime.datetime) -> bo
 
 def get_replicas(
     resource: NamespacedAPIObject, original_replicas: Optional[int], uptime: str
-) -> int:
+):
+    replicas_is_percentage = False
+
     if resource.kind in ["CronJob", "Job"]:
         suspended = resource.obj["spec"]["suspend"]
         replicas = 0 if suspended else 1
@@ -416,20 +417,16 @@ def get_replicas(
         if "minAvailable" in resource.obj["spec"]:
             replicas = resource.obj["spec"]["minAvailable"]
             if "%" in str(replicas):
-                replicas = 0
-                logger.warning(
-                    f"{resource.kind} {resource.namespace}/{resource.name} has minAvailable field specified in percentage and therefore cannot be scaled"
-                )
+                replicas = int(str(replicas).replace("%", ""))
+                replicas_is_percentage = True
             logger.debug(
                 f"{resource.kind} {resource.namespace}/{resource.name} has {replicas} minAvailable (original: {original_replicas}, uptime: {uptime})"
             )
         elif "maxUnavailable" in resource.obj["spec"]:
             replicas = resource.obj["spec"]["maxUnavailable"]
             if "%" in str(replicas):
-                replicas = 0
-                logger.warning(
-                    f"{resource.kind} {resource.namespace}/{resource.name} has maxUnavailable field specified in percentage and therefore cannot be scaled"
-                )
+                replicas = int(str(replicas).replace("%", ""))
+                replicas_is_percentage = True
             logger.debug(
                 f"{resource.kind} {resource.namespace}/{resource.name} has {replicas} maxUnavailable (original: {original_replicas}, uptime: {uptime})"
             )
@@ -478,7 +475,7 @@ def get_replicas(
         logger.debug(
             f"{resource.kind} {resource.namespace}/{resource.name} has {replicas} replicas (original: {original_replicas}, uptime: {uptime})"
         )
-    return replicas
+    return replicas, replicas_is_percentage
 
 
 def scale_up_jobs(
@@ -650,13 +647,24 @@ def scale_down_jobs(
 def scale_up(
     resource: NamespacedAPIObject,
     replicas: int,
+    replicas_is_percentage,
     original_replicas: int,
+    is_original_replicas_percentage,
     uptime,
     downtime,
     dry_run: bool,
     enable_events: bool,
 ):
     event_message = "Scaling up replicas"
+    if is_original_replicas_percentage and resource.kind != "PodDisruptionBudget":
+        logger.warn(
+            f"Skipping scale up for {resource.kind} {resource.namespace}/{resource.name}: "
+            f"percentage values for 'downscaler/original-replicas' are supported only on PodDisruptionBudget objects, "
+            f"the user is not supposed to manually add or modify this annotation on resources, please restore it to the original state"
+            f"(uptime: {uptime}, downtime: {downtime})"
+        )
+        raise ValueError(f"percentage 'original-replicas' are not supported for {resource.kind}")
+
     if resource.kind == "DaemonSet":
         resource.obj["spec"]["template"]["spec"]["nodeSelector"][
             "kube-downscaler-non-existent"
@@ -673,14 +681,18 @@ def scale_up(
         event_message = f"Unsuspending {resource.kind}"
     elif resource.kind == "PodDisruptionBudget":
         if "minAvailable" in resource.obj["spec"]:
-            resource.obj["spec"]["minAvailable"] = original_replicas
+            target = f"{original_replicas}%" if is_original_replicas_percentage else original_replicas
+            starting_replicas = f"{replicas}%" if replicas_is_percentage else replicas
+            resource.obj["spec"]["minAvailable"] = target
             logger.info(
-                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minAvailable (uptime: {uptime}, downtime: {downtime})"
+                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {starting_replicas} to {target} minAvailable (uptime: {uptime}, downtime: {downtime})"
             )
         elif "maxUnavailable" in resource.obj["spec"]:
-            resource.obj["spec"]["maxUnavailable"] = original_replicas
+            target = f"{original_replicas}%" if is_original_replicas_percentage else original_replicas
+            starting_replicas = f"{replicas}%" if replicas_is_percentage else replicas
+            resource.obj["spec"]["maxUnavailable"] = target
             logger.info(
-                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
+                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {starting_replicas} to {target} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
             )
     elif resource.kind == "HorizontalPodAutoscaler":
         resource.obj["spec"]["minReplicas"] = original_replicas
@@ -736,13 +748,25 @@ def scale_up(
 def scale_down(
     resource: NamespacedAPIObject,
     replicas: int,
+    replicas_is_percentage,
     target_replicas: int,
+    target_replicas_is_percentage,
     uptime,
     downtime,
     dry_run: bool,
     enable_events: bool,
 ):
     event_message = "Scaling down replicas"
+    if target_replicas_is_percentage and resource.kind != "PodDisruptionBudget":
+        logger.warn(
+            f"Skipping scale down for {resource.kind} {resource.namespace}/{resource.name}: "
+            f"percentage 'donwtime replicas' are supported when scaling only PodDisruptionBudget objects, "
+            f"or when set on PodDisruptionBudget 'downscaler/downtime-replicas' resource annotation. "
+            f"Use integer values in namespace 'downscaler/downtime-replicas' annotations and the --downscale-replicas argument to support scaling PDBs and other resources together. "
+            f"(uptime: {uptime}, downtime: {downtime})"
+        )
+        raise ValueError(f"percentage 'donwtime-replicas' are not supported for {resource.kind}")
+
     if resource.kind == "DaemonSet":
         if "nodeSelector" not in resource.obj["spec"]["template"]["spec"]:
             resource.obj["spec"]["template"]["spec"]["nodeSelector"] = {}
@@ -761,14 +785,18 @@ def scale_down(
         event_message = f"Suspending {resource.kind}"
     elif resource.kind == "PodDisruptionBudget":
         if "minAvailable" in resource.obj["spec"]:
-            resource.obj["spec"]["minAvailable"] = target_replicas
+            starting_replicas = f"{replicas}%" if replicas_is_percentage else str(replicas)
+            target = f"{target_replicas}%" if target_replicas_is_percentage else target_replicas
+            resource.obj["spec"]["minAvailable"] = target
             logger.info(
-                f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} minAvailable (uptime: {uptime}, downtime: {downtime})"
+                f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {starting_replicas} to {target} minAvailable (uptime: {uptime}, downtime: {downtime})"
             )
         elif "maxUnavailable" in resource.obj["spec"]:
-            resource.obj["spec"]["maxUnavailable"] = target_replicas
+            starting_replicas = f"{replicas}%" if replicas_is_percentage else str(replicas)
+            target = f"{target_replicas}%" if target_replicas_is_percentage else target_replicas
+            resource.obj["spec"]["maxUnavailable"] = target
             logger.info(
-                f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {target_replicas} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
+                f"Scaling down {resource.kind} {resource.namespace}/{resource.name} from {starting_replicas} to {target} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
             )
     elif resource.kind == "HorizontalPodAutoscaler":
         resource.obj["spec"]["minReplicas"] = target_replicas
@@ -812,22 +840,26 @@ def scale_down(
             "Normal",
             dry_run,
         )
-    resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] = str(replicas)
+    if replicas_is_percentage:
+        resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] = str(replicas) + "%"
+    else:
+        resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] = str(replicas)
 
+def get_annotation_value_as_positive_int(
+    resource: NamespacedAPIObject, annotation_name: str
+):
+    raw_value = resource.annotations.get(annotation_name)
+    if raw_value is None:
+        return None, None
+    return helper.parse_int_or_percent(raw_value, context="annotation", allow_negative=False)
 
 def get_annotation_value_as_int(
     resource: NamespacedAPIObject, annotation_name: str
-) -> Optional[int]:
-    value = resource.annotations.get(annotation_name)
-    if value is None:
-        return None
-    try:
-        return int(value)
-    except ValueError as e:
-        raise ValueError(
-            f"Could not read annotation '{annotation_name}' as integer: {e}"
-        )
-
+):
+    raw_value = resource.annotations.get(annotation_name)
+    if raw_value is None:
+        return None, None
+    return helper.parse_int_or_percent(raw_value, context="annotation", allow_negative=True)
 
 def autoscale_jobs_for_namespace(
     api,
@@ -981,6 +1013,7 @@ def autoscale_resource(
     now: datetime.datetime,
     grace_period: int = 0,
     downtime_replicas: int = 0,
+    is_downtime_replicas_percentage: bool = False,
     namespace_excluded=False,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
@@ -992,14 +1025,19 @@ def autoscale_resource(
             or ignore_if_labels_dont_match(resource, matching_labels)
             or ignore_resource(resource, now)
         )
-        original_replicas = get_annotation_value_as_int(
+        original_replicas, is_original_replicas_percentage = get_annotation_value_as_int(
             resource, ORIGINAL_REPLICAS_ANNOTATION
         )
-        downtime_replicas_from_annotation = get_annotation_value_as_int(
+
+        downtime_replicas_from_annotation, is_downtime_replicas_from_annotation_percentage = get_annotation_value_as_positive_int(
             resource, DOWNTIME_REPLICAS_ANNOTATION
         )
+
         if downtime_replicas_from_annotation is not None:
             downtime_replicas = downtime_replicas_from_annotation
+
+        if is_downtime_replicas_from_annotation_percentage is not None:
+            is_downtime_replicas_percentage = is_downtime_replicas_from_annotation_percentage
 
         exclude_condition = define_scope(
             exclude, original_replicas, upscale_target_only
@@ -1051,7 +1089,7 @@ def autoscale_resource(
                     now, downtime
                 )
 
-            replicas = get_replicas(resource, original_replicas, uptime)
+            replicas, replicas_is_percentage = get_replicas(resource, original_replicas, uptime)
             update_needed = False
 
             if (
@@ -1061,16 +1099,21 @@ def autoscale_resource(
                 and original_replicas
                 and (original_replicas > 0 or original_replicas == -1)
             ):
-                scale_up(
-                    resource,
-                    replicas,
-                    original_replicas,
-                    uptime,
-                    downtime,
-                    dry_run=dry_run,
-                    enable_events=enable_events,
-                )
-                update_needed = True
+                try:
+                    scale_up(
+                        resource,
+                        replicas,
+                        replicas_is_percentage,
+                        original_replicas,
+                        is_original_replicas_percentage,
+                        uptime,
+                        downtime,
+                        dry_run=dry_run,
+                        enable_events=enable_events,
+                    )
+                    update_needed = True
+                except ValueError as e:
+                    update_needed = False
             elif (
                 not ignore
                 and not is_uptime
@@ -1083,16 +1126,21 @@ def autoscale_resource(
                         f"{resource.kind} {resource.namespace}/{resource.name} within grace period ({grace_period}s), not scaling down (yet)"
                     )
                 else:
-                    scale_down(
-                        resource,
-                        replicas,
-                        downtime_replicas,
-                        uptime,
-                        downtime,
-                        dry_run=dry_run,
-                        enable_events=enable_events,
-                    )
-                    update_needed = True
+                    try:
+                        scale_down(
+                            resource,
+                            replicas,
+                            replicas_is_percentage,
+                            downtime_replicas,
+                            is_downtime_replicas_percentage,
+                            uptime,
+                            downtime,
+                            dry_run=dry_run,
+                            enable_events=enable_events,
+                        )
+                        update_needed = True
+                    except ValueError as e:
+                        update_needed = False
 
             if update_needed:
                 if dry_run:
@@ -1134,6 +1182,7 @@ def autoscale_resource(
                         now,
                         grace_period,
                         downtime_replicas,
+                        is_downtime_replicas_percentage,
                         namespace_excluded=namespace_excluded,
                         deployment_time_annotation=deployment_time_annotation,
                         enable_events=enable_events,
@@ -1176,6 +1225,7 @@ def autoscale_resources(
     now: datetime.datetime,
     grace_period: int,
     downtime_replicas: int,
+    is_downtime_replicas_percentage: bool,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
 ):
@@ -1227,11 +1277,15 @@ def autoscale_resources(
         default_downtime_for_namespace = namespace_obj.annotations.get(
             DOWNTIME_ANNOTATION, default_downtime
         )
-        default_downtime_replicas_for_namespace = get_annotation_value_as_int(
+        default_downtime_replicas_for_namespace, is_default_downtime_replicas_for_namespace_percentage = get_annotation_value_as_positive_int(
             namespace_obj, DOWNTIME_REPLICAS_ANNOTATION
         )
+
         if default_downtime_replicas_for_namespace is None:
             default_downtime_replicas_for_namespace = downtime_replicas
+
+        if is_default_downtime_replicas_for_namespace_percentage is None:
+            is_default_downtime_replicas_for_namespace_percentage = is_downtime_replicas_percentage
 
         upscale_period_for_namespace = namespace_obj.annotations.get(
             UPSCALE_PERIOD_ANNOTATION, upscale_period
@@ -1284,6 +1338,7 @@ def autoscale_resources(
                 now,
                 grace_period,
                 default_downtime_replicas_for_namespace,
+                is_default_downtime_replicas_for_namespace_percentage,
                 namespace_excluded=excluded,
                 deployment_time_annotation=deployment_time_annotation,
                 enable_events=enable_events,
@@ -1581,6 +1636,7 @@ def scale(
     api_server_timeout: int,
     max_retries_on_conflict: int,
     downtime_replicas: int = 0,
+    is_downtime_replicas_percentage: bool = False,
     deployment_time_annotation: Optional[str] = None,
     enable_events: bool = False,
     matching_labels: FrozenSet[Pattern] = frozenset(),
@@ -1618,6 +1674,7 @@ def scale(
                     now,
                     grace_period,
                     downtime_replicas,
+                    is_downtime_replicas_percentage,
                     deployment_time_annotation,
                     enable_events,
                 )
