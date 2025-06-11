@@ -111,9 +111,9 @@ def get_parser():
     )
     parser.add_argument(
         "--downtime-replicas",
-        type=int,
-        help="Default amount of replicas when downscaling (default: 0)",
-        default=int(os.getenv("DOWNTIME_REPLICAS", 0)),
+        type=str,
+        help="Default value used when downscaling (default: '0')",
+        default=os.getenv("DOWNTIME_REPLICAS", "0"),
     )
     parser.add_argument(
         "--deployment-time-annotation",
