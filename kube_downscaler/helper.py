@@ -83,7 +83,9 @@ def parse_int_or_percent(value, context, allow_negative):
             else:
                 raise ValueError(f"Percentage in {context} must be between 0 and 100.")
         else:
-            raise ValueError(f"Invalid percentage format in {context}: must be digits before '%'.")
+            raise ValueError(
+                f"Invalid percentage format in {context}: must be digits before '%'."
+            )
 
     if allow_negative:
         if (s.startswith("-") and s[1:].isdigit()) or s.isdigit():
@@ -92,7 +94,9 @@ def parse_int_or_percent(value, context, allow_negative):
         if s.isdigit():
             return int(s), False
 
-    raise ValueError(f"Invalid format for {context}: must be an integer like '10' or a percentage like '10%'.")
+    raise ValueError(
+        f"Invalid format for {context}: must be an integer like '10' or a percentage like '10%'."
+    )
 
 
 def add_event(resource, message: str, reason: str, event_type: str, dry_run: bool):

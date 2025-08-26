@@ -1117,6 +1117,7 @@ def test_downscale_hpa_with_autoscaling(monkeypatch):
     assert hpa.obj["spec"]["minReplicas"] == 1
     assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(4)
 
+
 def test_downscale_hpa_wrong_annotation_value_with_autoscaling(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -1154,7 +1155,7 @@ def test_downscale_hpa_wrong_annotation_value_with_autoscaling(monkeypatch):
         matching_labels=frozenset([re.compile("")]),
     )
 
-    #if the DOWNTIME_REPLICAS_ANNOTATION has a percentage value on non pdb objects, they will be skipped
+    # if the DOWNTIME_REPLICAS_ANNOTATION has a percentage value on non pdb objects, they will be skipped
     assert hpa.obj["spec"]["minReplicas"] == 4
 
 

@@ -505,6 +505,7 @@ def test_scaler_down_to(monkeypatch):
     assert api.patch.call_args[1]["url"] == "/deployments/deploy-1"
     assert json.loads(api.patch.call_args[1]["data"])["spec"]["replicas"] == SCALE_TO
 
+
 def test_skip_deployment_with_local_downtime_replicas_percentage(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -565,8 +566,9 @@ def test_skip_deployment_with_local_downtime_replicas_percentage(monkeypatch):
         enable_events=True,
     )
 
-    #it is not possible to use downscaler/downtime-replicas with percentage values to scale resources other than pdb
+    # it is not possible to use downscaler/downtime-replicas with percentage values to scale resources other than pdb
     assert api.patch.call_count == 0
+
 
 def test_skip_deployment_with_global_downtime_replicas_percentage(monkeypatch):
     api = MagicMock()
@@ -627,8 +629,9 @@ def test_skip_deployment_with_global_downtime_replicas_percentage(monkeypatch):
         enable_events=True,
     )
 
-    #if global --downtime-replicas is a percentage, it is not possible to scale resources other than pdb
+    # if global --downtime-replicas is a percentage, it is not possible to scale resources other than pdb
     assert api.patch.call_count == 0
+
 
 def test_scaler_down_to_upscale(monkeypatch):
     api = MagicMock()
@@ -2752,6 +2755,7 @@ def test_scaler_pdb_suspend_percentage(monkeypatch):
 
     assert api.patch.call_count == 1
 
+
 def test_scaler_pdb_suspend_max_unavailable_percentage(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -2823,6 +2827,7 @@ def test_scaler_pdb_suspend_max_unavailable_percentage(monkeypatch):
         "spec": {"maxUnavailable": 0},
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
 
 def test_scaler_pdb_unsuspend_max_unavailable_percentage(monkeypatch):
     api = MagicMock()
@@ -2903,6 +2908,7 @@ def test_scaler_pdb_unsuspend_max_unavailable_percentage(monkeypatch):
         "spec": {"maxUnavailable": "1%"},
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
 
 def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
     api = MagicMock()
