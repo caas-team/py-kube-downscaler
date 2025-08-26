@@ -18,7 +18,7 @@ FROM python:3.13.7-alpine3.22
 WORKDIR /
 
 # copy pre-built packages to this image
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 
 # now copy the actual code we will execute (poetry install above was just for dependencies)
 COPY kube_downscaler /kube_downscaler
