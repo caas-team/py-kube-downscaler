@@ -1,4 +1,4 @@
-FROM python:3.12.11-alpine3.22 AS builder
+FROM python:3.13.7-alpine3.22 AS builder
 
 WORKDIR /
 
@@ -13,7 +13,7 @@ COPY pyproject.toml /
 RUN poetry config virtualenvs.create false && \
     poetry install --no-interaction --without dev --no-ansi --no-root
 
-FROM python:3.12.11-alpine3.22
+FROM python:3.13.7-alpine3.22
 
 WORKDIR /
 
