@@ -5,16 +5,19 @@ import time
 
 from kube_downscaler import __version__
 from kube_downscaler import cmd
+from kube_downscaler import helper
 from kube_downscaler import shutdown
 from kube_downscaler.scaler import scale
-from kube_downscaler import helper
 
 logger = logging.getLogger("downscaler")
 
 
 def parse_downtime_replicas(downtime_replicas):
-    value, is_percentage = helper.parse_int_or_percent(downtime_replicas, context="--downtime-replicas", allow_negative=False)
+    value, is_percentage = helper.parse_int_or_percent(
+        downtime_replicas, context="--downtime-replicas", allow_negative=False
+    )
     return value, is_percentage
+
 
 def main(args=None):
     parser = cmd.get_parser()
@@ -92,7 +95,9 @@ def run_loop(
     else:
         constrained_downscaler = False
 
-    downtime_replicas, is_downtime_replicas_percentage = parse_downtime_replicas(downtime_replicas)
+    downtime_replicas, is_downtime_replicas_percentage = parse_downtime_replicas(
+        downtime_replicas
+    )
 
     while True:
         try:
