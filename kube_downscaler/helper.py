@@ -1,6 +1,7 @@
 import datetime
 import logging
 import re
+import os
 from typing import Match
 
 import pykube
@@ -8,11 +9,16 @@ import pytz
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PERIOD_MINUTES = 30
+
 WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
 TIME_SPEC_PATTERN = re.compile(
     r"^([a-zA-Z]{3})-([a-zA-Z]{3}) (\d\d):(\d\d)-(\d\d):(\d\d) (?P<tz>[a-zA-Z/_]+)$"
 )
+TIME_SPEC_PATTERN_WO_TZ = re.compile(r'.*(\d\d)$')
+TIME_SPEC_PATTERN_JJHHMMTZ = re.compile(r'^([a-zA-Z]{3})-([a-zA-Z]{3}) (\d\d):(\d\d) (?P<tz>[a-zA-Z/_]+)$')
+TIME_SPEC_PATTERN_HHMMTZ = re.compile(r'^(\d\d):(\d\d) (?P<tz>[a-zA-Z/_]+)$')
 _ISO_8601_TIME_SPEC_PATTERN = r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[-+]\d{2}:\d{2})"
 ABSOLUTE_TIME_SPEC_PATTERN = re.compile(
     r"^{0}-{0}$".format(_ISO_8601_TIME_SPEC_PATTERN)
@@ -26,6 +32,19 @@ def matches_time_spec(time: datetime.datetime, spec: str):
         return False
     for spec_ in spec.split(","):
         spec_ = spec_.strip()
+        match = TIME_SPEC_PATTERN_WO_TZ.match(spec_)
+        if match and not ABSOLUTE_TIME_SPEC_PATTERN.match(spec_):
+          spec_ = spec_ + ' ' + os.environ['TZ']
+        if TIME_SPEC_PATTERN_HHMMTZ.match(spec_):
+          spec_ = 'Mon-Sun ' + spec_ 
+        match = TIME_SPEC_PATTERN_JJHHMMTZ.match(spec_)
+        if match:
+          end_of_period = datetime.datetime(2000,1,1,int(match.group(3)),int(match.group(4)),0) + datetime.timedelta(minutes=DEFAULT_PERIOD_MINUTES)
+          if (int(match.group(3)) * 60 + int(match.group(4))) >= (60 * 24 - DEFAULT_PERIOD_MINUTES):
+             end_of_period = datetime.datetime(2000,1,1,23,59,0)
+          spec_ = match.group(1) + '-' + match.group(2) + ' ' + match.group(3) + ':' + match.group(4)
+          spec_ = spec_ + '-' + end_of_period.strftime("%H:%M") + ' ' + match.group('tz')
+        logger.debug('=> spec_ evaluated = "%s"', spec_)
         recurring_match = TIME_SPEC_PATTERN.match(spec_)
         if recurring_match is not None and _matches_recurring_time_spec(
             time, recurring_match
