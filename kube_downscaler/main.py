@@ -20,10 +20,7 @@ def main(args=None):
     parser = cmd.get_parser()
     args = parser.parse_args(args)
 
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)s: %(message)s",
-        level=logging.DEBUG if args.debug else logging.INFO,
-    )
+    helper.setup_logging(args.debug)
 
     config_str = ", ".join(f"{k}={v}" for k, v in sorted(vars(args).items()))
     logger.info(f"Downscaler v{__version__} started with {config_str}")
@@ -86,7 +83,7 @@ def run_loop(
 
     if len(namespaces) >= 1:
         constrained_downscaler = True
-        logging.info(
+        logger.info(
             "Namespace argument is not empty, the downscaler will run in constrained mode"
         )
     else:
