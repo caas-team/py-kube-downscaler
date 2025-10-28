@@ -167,15 +167,7 @@ def setup_logging(debug: bool):
 
     formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
 
-    # DEBUG/INFO/WARNING -> stdout
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.addFilter(lambda record: record.levelno <= logging.WARNING)
-    stdout_handler.setFormatter(formatter)
-
-    # ERROR/CRITICAL -> stderr
     stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setLevel(logging.ERROR)
     stderr_handler.setFormatter(formatter)
 
-    root_logger.addHandler(stdout_handler)
     root_logger.addHandler(stderr_handler)
