@@ -230,9 +230,9 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
             except requests.HTTPError as e:
                 if e.response.status_code == 404:
                     logger.debug(f"No pods found in namespace {namespace} (404)")
-                if e.response.status_code == 403:
+                elif e.response.status_code == 403:
                     logger.warning(
-                        f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
+                        f"Not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
                         f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
                         f"The RoleBinding should be linked to the KubeDownscaler Service Account."
                     )
@@ -268,7 +268,7 @@ def create_excluded_namespaces_regex(namespaces: FrozenSet[str]):
     # Create a regex pattern that matches any string not exactly one of the namespaces
     excluded_pattern = f"^(?!{combined_pattern}$).+"
 
-    logging.info(
+    logger.info(
         "--namespace arg is not empty the --exclude-namespaces argument was modified to the following regex pattern: "
         + excluded_pattern
     )
@@ -291,7 +291,7 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
                         f"No {kind.endpoint} found in namespace {namespace} (404)"
                     )
                 if e.response.status_code == 403:
-                    logger.warning(
+                    logger.error(
                         f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
                         f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
                         f"The RoleBinding should be linked to the KubeDownscaler Service Account."
@@ -593,7 +593,7 @@ def scale_down_jobs(
             if has_matching_labels_arg and policy.type == "with-matching-labels":
                 obj = policy
                 operation = "no_scale"
-                logging.debug(
+                logger.debug(
                     "No need to update kyverno policy, correctly found a policy with matching label"
                 )
             elif has_matching_labels_arg and policy.type != "with-matching-labels":
@@ -605,7 +605,7 @@ def scale_down_jobs(
                     obj = KubeDownscalerJobsPolicy.append_excluded_jobs_condition(
                         obj, excluded_jobs, has_matching_labels_arg
                     )
-                logging.debug(
+                logger.debug(
                     "Update needed for kyverno policy, found a policy without matching label but need a policy with matching label"
                 )
             elif (
@@ -613,7 +613,7 @@ def scale_down_jobs(
             ):
                 obj = policy
                 operation = "no_scale"
-                logging.debug(
+                logger.debug(
                     "No need to update kyverno policy, correctly found a policy without matching label"
                 )
             elif (
@@ -625,13 +625,13 @@ def scale_down_jobs(
                     obj = KubeDownscalerJobsPolicy.append_excluded_jobs_condition(
                         obj, excluded_jobs, has_matching_labels_arg
                     )
-                logging.debug(
+                logger.debug(
                     "Update needed for kyverno policy, found a policy with matching label but need a policy without matching label"
                 )
             else:
                 obj = policy
                 operation = "no_scale"
-                logging.debug(
+                logger.debug(
                     "No Update Needed For Policy, all conditions were not met"
                 )
     if enable_events:
@@ -1019,7 +1019,7 @@ def autoscale_jobs_for_namespace(
                     elif operation == "no_scale":
                         pass
                     else:
-                        logging.error(
+                        logger.error(
                             f"there was an error scaling scaling inside {resource.kind}/{resource.name}"
                         )
 
@@ -1284,7 +1284,11 @@ def autoscale_resources(
             resources_by_namespace[resource.namespace].append(resource)
     except requests.HTTPError as e:
         if e.response.status_code == 404:
-            logger.debug(f"No {kind.endpoint} found in namespace {namespace} (404)")
+            logger.debug(f"No {kind.endpoint} found (404)")
+        elif e.response.status_code == 403:
+            logger.error(
+                f"Not authorized to perform a cluster wide query to retrieve {kind.endpoint} check your RBAC settings (403)"
+            )
         else:
             raise e
 
@@ -1418,12 +1422,12 @@ def gatekeeper_constraint_template_crd_exist(api) -> bool:
     )
 
     if constraint_template_crd is None:
-        logging.error(
+        logger.error(
             "constrainttemplates.templates.gatekeeper.sh CRD not found inside the cluster"
         )
         return False
     else:
-        logging.debug(
+        logger.debug(
             "constrainttemplates.templates.gatekeeper.sh CRD present inside the cluster"
         )
         return True
@@ -1446,7 +1450,7 @@ def gatekeeper_healthy(api) -> bool:
     )
 
     if gatekeeper_audit is None or gatekeeper_controller_manager is None:
-        logging.debug(
+        logger.debug(
             'Health Check: gatekeeper deployments not found inside the default "gatekeeper-system" '
             "namespace. While this is not a problem, downscaling jobs policy may not be enforced unless "
             "gatekeeper is installed and healthy inside another namespace"
@@ -1456,17 +1460,17 @@ def gatekeeper_healthy(api) -> bool:
             gatekeeper_audit.obj["spec"]["replicas"] > 0
             and gatekeeper_controller_manager.obj["spec"]["replicas"] > 0
         ):
-            logging.debug(
+            logger.debug(
                 'Health Check: gatekeeper deployments are healthy inside the "gatekeeper-system" namespace'
             )
         else:
-            logging.debug(
+            logger.debug(
                 'Health Check: gatekeeper deployments are not healthy inside the "gatekeeper-system" namespace '
                 "downscaling jobs policy may not be enforced"
             )
 
     if kubedownscalerjobsconstraint is None:
-        logging.error(
+        logger.error(
             "kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD not found inside the cluster"
         )
         return False
@@ -1492,7 +1496,7 @@ def kyverno_healthy(api):
     )
 
     if kyverno_admission_controller is None or kyverno_background_controller is None:
-        logging.debug(
+        logger.debug(
             'Health Check: kyverno deployments not found inside the default "kyverno" '
             "namespace. While this is not a problem, downscaling jobs policy may not be enforced unless "
             "kyverno is installed and healthy inside another namespace"
@@ -1502,17 +1506,17 @@ def kyverno_healthy(api):
             kyverno_admission_controller["spec"]["replicas"] > 0
             and kyverno_background_controller["spec"]["replicas"] > 0
         ):
-            logging.debug(
+            logger.debug(
                 'Health Check: kyverno deployments are healthy inside the "kyverno" namespace'
             )
         else:
-            logging.debug(
+            logger.debug(
                 'Health Check: kyverno deployments are not healthy inside the "kyverno" namespace '
                 "downscaling jobs policy may not be enforced"
             )
 
     if kyverno_policy_crd is None:
-        logging.error("policies.kyverno.io CRD not found inside the cluster")
+        logger.error("policies.kyverno.io CRD not found inside the cluster")
         return False
     else:
         return True
@@ -1543,7 +1547,7 @@ def autoscale_jobs(
         ):
             apply_kubedownscalerjobsconstraint_crd(exclude_names, matching_labels, api)
             if admission_controller == "gatekeeper" and not gatekeeper_healthy(api):
-                logging.error(
+                logger.error(
                     "unable to scale jobs, there was a problem applying kubedownscalerjobsconstraint crd or it was deleted"
                     " from the cluster. The crd will be automatically re-applied"
                 )
@@ -1552,14 +1556,14 @@ def autoscale_jobs(
             admission_controller == "gatekeeper"
             and not gatekeeper_constraint_template_crd_exist(api)
         ):
-            logging.warning(
+            logger.warning(
                 "unable to scale jobs with gatekeeper until you install constrainttemplates.templates.gatekeeper.sh "
                 "CRD"
             )
             return
 
         if admission_controller == "kyverno" and not kyverno_healthy(api):
-            logging.error("unable to scale jobs")
+            logger.error("unable to scale jobs")
             return
 
         if len(namespaces) >= 1:

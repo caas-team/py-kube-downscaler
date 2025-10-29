@@ -1,6 +1,7 @@
 import datetime
 import logging
 import re
+import sys
 from typing import Match
 
 import pykube
@@ -161,3 +162,16 @@ def create_event(resource, message: str, reason: str, event_type: str, dry_run: 
             return event
         except Exception as e:
             logger.error(f"Could not create event {event.obj}: {e}")
+
+def setup_logging(debug: bool):
+    logging.getLogger().handlers.clear()
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG if debug else logging.INFO)
+
+    formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
+
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setFormatter(formatter)
+
+    root_logger.addHandler(stderr_handler)
