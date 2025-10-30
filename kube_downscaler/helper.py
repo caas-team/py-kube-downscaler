@@ -10,8 +10,8 @@ import pytz
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_WEEK_FRAME = "Mon-Sun"
-DEFAULT_TIMEZONE = os.environ.get("TZ", None)
+DEFAULT_TIMEZONE = os.getenv("DEFAULT_TIMEZONE", None)
+DEFAULT_WEEKFRAME = os.getenv("DEFAULT_WEEKFRAME", None)
 
 WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
@@ -19,7 +19,7 @@ TIME_SPEC_PATTERN = re.compile(
     r"^([a-zA-Z]{3})-([a-zA-Z]{3}) (\d\d):(\d\d)-(\d\d):(\d\d) (?P<tz>[a-zA-Z/_]+)$"
 )
 TIME_SPEC_PATTERN_WO_TZ = re.compile(r'.*(\d\d)$')
-TIME_SPEC_PATTERN_WO_DAYS = re.compile(r'^(\d\d):(\d\d)-(\d\d):(\d\d) (?P<tz>[a-zA-Z/_]+)$')
+TIME_SPEC_PATTERN_WO_WF = re.compile(r'^(\d\d):(\d\d)-(\d\d):(\d\d) (?P<tz>[a-zA-Z/_]+)$')
 _ISO_8601_TIME_SPEC_PATTERN = r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[-+]\d{2}:\d{2})"
 ABSOLUTE_TIME_SPEC_PATTERN = re.compile(
     r"^{0}-{0}$".format(_ISO_8601_TIME_SPEC_PATTERN)
@@ -38,10 +38,12 @@ def matches_time_spec(time: datetime.datetime, spec: str):
             if DEFAULT_TIMEZONE:
                 spec_ = spec_ + ' ' + DEFAULT_TIMEZONE
             else:
-                raise ValueError("No default timezone defined in environment variable 'TZ'")
-        if TIME_SPEC_PATTERN_WO_DAYS.match(spec_):
-            spec_ = DEFAULT_WEEK_FRAME + ' ' + spec_
-        logger.debug('=> spec_ evaluated = "%s"', spec_)
+                raise ValueError("No default timezone defined in environment variable 'DEFAULT_TIMEZONE'")
+        if TIME_SPEC_PATTERN_WO_WF.match(spec_):
+            if DEFAULT_WEEKFRAME:
+                spec_ = DEFAULT_WEEKFRAME + ' ' + spec_
+            else:
+                raise ValueError("No default week frame defined in environment variable 'DEFAULT_WEEKFRAME'")
         recurring_match = TIME_SPEC_PATTERN.match(spec_)
         if recurring_match is not None and _matches_recurring_time_spec(
             time, recurring_match
