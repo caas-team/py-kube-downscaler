@@ -292,6 +292,20 @@ In the expression `<WEEKDAY-FROM>-<WEEKDAY-TO-INCLUSIVE> <HH>:<MM>-<HH>:<MM> <TI
 the time range `<HH>:<MM>-<HH>:<MM>` should always have the end time later
 than the start time (in 24-hour format)
 
+You can also use simplified time specifications.
+If the weekday range or the timezone is not included in the specification, the downscaler can automatically complete the rule when corresponding environment variables are defined.
+
+The following environment variables can be used to provide default values:
+- `DEFAULT_TIMEZONE` defines the time zone to use when not specified in the specification (for example `Europe/Paris`).
+- `DEFAULT_WEEKFRAME` defines the weekday range to use to use when not specified in the specification (for example `Mon-Sun`).
+
+For example:
+- `Mon-Fri 08:00-20:00` interpreted as `Mon-Fri 08:00-20:00 Europe/Paris` when `DEFAULT_TIMEZONE` is set to `Europe/Paris`.
+- `08:00-20:00 Europe/Paris` interpreted as `Mon-Sun 08:00-20:00 Europe/Paris` when `DEFAULT_WEEKFRAME` is set to `Mon-Sun`.
+- `08:00-20:00` will only be valid if both `DEFAULT_TIMEZONE` and `DEFAULT_WEEKFRAME` are defined.
+
+If the timezone and/or the weekday range are not provided in the specification and the corresponding default environment variable  is not set, the downscaler will raise a clear `ValueError` to prevent ambiguous or unintended behavior.
+
 If you want to schedule downtime from 23:30 to 09:30 the following day,
 a configuration like this would be incorrect:
 
