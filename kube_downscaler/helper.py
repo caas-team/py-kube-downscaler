@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import re
 import os
@@ -180,15 +181,22 @@ def create_event(resource, message: str, reason: str, event_type: str, dry_run: 
         except Exception as e:
             logger.error(f"Could not create event {event.obj}: {e}")
 
-def setup_logging(debug: bool):
+def setup_logging(debug: bool, json_logs: bool):
     logging.getLogger().handlers.clear()
-
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
-    formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
-
     stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setFormatter(formatter)
 
+    if json_logs:
+        formatter = logging.Formatter()
+        formatter.format = lambda record: json.dumps({
+            "time": logging.Formatter.formatTime(logging.Formatter(), record),
+            "severity": record.levelname,
+            "message": record.getMessage().replace('"', "'")
+        })
+    else:
+        formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
+
+    stderr_handler.setFormatter(formatter)
     root_logger.addHandler(stderr_handler)

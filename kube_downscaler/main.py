@@ -23,7 +23,7 @@ def main(args=None):
     parser = cmd.get_parser()
     args = parser.parse_args(args)
 
-    helper.setup_logging(args.debug)
+    helper.setup_logging(args.debug, args.json_logs)
 
     config_str = ", ".join(f"{k}={v}" for k, v in sorted(vars(args).items()))
     logger.info(f"Downscaler v{__version__} started with {config_str}")

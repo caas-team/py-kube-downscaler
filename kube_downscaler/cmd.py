@@ -134,4 +134,9 @@ def get_parser():
         default=os.getenv("ADMISSION_CONTROLLER", ""),
         help="Apply downscaling to jobs using the supplied admission controller. Jobs should be included inside --include-resources if you want to use this parameter. kyverno and gatekeeper are supported.",
     )
+    parser.add_argument(
+        "--json-logs",
+        help="Output logs in JSON format instead of plain text (default: false)",
+        action="store_true",
+    )
     return parser
