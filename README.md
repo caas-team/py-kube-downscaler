@@ -3,9 +3,13 @@
 <a href="/../../releases/" title="GitHub Release"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/caas-team/py-kube-downscaler?style=flat"></a>
 <a href="./LICENSE" title="GitHub License"><img alt="GitHub License" src="https://img.shields.io/github/license/caas-team/py-kube-downscaler?style=flat"></a>
 <a href="/../../issues/" title="GitHub Issues"><img alt="GitHub Issues" src="https://img.shields.io/github/issues/caas-team/py-kube-downscaler"></a>
-<a href="https://communityinviter.com/apps/kube-downscaler/kube-downscaler" title="Slack Workspace"><img alt="Slack Workspace" src="https://img.shields.io/badge/slack-kube--downscaler-dark_green?style=flat&logo=slack"></a>
+<a href="https://inviter.co/kube-downscaler" title="Slack Workspace"><img alt="Slack Workspace" src="https://img.shields.io/badge/slack-kube--downscaler-dark_green?style=flat&logo=slack"></a>
 
 This is a fork of the no longer maintained [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler).
+
+> [!IMPORTANT]  
+> The **py-kube-downscaler** is in **maintenance-only mode**.  
+> If you're still looking to get feature updates, please [migrate to the successor](https://caas-team.github.io/GoKubeDownscaler/guides/migrating), the [**GoKubeDownscaler**](https://github.com/caas-team/GoKubeDownscaler), which is faster, more efficient, and includes additional and comfort features.
 
 Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
 `HorizontalPodAutoscalers`, `DaemonSets`, `CronJobs`, `Jobs`, `PodDisruptionBudgets`, `Argo Rollouts` and `Keda ScaledObjects` too !) during non-work hours.
@@ -42,6 +46,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Scaling AutoscalingRunnerSet](#scaling-autoscalingrunnerset)
     - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
+  - [Verifying Cosign Signature](#verifying-cosign-signature)
   - [Migrate From Codeberg](#migrate-from-codeberg)
     - [Migrate From Codeberg - Cluster Wide Installation](#migrate-from-codeberg---cluster-wide-installation)
     - [Migrate From Codeberg - Limited Access Installation](#migrate-from-codeberg---limited-access-installation)
@@ -766,6 +771,21 @@ The following annotations are supported on the Namespace level:
   namespace until the given timestamp
 - `downscaler/downtime-replicas`: overwrite the default target
   replicas to scale down to (default: zero)
+
+## Verifying Cosign Signature
+
+Public Key:
+
+```text title="cosign.pub"
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgei36FSIhT8a9lOHs1Sem5KvmrT+
+Xi2EcyjLvaJzqu5n0TiygGeO4ZcU30A1PQv6xoI0xBxpyZAw7XeqzrRDOQ==
+-----END PUBLIC KEY-----
+```
+
+```bash
+cosign verify --key cosign.pub --insecure-ignore-tlog ghcr.io/caas-team/py-kube-downscaler:24.12.0
+```
 
 ## Migrate From Codeberg
 
