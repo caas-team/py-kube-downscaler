@@ -225,11 +225,18 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
         pods = []
         for namespace in namespaces:
             try:
-                pods_query_result = pykube.Pod.objects(api).filter(namespace=namespace)
+                pods_query_result = helper.call_with_exponential_backoff(
+                    lambda: pykube.Pod.objects(api).filter(namespace=namespace),
+                    context_msg=f"fetching pods for namespace {namespace}",
+                )
                 pods += pods_query_result
             except requests.HTTPError as e:
                 if e.response.status_code == 404:
                     logger.debug(f"No pods found in namespace {namespace} (404)")
+                elif e.response.status_code == 429:
+                    logger.warning(
+                        f"KubeDownscaler is being rate-limited by the Kubernetes API while querying namespaces (429 Too Many Requests). Retrying at next cycle"
+                    )
                 elif e.response.status_code == 403:
                     logger.warning(
                         f"Not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
@@ -240,11 +247,18 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
                     raise e
     else:
         try:
-            pods = pykube.Pod.objects(api).filter(namespace=pykube.all)
+            pods = helper.call_with_exponential_backoff(
+                lambda: pykube.Pod.objects(api).filter(namespace=pykube.all),
+                context_msg=f"fetching pods clusterwide",
+            )
         except requests.HTTPError as e:
             if e.response.status_code == 403:
                 logger.warning(
                     "KubeDownscaler is not authorized to perform a cluster wide query to retrieve Pods (403)"
+                )
+            elif e.response.status_code == 429:
+                logger.warning(
+                    f"KubeDownscaler is being rate-limited by the Kubernetes API while querying namespaces (429 Too Many Requests). Retrying at next cycle"
                 )
             else:
                 raise e
