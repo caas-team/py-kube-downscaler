@@ -24,6 +24,9 @@ def main(args=None):
     args = parser.parse_args(args)
 
     helper.setup_logging(args.debug, args.json_logs)
+    helper.initialize_token_bucket(args.qps, args.burst)
+    helper.initialize_max_retries(args.max_retries_on_throttling)
+
 
     config_str = ", ".join(f"{k}={v}" for k, v in sorted(vars(args).items()))
     logger.info(f"Downscaler v{__version__} started with {config_str}")
