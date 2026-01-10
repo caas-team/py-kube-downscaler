@@ -249,6 +249,8 @@ def test_grace_period(resource, monkeypatch):
 
 def test_downtime_always(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -281,6 +283,8 @@ def test_downtime_always(resource, monkeypatch):
 
 def test_downtime_interval(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -344,6 +348,8 @@ def test_forced_uptime(resource, monkeypatch):
 
 def test_forced_downtime(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -405,6 +411,8 @@ def test_autoscale_bad_resource(monkeypatch):
 
 def test_scale_up(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -439,6 +447,8 @@ def test_scale_up(resource, monkeypatch):
 
 def test_scale_up_downtime_replicas_annotation(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -506,6 +516,8 @@ def test_downtime_replicas_annotation_invalid(resource, monkeypatch):
 
 def test_downtime_replicas_annotation_valid(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -569,6 +581,8 @@ def test_downtime_replicas_invalid(resource, monkeypatch):
 
 def test_downtime_replicas_valid(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -598,8 +612,10 @@ def test_downtime_replicas_valid(resource, monkeypatch):
     resource.update.assert_called_once()
 
 
-def test_set_annotation():
+def test_set_annotation(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     api.config.namespace = "myns"
     resource = pykube.StatefulSet(
         api,
@@ -643,6 +659,8 @@ def test_set_annotation():
 
 def test_downscale_always(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -675,6 +693,8 @@ def test_downscale_always(resource, monkeypatch):
 
 def test_downscale_period(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -769,6 +789,8 @@ def test_downscale_period_not_match(resource, monkeypatch):
 
 def test_downscale_period_resource_overrides_never(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -802,6 +824,8 @@ def test_downscale_period_resource_overrides_never(resource, monkeypatch):
 
 def test_downscale_period_resource_overrides_namespace(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -944,6 +968,8 @@ def test_downscale_stack_deployment_ignored(monkeypatch):
 
 def test_downscale_replicas_not_zero(resource, monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1652,6 +1678,8 @@ def test_upscale_scaledobject_without_keda_pause_annotation(monkeypatch):
 
 def test_downscale_resource_concurrently_modified(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
