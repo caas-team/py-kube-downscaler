@@ -301,13 +301,9 @@ def get_namespace_to_namespace_obj(api, namespaces):
             for obj in namespace_objects:
                 namespace_to_namespace_objects[obj.name] = obj
         except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                logger.debug(
-                    f"No namespace with name {namespace} (404)"
-                )
             if e.response.status_code == 403:
                 logger.error(
-                    f"KubeDownscaler is not authorized to query namespace (403). Please check your RBAC settings if you are using constrained mode. "
+                    f"KubeDownscaler is not authorized to query namespaces (403). Please check your RBAC settings if you are using constrained mode. "
                     f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
                     f"The RoleBinding should be linked to the KubeDownscaler Service Account."
                 )
@@ -326,19 +322,15 @@ def get_namespace_to_namespace_obj(api, namespaces):
             for obj in namespace_objects:
                 namespace_to_namespace_objects[obj.name] = obj
         except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                logger.debug(
-                    f"No {kind.endpoint} found in namespace {namespace} (404)"
-                )
             if e.response.status_code == 403:
                 logger.error(
-                    f"KubeDownscaler is not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
+                    f"KubeDownscaler is not authorized to query namespaces (403). Please check your RBAC settings if you are using constrained mode. "
                     f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
                     f"The RoleBinding should be linked to the KubeDownscaler Service Account."
                 )
             if e.response.status_code == 429:
                 logger.warning(
-                    f"KubeDownscaler is being rate-limited by the Kubernetes API while querying {kind.endpoint} (429 Too Many Requests). Retrying at next cycle"
+                    f"KubeDownscaler is being rate-limited by the Kubernetes API while querying namespaces (429 Too Many Requests). Retrying at next cycle"
                 )
             else:
                 raise e
@@ -1112,7 +1104,7 @@ def autoscale_jobs_for_namespace(
                         logger.debug("Kyverno Policy Correctly Deleted")
                     elif operation == "kyverno_update":
                         helper.call_with_exponential_backoff(
-                            lambda: ubeDownscalerJobsPolicy(api, policy).update(),
+                            lambda: KubeDownscalerJobsPolicy(api, policy).update(),
                             context_msg=f"updating Kyverno Policy"
                         )
                         logger.debug("Kyverno Policy Correctly Updated")

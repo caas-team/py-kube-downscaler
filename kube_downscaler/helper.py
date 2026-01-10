@@ -250,7 +250,7 @@ def call_with_exponential_backoff(
         max_delay: float = 60.0,
         backoff_factor: int = 2,
         jitter: bool = True,
-        retry_on_status_codes: tuple = 429,
+        retry_on_status_codes: tuple = (429,),
         context_msg: Optional[str] = None,
         use_token_bucket: bool = True
 ) -> T:
@@ -289,7 +289,7 @@ def call_with_exponential_backoff(
                 last_exception = e
                 if e.response.status_code in retry_on_status_codes:
                     if retry_count >= MAX_RETRIES:
-                        error_msg = f"max retries ({MAX_RETRIES}) reached"
+                        error_msg = f"Max retries ({MAX_RETRIES}) reached"
                         if context_msg:
                             error_msg += f" for {context_msg}"
                         error_msg += ". giving up."
