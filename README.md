@@ -494,11 +494,9 @@ argument is strongly recommended when using the `--once` argument to process lar
 
 `--burst`
 
-: Optional: The maximum number of requests a KubeDownscaler can send at once above the QPS limit for 
-(default: 0, meaning qps control is disabled) Burst must be greater-equal than qps
+: Optional: maximum number of requests a KubeDownscaler can send at once above the QPS limit for 
+(default: 0, meaning burst control is disabled) Burst must be greater-equal than qps
 
-
-: Optional: Maximum number of requests per second allowed when communicating with the Kubernetes API. Used for client-side rate limiting (0 disables rate limiting).
 
 `--max-retries-on-throttling`
 

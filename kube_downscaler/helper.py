@@ -308,7 +308,7 @@ def call_with_exponential_backoff(
                                 #try parsing as HTTP date
                                 from email.utils import parsedate_to_datetime
                                 retry_date = parsedate_to_datetime(retry_after)
-                                delay = (retry_date - datetime.now(retry_date.tzinfo)).total_seconds()
+                                delay = (retry_date - datetime.datetime.now(retry_date.tzinfo)).total_seconds()
 
                             #cap the delay at max_delay
                             delay = min(delay, max_delay)
