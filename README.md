@@ -501,8 +501,8 @@ argument is strongly recommended when using the `--once` argument to process lar
 
 `--max-retries-on-throttling`
 
-: Optional: How many retries to perform when KubeDownscaler hits API Server throttling limits (default: 0). The
-retries are performed using an exponential backoff strategy to reduce the chance of hitting the rate limit again.
+: Optional: How many retries to perform when KubeDownscaler hits API Server throttling limits (default: 0).
+The retries are performed using an exponential backoff strategy to reduce the chance of hitting the rate limit again.
 
 ### Constrained Mode (Limited Access Mode)
 
