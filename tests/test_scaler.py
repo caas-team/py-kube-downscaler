@@ -13,14 +13,15 @@ from kube_downscaler.scaler import scale
 from kube_downscaler.scaler import scale_down_jobs
 from kube_downscaler.scaler import scale_up_jobs
 
+
 def test_scale_custom_timeout(monkeypatch):
     api_server_timeout = 15  # Defined by the user
     api = MagicMock()
     api.timeout = 15  # Expected timeout
 
     mock_get_kube_api = MagicMock(return_value=api)
-    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
-    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr("kube_downscaler.scaler.helper.get_kube_api", mock_get_kube_api)
 
     scale(
@@ -57,7 +58,8 @@ def test_scaler_always_up(monkeypatch):
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
     monkeypatch.setattr(
-        "kube_downscaler.scaler.helper.call_with_exponential_backoff", MagicMock(return_value=api)
+        "kube_downscaler.scaler.helper.call_with_exponential_backoff",
+        MagicMock(return_value=api),
     )
 
     def get(url, version, **kwargs):
@@ -156,7 +158,10 @@ def test_scaler_namespace_included(monkeypatch):
             data = {"metadata": {}}
         elif url == "namespaces/default":
             data = {"metadata": {}}
-        elif url == "namespaces?labelSelector=kubernetes.io%2Fmetadata.name+in+%28system-ns%29":
+        elif (
+            url
+            == "namespaces?labelSelector=kubernetes.io%2Fmetadata.name+in+%28system-ns%29"
+        ):
             data = {
                 "items": [
                     {"metadata": {"name": "system-ns"}},
@@ -222,8 +227,8 @@ def test_scaler_namespace_excluded(monkeypatch):
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
-    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
-    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
 
     def get(url, version, **kwargs):
         if url == "pods":
@@ -255,7 +260,7 @@ def test_scaler_namespace_excluded(monkeypatch):
             data = {
                 "items": [
                     {"metadata": {"name": "default"}},
-                    {"metadata": {"name": "system-ns"}}
+                    {"metadata": {"name": "system-ns"}},
                 ]
             }
         else:
@@ -307,8 +312,8 @@ def test_scaler_namespace_excluded(monkeypatch):
 
 def test_scaler_namespace_excluded_regex(monkeypatch):
     api = MagicMock()
-    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
-    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -343,7 +348,7 @@ def test_scaler_namespace_excluded_regex(monkeypatch):
             data = {
                 "items": [
                     {"metadata": {"name": "default"}},
-                    {"metadata": {"name": "system-ns"}}
+                    {"metadata": {"name": "system-ns"}},
                 ]
             }
         else:
@@ -436,8 +441,13 @@ def test_scaler_namespace_excluded_via_annotation(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/exclude": "true"}}},
-                    {"metadata": {"name": "ns-2"}}
+                    {
+                        "metadata": {
+                            "name": "ns-1",
+                            "annotations": {"downscaler/exclude": "true"},
+                        }
+                    },
+                    {"metadata": {"name": "ns-2"}},
                 ]
             }
         else:
@@ -519,11 +529,7 @@ def test_scaler_down_to(monkeypatch):
         elif url == "namespaces/default":
             data = {"metadata": {}}
         elif url == "namespaces":
-            data = {
-                "items": [
-                    {"metadata": {"name": "default"}}
-                ]
-            }
+            data = {"items": [{"metadata": {"name": "default"}}]}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -591,11 +597,7 @@ def test_skip_deployment_with_local_downtime_replicas_percentage(monkeypatch):
         elif url == "namespaces/default":
             data = {"metadata": {}}
         elif url == "namespaces":
-            data = {
-                "items": [
-                    {"metadata": {"name": "default"}}
-                ]
-            }
+            data = {"items": [{"metadata": {"name": "default"}}]}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -665,7 +667,7 @@ def test_skip_deployment_with_global_downtime_replicas_percentage(monkeypatch):
             data = {
                 "items": [
                     {"metadata": {"name": "default"}},
-                    {"metadata": {"name": "system-ns"}}
+                    {"metadata": {"name": "system-ns"}},
                 ]
             }
         else:
@@ -886,7 +888,12 @@ def test_scaler_no_upscale_on_exclude_namespace_with_upscale_target_only(monkeyp
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {EXCLUDE_ANNOTATION: "true"}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {EXCLUDE_ANNOTATION: "true"},
+                        }
+                    },
                 ]
             }
         else:
@@ -1035,7 +1042,12 @@ def test_scaler_no_upscale_on_exclude_namespace_without_upscale_target_only(
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {EXCLUDE_ANNOTATION: "true"}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {EXCLUDE_ANNOTATION: "true"},
+                        }
+                    },
                 ]
             }
         else:
@@ -1178,7 +1190,12 @@ def test_scaler_namespace_annotation_replicas(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {"downscaler/downtime-replicas": SCALE_TO}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {"downscaler/downtime-replicas": SCALE_TO},
+                        }
+                    },
                 ]
             }
 
@@ -1251,7 +1268,12 @@ def test_scaler_daemonset_suspend(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {"downscaler/uptime": "never"},
+                        }
+                    },
                 ]
             }
         else:
@@ -1352,10 +1374,15 @@ def test_scaler_daemonset_unsuspend(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {
-                        "downscaler/uptime": "always",
-                        "downscaler/downtime": "never",
-                    }}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {
+                                "downscaler/uptime": "always",
+                                "downscaler/downtime": "never",
+                            },
+                        }
+                    },
                 ]
             }
         else:
@@ -1440,7 +1467,12 @@ def test_scaler_cronjob_suspend(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {"downscaler/uptime": "never"},
+                        }
+                    },
                 ]
             }
             # data = {'metadata': {}}
@@ -1530,10 +1562,15 @@ def test_scaler_cronjob_unsuspend(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {
-                        "downscaler/uptime": "always",
-                        "downscaler/downtime": "never",
-                    }}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {
+                                "downscaler/uptime": "always",
+                                "downscaler/downtime": "never",
+                            },
+                        }
+                    },
                 ]
             }
 
@@ -1616,7 +1653,12 @@ def test_scaler_job_suspend_without_admission_controller(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {"downscaler/uptime": "never"},
+                        }
+                    },
                 ]
             }
             # data = {'metadata': {}}
@@ -1701,7 +1743,12 @@ def test_scaler_job_suspend_without_admission_controller_with_owner_reference(
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {"downscaler/uptime": "never"},
+                        }
+                    },
                 ]
             }
             # data = {'metadata': {}}
@@ -1779,10 +1826,15 @@ def test_scaler_job_unsuspend_without_admission_controller(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {
-                        "downscaler/uptime": "always",
-                        "downscaler/downtime": "never",
-                    }}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {
+                                "downscaler/uptime": "always",
+                                "downscaler/downtime": "never",
+                            },
+                        }
+                    },
                 ]
             }
             # data = {'metadata': {}}
@@ -2052,8 +2104,15 @@ def test_scaler_namespace_excluded_until(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/exclude-until": "2032-01-01T02:20"}}},
-                    {"metadata": {"name": "ns-2"}}
+                    {
+                        "metadata": {
+                            "name": "ns-1",
+                            "annotations": {
+                                "downscaler/exclude-until": "2032-01-01T02:20"
+                            },
+                        }
+                    },
+                    {"metadata": {"name": "ns-2"}},
                 ]
             }
         else:
@@ -2216,7 +2275,12 @@ def test_scaler_namespace_force_uptime_true(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/force-uptime": "true"}}},
+                    {
+                        "metadata": {
+                            "name": "ns-1",
+                            "annotations": {"downscaler/force-uptime": "true"},
+                        }
+                    },
                 ]
             }
         else:
@@ -2280,7 +2344,12 @@ def test_scaler_namespace_force_uptime_false(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/force-uptime": "false"}}},
+                    {
+                        "metadata": {
+                            "name": "ns-1",
+                            "annotations": {"downscaler/force-uptime": "false"},
+                        }
+                    },
                 ]
             }
 
@@ -2409,15 +2478,30 @@ def test_scaler_namespace_force_uptime_period(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "ns-1", "annotations": {
-                        "downscaler/force-uptime": "2020-04-04T16:00:00+00:00-2020-04-05T16:00:00+00:00"
-                    }}},
-                    {"metadata": {"name": "ns-2", "annotations": {
-                        "downscaler/force-uptime": "2020-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
-                    }}},
-                    {"metadata": {"name": "ns-3", "annotations": {
-                        "downscaler/force-uptime": "2040-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
-                    }}}
+                    {
+                        "metadata": {
+                            "name": "ns-1",
+                            "annotations": {
+                                "downscaler/force-uptime": "2020-04-04T16:00:00+00:00-2020-04-05T16:00:00+00:00"
+                            },
+                        }
+                    },
+                    {
+                        "metadata": {
+                            "name": "ns-2",
+                            "annotations": {
+                                "downscaler/force-uptime": "2020-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
+                            },
+                        }
+                    },
+                    {
+                        "metadata": {
+                            "name": "ns-3",
+                            "annotations": {
+                                "downscaler/force-uptime": "2040-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
+                            },
+                        }
+                    },
                 ]
             }
         else:
@@ -2490,7 +2574,12 @@ def test_scaler_namespace_force_downtime_true(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/force-downtime": "true"}}},
+                    {
+                        "metadata": {
+                            "name": "ns-1",
+                            "annotations": {"downscaler/force-downtime": "true"},
+                        }
+                    },
                 ]
             }
         else:
@@ -2554,7 +2643,12 @@ def test_scaler_namespace_force_downtime_false(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/force-downtime": "false"}}},
+                    {
+                        "metadata": {
+                            "name": "ns-1",
+                            "annotations": {"downscaler/force-downtime": "false"},
+                        }
+                    },
                 ]
             }
         else:
@@ -2625,10 +2719,15 @@ def test_scaler_namespace_force_uptime_and_downtime_true(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "ns-1", "annotations": {
-                        "downscaler/force-downtime": "true",
-                        "downscaler/force-uptime": "true",
-                    }}},
+                    {
+                        "metadata": {
+                            "name": "ns-1",
+                            "annotations": {
+                                "downscaler/force-downtime": "true",
+                                "downscaler/force-uptime": "true",
+                            },
+                        }
+                    },
                 ]
             }
         else:
@@ -2733,15 +2832,30 @@ def test_scaler_namespace_force_downtime_period(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "ns-1", "annotations": {
-                        "downscaler/force-downtime": "2020-04-04T16:00:00+00:00-2020-04-05T16:00:00+00:00"
-                    }}},
-                    {"metadata": {"name": "ns-2", "annotations": {
-                        "downscaler/force-downtime": "2020-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
-                    }}},
-                    {"metadata": {"name": "ns-3", "annotations": {
-                        "downscaler/force-downtime": "2040-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
-                    }}},
+                    {
+                        "metadata": {
+                            "name": "ns-1",
+                            "annotations": {
+                                "downscaler/force-downtime": "2020-04-04T16:00:00+00:00-2020-04-05T16:00:00+00:00"
+                            },
+                        }
+                    },
+                    {
+                        "metadata": {
+                            "name": "ns-2",
+                            "annotations": {
+                                "downscaler/force-downtime": "2020-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
+                            },
+                        }
+                    },
+                    {
+                        "metadata": {
+                            "name": "ns-3",
+                            "annotations": {
+                                "downscaler/force-downtime": "2040-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
+                            },
+                        }
+                    },
                 ]
             }
         else:
@@ -2795,8 +2909,15 @@ def test_autoscale_jobs_gatekeeper_not_installed(
     autoscale_jobs(
         api=None,
         namespaces=["test-namespace"],
-        namespace_to_namespace_obj={"items": [
-        {"metadata": {"name": "test-namespace",}}]},
+        namespace_to_namespace_obj={
+            "items": [
+                {
+                    "metadata": {
+                        "name": "test-namespace",
+                    }
+                }
+            ]
+        },
         exclude_namespaces=set(),
         upscale_period="never",
         downscale_period="never",
@@ -2829,8 +2950,15 @@ def test_autoscale_jobs_invented_admission_controller(
     autoscale_jobs(
         api=None,
         namespaces=["test-namespace"],
-        namespace_to_namespace_obj={"items": [
-        {"metadata": {"name": "test-namespace", }}]},
+        namespace_to_namespace_obj={
+            "items": [
+                {
+                    "metadata": {
+                        "name": "test-namespace",
+                    }
+                }
+            ]
+        },
         exclude_namespaces=set(),
         upscale_period="never",
         downscale_period="never",
@@ -3043,7 +3171,12 @@ def test_scaler_pdb_suspend_percentage(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {"downscaler/uptime": "never"},
+                        }
+                    },
                 ]
             }
         else:
@@ -3112,7 +3245,12 @@ def test_scaler_pdb_suspend_max_unavailable_percentage(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {"downscaler/uptime": "never"},
+                        }
+                    },
                 ]
             }
         else:
@@ -3201,10 +3339,15 @@ def test_scaler_pdb_unsuspend_max_unavailable_percentage(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {
-                        "downscaler/uptime": "always",
-                        "downscaler/downtime": "never",
-                    }}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {
+                                "downscaler/uptime": "always",
+                                "downscaler/downtime": "never",
+                            },
+                        }
+                    },
                 ]
             }
         else:
@@ -3285,7 +3428,12 @@ def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {"downscaler/uptime": "never"},
+                        }
+                    },
                 ]
             }
         else:
@@ -3374,10 +3522,15 @@ def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {
-                        "downscaler/uptime": "always",
-                        "downscaler/downtime": "never",
-                    }}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {
+                                "downscaler/uptime": "always",
+                                "downscaler/downtime": "never",
+                            },
+                        }
+                    },
                 ]
             }
         else:
@@ -3458,7 +3611,12 @@ def test_scaler_pdb_suspend_min_available(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {"downscaler/uptime": "never"},
+                        }
+                    },
                 ]
             }
         else:
@@ -3547,10 +3705,15 @@ def test_scaler_pdb_unsuspend_min_available(monkeypatch):
         elif url == "namespaces":
             data = {
                 "items": [
-                    {"metadata": {"name": "default", "annotations": {
-                        "downscaler/uptime": "always",
-                        "downscaler/downtime": "never",
-                    }}},
+                    {
+                        "metadata": {
+                            "name": "default",
+                            "annotations": {
+                                "downscaler/uptime": "always",
+                                "downscaler/downtime": "never",
+                            },
+                        }
+                    },
                 ]
             }
         else:
@@ -3723,7 +3886,7 @@ def test_scaler_upscale_keda_already_with_pause_annotation(monkeypatch):
             data = {
                 "items": [
                     {"metadata": {"name": "default"}},
-                    {"metadata": {"name": "system-ns"}}
+                    {"metadata": {"name": "system-ns"}},
                 ]
             }
         else:
@@ -3894,7 +4057,7 @@ def test_scaler_upscale_keda_without_pause_annotation(monkeypatch):
             data = {
                 "items": [
                     {"metadata": {"name": "default"}},
-                    {"metadata": {"name": "system-ns"}}
+                    {"metadata": {"name": "system-ns"}},
                 ]
             }
         else:
@@ -3978,7 +4141,7 @@ def test_scaler_downscale_keda_with_downscale_replicas_annotation(monkeypatch):
             data = {
                 "items": [
                     {"metadata": {"name": "default"}},
-                    {"metadata": {"name": "system-ns"}}
+                    {"metadata": {"name": "system-ns"}},
                 ]
             }
         else:
@@ -4067,7 +4230,7 @@ def test_scaler_upscale_keda_with_downscale_replicas_annotation(monkeypatch):
             data = {
                 "items": [
                     {"metadata": {"name": "default"}},
-                    {"metadata": {"name": "system-ns"}}
+                    {"metadata": {"name": "system-ns"}},
                 ]
             }
         else:

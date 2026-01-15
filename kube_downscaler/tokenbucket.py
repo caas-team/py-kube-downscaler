@@ -17,7 +17,9 @@ class TokenBucket:
                     now = time.time()
                     elapsed = now - self.last_update
 
-                    self.tokens = min(float(self.burst), self.tokens + elapsed * self.qps)
+                    self.tokens = min(
+                        float(self.burst), self.tokens + elapsed * self.qps
+                    )
                     self.last_update = now
 
                     if self.tokens >= tokens:

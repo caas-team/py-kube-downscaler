@@ -31,8 +31,8 @@ def event():
 
 def test_add_event_update_existing(monkeypatch, resource, event):
     query = Query(resource.api, event, resource.namespace)
-    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
-    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr("pykube.query.Query.get_or_none", MagicMock(return_value=event))
     monkeypatch.setattr("pykube.objects.Event.objects", MagicMock(return_value=query))
     e = helper.add_event(resource, "test message", "reason", "Normal", False)
@@ -41,8 +41,8 @@ def test_add_event_update_existing(monkeypatch, resource, event):
 
 
 def test_create_event(monkeypatch, resource, event):
-    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
-    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr("pykube.objects.Event.create", MagicMock(return_value=event))
     e = helper.create_event(resource, "test message", "reason", "Normal", False)
     assert e.obj["count"] == 1
@@ -50,8 +50,8 @@ def test_create_event(monkeypatch, resource, event):
 
 
 def test_add_event(monkeypatch, resource, event):
-    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
-    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr("pykube.objects.Event.create", MagicMock(return_value=event))
     e = helper.add_event(resource, "test message", "reason", "Normal", False)
     assert e.obj["count"] == 1
