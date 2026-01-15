@@ -1,6 +1,6 @@
-import pytest
+from unittest.mock import patch
+
 import requests
-from unittest.mock import Mock, patch
 from requests.models import Response
 
 from kube_downscaler.helper import call_with_exponential_backoff
@@ -33,7 +33,7 @@ def test_call_with_exponential_backoff_retries_then_succeeds(monkeypatch):
             backoff_factor=3,
             jitter=False,
             retry_on_status_codes=(429,),
-            use_token_bucket=False
+            use_token_bucket=False,
         )
 
     assert result == "success"
@@ -43,14 +43,17 @@ def test_call_with_exponential_backoff_retries_then_succeeds(monkeypatch):
     mock_sleep.assert_any_call(1.0)
     mock_sleep.assert_any_call(3.0)
 
+
 def test_initial_tokens():
     tb = TokenBucket(qps=5, burst=10)
     assert tb.tokens == 10  # token bucket starts full
+
 
 def test_acquire_with_enough_tokens():
     tb = TokenBucket(qps=5, burst=10)
     tb.acquire(3)
     assert tb.tokens == 7  # 10 - 3 tokens used
+
 
 def test_acquire_blocks_when_not_enough_tokens():
     tb = TokenBucket(qps=5, burst=10)
@@ -62,6 +65,7 @@ def test_acquire_blocks_when_not_enough_tokens():
         # the token bucket will calculate sleep = (5-2)/5 = 0.6s
         mock_sleep.assert_called()  # ensures sleep was called
 
+
 def test_token_refill_over_time():
     tb = TokenBucket(qps=2, burst=5)
     tb.tokens = 2
@@ -72,6 +76,7 @@ def test_token_refill_over_time():
         tb.acquire(5)
         assert tb.tokens == 0
         mock_sleep.assert_not_called()  # enough tokens, no sleep needed
+
 
 def test_burst_limit():
     tb = TokenBucket(qps=5, burst=10)

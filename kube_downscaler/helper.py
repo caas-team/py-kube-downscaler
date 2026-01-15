@@ -1,14 +1,19 @@
 import datetime
 import json
 import logging
-import re
 import os
+import re
 import sys
 import time
-from typing import Match, Callable, TypeVar, Optional
+from typing import Callable
+from typing import Match
+from typing import Optional
+from typing import TypeVar
+
 import pykube
 import pytz
 import requests
+
 from kube_downscaler.tokenbucket import TokenBucket
 
 logger = logging.getLogger(__name__)
@@ -21,8 +26,10 @@ WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 TIME_SPEC_PATTERN = re.compile(
     r"^([a-zA-Z]{3})-([a-zA-Z]{3}) (\d\d):(\d\d)-(\d\d):(\d\d) (?P<tz>[a-zA-Z/_]+)$"
 )
-TIME_SPEC_PATTERN_WO_TZ = re.compile(r'.*(\d\d)$')
-TIME_SPEC_PATTERN_WO_WF = re.compile(r'^(\d\d):(\d\d)-(\d\d):(\d\d) (?P<tz>[a-zA-Z/_]+)$')
+TIME_SPEC_PATTERN_WO_TZ = re.compile(r".*(\d\d)$")
+TIME_SPEC_PATTERN_WO_WF = re.compile(
+    r"^(\d\d):(\d\d)-(\d\d):(\d\d) (?P<tz>[a-zA-Z/_]+)$"
+)
 _ISO_8601_TIME_SPEC_PATTERN = r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[-+]\d{2}:\d{2})"
 ABSOLUTE_TIME_SPEC_PATTERN = re.compile(
     r"^{0}-{0}$".format(_ISO_8601_TIME_SPEC_PATTERN)
@@ -41,14 +48,18 @@ def matches_time_spec(time: datetime.datetime, spec: str):
         match = TIME_SPEC_PATTERN_WO_TZ.match(spec_)
         if match and not ABSOLUTE_TIME_SPEC_PATTERN.match(spec_):
             if DEFAULT_TIMEZONE:
-                spec_ = spec_ + ' ' + DEFAULT_TIMEZONE
+                spec_ = spec_ + " " + DEFAULT_TIMEZONE
             else:
-                raise ValueError("No default timezone defined in environment variable 'DEFAULT_TIMEZONE'")
+                raise ValueError(
+                    "No default timezone defined in environment variable 'DEFAULT_TIMEZONE'"
+                )
         if TIME_SPEC_PATTERN_WO_WF.match(spec_):
             if DEFAULT_WEEKFRAME:
-                spec_ = DEFAULT_WEEKFRAME + ' ' + spec_
+                spec_ = DEFAULT_WEEKFRAME + " " + spec_
             else:
-                raise ValueError("No default week frame defined in environment variable 'DEFAULT_WEEKFRAME'")
+                raise ValueError(
+                    "No default week frame defined in environment variable 'DEFAULT_WEEKFRAME'"
+                )
         recurring_match = TIME_SPEC_PATTERN.match(spec_)
         if recurring_match is not None and _matches_recurring_time_spec(
             time, recurring_match
@@ -153,7 +164,7 @@ def add_event(resource, message: str, reason: str, event_type: str, dry_run: boo
         try:
             call_with_exponential_backoff(
                 lambda: event.update(),
-                context_msg = f"updating event for id {uid}",
+                context_msg=f"updating event for id {uid}",
             )
             return event
         except requests.HTTPError as e:
@@ -212,25 +223,34 @@ def create_event(resource, message: str, reason: str, event_type: str, dry_run: 
             else:
                 raise e
 
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        return json.dumps(
+            {
+                "time": self.formatTime(record),
+                "severity": record.levelname,
+                "message": record.getMessage().replace('"', "'"),
+            }
+        )
+
+
 def setup_logging(debug: bool, json_logs: bool):
-    logging.getLogger().handlers.clear()
     root_logger = logging.getLogger()
+    root_logger.handlers.clear()
     root_logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
     stderr_handler = logging.StreamHandler(sys.stderr)
 
+    formatter: logging.Formatter
     if json_logs:
-        formatter = logging.Formatter()
-        formatter.format = lambda record: json.dumps({
-            "time": logging.Formatter.formatTime(logging.Formatter(), record),
-            "severity": record.levelname,
-            "message": record.getMessage().replace('"', "'")
-        })
+        formatter = JsonFormatter()
     else:
         formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
 
     stderr_handler.setFormatter(formatter)
     root_logger.addHandler(stderr_handler)
+
 
 def initialize_token_bucket(qps, burst):
     global TOKEN_BUCKET
@@ -238,21 +258,24 @@ def initialize_token_bucket(qps, burst):
         TOKEN_BUCKET = None
     TOKEN_BUCKET = TokenBucket(qps=qps, burst=burst)
 
+
 def initialize_max_retries(max_retries):
     global MAX_RETRIES
     MAX_RETRIES = max_retries
 
-T = TypeVar('T')
+
+T = TypeVar("T")
+
 
 def call_with_exponential_backoff(
-        func: Callable[..., T],
-        base_delay: float = 1.0,
-        max_delay: float = 60.0,
-        backoff_factor: int = 2,
-        jitter: bool = True,
-        retry_on_status_codes: tuple = (429,),
-        context_msg: Optional[str] = None,
-        use_token_bucket: bool = True
+    func: Callable[..., T],
+    base_delay: float = 1.0,
+    max_delay: float = 60.0,
+    backoff_factor: int = 2,
+    jitter: bool = True,
+    retry_on_status_codes: tuple = (429,),
+    context_msg: Optional[str] = None,
+    use_token_bucket: bool = True,
 ) -> T:
     """
     Generic function to call any function with exponential backoff on HTTP errors.
@@ -296,34 +319,45 @@ def call_with_exponential_backoff(
                         logger.error(error_msg)
                         raise e
 
-                    #check for "Retry-After" header
-                    retry_after = e.response.headers.get('Retry-After')
+                    # check for "Retry-After" header
+                    retry_after = e.response.headers.get("Retry-After")
 
                     if retry_after:
                         try:
-                            #retry-After can be in seconds (integer) or HTTP date format
+                            # retry-After can be in seconds (integer) or HTTP date format
                             if retry_after.isdigit():
                                 delay = float(retry_after)
                             else:
-                                #try parsing as HTTP date
+                                # try parsing as HTTP date
                                 from email.utils import parsedate_to_datetime
-                                retry_date = parsedate_to_datetime(retry_after)
-                                delay = (retry_date - datetime.datetime.now(retry_date.tzinfo)).total_seconds()
 
-                            #cap the delay at max_delay
+                                retry_date = parsedate_to_datetime(retry_after)
+                                delay = (
+                                    retry_date
+                                    - datetime.datetime.now(retry_date.tzinfo)
+                                ).total_seconds()
+
+                            # cap the delay at max_delay
                             delay = min(delay, max_delay)
 
-                            logger.info(f"using Retry-After header value: {delay:.2f} seconds")
+                            logger.info(
+                                f"using Retry-After header value: {delay:.2f} seconds"
+                            )
                         except (ValueError, TypeError) as parse_error:
                             logger.warning(
-                                f"failed to parse Retry-After header '{retry_after}': {parse_error}. Using exponential backoff.")
-                            #fall back to exponential backoff
-                            delay = min(base_delay * (backoff_factor ** retry_count), max_delay)
+                                f"failed to parse Retry-After header '{retry_after}': {parse_error}. Using exponential backoff."
+                            )
+                            # fall back to exponential backoff
+                            delay = min(
+                                base_delay * (backoff_factor**retry_count), max_delay
+                            )
                     else:
-                        #calculate exponential backoff
-                        delay = min(base_delay * (backoff_factor ** retry_count), max_delay)
+                        # calculate exponential backoff
+                        delay = min(
+                            base_delay * (backoff_factor**retry_count), max_delay
+                        )
 
-                    #add jitter if not using "Retry-After" header
+                    # add jitter if not using "Retry-After" header
                     if jitter and not retry_after:
                         jitter_amount = delay * 0.1 * (time.time() % 1)
                         delay += jitter_amount
@@ -337,7 +371,7 @@ def call_with_exponential_backoff(
                     time.sleep(delay)
                     retry_count += 1
                 else:
-                    #re-raise non-retryable errors immediately
+                    # re-raise non-retryable errors immediately
                     raise e
 
         if last_exception:
