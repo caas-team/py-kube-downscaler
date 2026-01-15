@@ -77,6 +77,24 @@ def get_parser():
         help="Maximum number of retries for handling concurrent update conflicts (default: 0)",
         default=os.getenv("MAX_RETRIES_ON_CONFLICT", 0),
     )
+    parser.add_argument(
+        "--qps",
+        type=int,
+        help="Maximum requests per second allowed when communicating with the Kubernetes API. Used for client-side rate limiting (0 disables rate limiting).",
+        default=os.getenv("QPS", 0),
+    )
+    parser.add_argument(
+        "--burst",
+        type=int,
+        help="Maximum burst of requests allowed above the QPS limit. Defines how many requests can be sent at once (0 disables bursting).",
+        default=os.getenv("BURST", 0),
+    )
+    parser.add_argument(
+        "--max-retries-on-throttling",
+        type=int,
+        help="Maximum number of retries when an operation fails due to rate limiting (e.g. HTTP 429). 0 means no retries.",
+        default=os.getenv("MAX_RETRIES_ON_CONFLICT", 0),
+    )
     upscale_group.add_argument(
         "--upscale-period",
         help="Default time period to scale up once (default: never)",

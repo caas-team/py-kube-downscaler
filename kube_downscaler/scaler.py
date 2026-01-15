@@ -225,11 +225,18 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
         pods = []
         for namespace in namespaces:
             try:
-                pods_query_result = pykube.Pod.objects(api).filter(namespace=namespace)
+                pods_query_result = helper.call_with_exponential_backoff(
+                    lambda: pykube.Pod.objects(api).filter(namespace=namespace),
+                    context_msg=f"fetching pods for namespace {namespace}",
+                )
                 pods += pods_query_result
             except requests.HTTPError as e:
                 if e.response.status_code == 404:
                     logger.debug(f"No pods found in namespace {namespace} (404)")
+                elif e.response.status_code == 429:
+                    logger.warning(
+                        f"KubeDownscaler is being rate-limited by the Kubernetes API while querying namespaces (429 Too Many Requests). Retrying at next cycle"
+                    )
                 elif e.response.status_code == 403:
                     logger.warning(
                         f"Not authorized to access the Namespace {namespace} (403). Please check your RBAC settings if you are using constrained mode. "
@@ -240,11 +247,18 @@ def get_pod_resources(api, namespaces: FrozenSet[str]):
                     raise e
     else:
         try:
-            pods = pykube.Pod.objects(api).filter(namespace=pykube.all)
+            pods = helper.call_with_exponential_backoff(
+                lambda: pykube.Pod.objects(api).filter(namespace=pykube.all),
+                context_msg=f"fetching pods clusterwide",
+            )
         except requests.HTTPError as e:
             if e.response.status_code == 403:
                 logger.warning(
                     "KubeDownscaler is not authorized to perform a cluster wide query to retrieve Pods (403)"
+                )
+            elif e.response.status_code == 429:
+                logger.warning(
+                    f"KubeDownscaler is being rate-limited by the Kubernetes API while querying namespaces (429 Too Many Requests). Retrying at next cycle"
                 )
             else:
                 raise e
@@ -276,6 +290,53 @@ def create_excluded_namespaces_regex(namespaces: FrozenSet[str]):
     # Compile and return the regex pattern
     return [re.compile(excluded_pattern)]
 
+def get_namespace_to_namespace_obj(api, namespaces):
+    namespace_to_namespace_objects = dict()
+    if len(namespaces) >= 1:
+        try:
+            namespace_objects = helper.call_with_exponential_backoff(
+                lambda: Namespace.objects(api).filter(selector={"kubernetes.io/metadata.name__in": namespaces}),
+                context_msg=f"fetching namespaces {namespaces}"
+            )
+            for obj in namespace_objects:
+                namespace_to_namespace_objects[obj.name] = obj
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                logger.error(
+                    f"KubeDownscaler is not authorized to query namespaces (403). Please check your RBAC settings if you are using constrained mode. "
+                    f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
+                    f"The RoleBinding should be linked to the KubeDownscaler Service Account."
+                )
+            if e.response.status_code == 429:
+                logger.warning(
+                    f"KubeDownscaler is being rate-limited by the Kubernetes API while querying namespaces (429 Too Many Requests). Retrying at next cycle "
+                )
+            else:
+                raise e
+    else:
+        try:
+            namespace_objects = helper.call_with_exponential_backoff(
+                lambda: Namespace.objects(api),
+                context_msg=f"fetching all namespaces"
+            )
+            for obj in namespace_objects:
+                namespace_to_namespace_objects[obj.name] = obj
+        except requests.HTTPError as e:
+            if e.response.status_code == 403:
+                logger.error(
+                    f"KubeDownscaler is not authorized to query namespaces (403). Please check your RBAC settings if you are using constrained mode. "
+                    f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
+                    f"The RoleBinding should be linked to the KubeDownscaler Service Account."
+                )
+            if e.response.status_code == 429:
+                logger.warning(
+                    f"KubeDownscaler is being rate-limited by the Kubernetes API while querying namespaces (429 Too Many Requests). Retrying at next cycle"
+                )
+            else:
+                raise e
+
+    return namespace_to_namespace_objects
+
 
 def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
     if len(namespaces) >= 1:
@@ -283,7 +344,10 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
         excluded_namespaces = create_excluded_namespaces_regex(namespaces)
         for namespace in namespaces:
             try:
-                resources_inside_namespace = kind.objects(api, namespace=namespace)
+                resources_inside_namespace = helper.call_with_exponential_backoff(
+                    lambda: kind.objects(api, namespace=namespace),
+                    context_msg=f"{kind.endpoint} in namespace {namespace}"
+                )
                 resources += resources_inside_namespace
             except requests.HTTPError as e:
                 if e.response.status_code == 404:
@@ -296,15 +360,26 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
                         f"Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
                         f"The RoleBinding should be linked to the KubeDownscaler Service Account."
                     )
+                if e.response.status_code == 429:
+                    logger.warning(
+                        f"KubeDownscaler is being rate-limited by the Kubernetes API while querying {kind.endpoint} (429 Too Many Requests). Retrying at next cycle "
+                    )
                 else:
                     raise e
     else:
         try:
-            resources = kind.objects(api, namespace=pykube.all)
+            resources = helper.call_with_exponential_backoff(
+                lambda: kind.objects(api, namespace=pykube.all),
+                context_msg=f"retrieving {kind.endpoint}s cluster-wide"
+            )
         except requests.HTTPError as e:
             if e.response.status_code == 403:
                 logger.warning(
                     f"KubeDownscaler is not authorized to perform a cluster wide query to retrieve {kind.endpoint} (403)"
+                )
+            if e.response.status_code == 429:
+                logger.warning(
+                    f"KubeDownscaler is being rate-limited by the Kubernetes API while querying {kind.endpoint} (429 Too Many Requests). Retrying at next cycle"
                 )
             else:
                 raise e
@@ -314,10 +389,9 @@ def get_resources(kind, api, namespaces: FrozenSet[str], excluded_namespaces):
 
 def get_resource(kind, api, namespace, resource_name: str):
     try:
-        resource = (
-            kind.objects(api)
-            .filter(namespace=namespace)
-            .get_or_none(name=resource_name)
+        resource = helper.call_with_exponential_backoff(
+            lambda: kind.objects(api).filter(namespace=namespace).get_or_none(name=resource_name),
+            context_msg = f"retrieving {kind.endpoint} in namespace {namespace}"
         )
         if resource is None:
             logger.debug(f"{kind.endpoint} {namespace}/{resource_name} not found")
@@ -330,6 +404,10 @@ def get_resource(kind, api, namespace, resource_name: str):
         if e.response.status_code == 403:
             logger.warning(
                 f"KubeDownscaler is not authorized to to retrieve {kind} {namespace}/{resource_name} (403)"
+            )
+        if e.response.status_code == 429:
+            logger.warning(
+                f"KubeDownscaler is being rate-limited by the Kubernetes API while querying {kind.endpoint} (429 Too Many Requests). Retrying at next cycle"
             )
         else:
             raise e
@@ -1004,17 +1082,31 @@ def autoscale_jobs_for_namespace(
                         operation == "scale_down"
                         and admission_controller == "gatekeeper"
                     ):
-                        logger.debug("Creating KubeDownscalerJobsConstraint")
-                        KubeDownscalerJobsConstraint(api, policy).create()
+                        helper.call_with_exponential_backoff(
+                            lambda: KubeDownscalerJobsConstraint(api, policy).create(),
+                        context_msg = f"creating KubeDownscalerJobsConstraint"
+                        )
+                        logger.debug("KubeDownscalerJobsConstraint Created")
                     elif (
                         operation == "scale_down" and admission_controller == "kyverno"
                     ):
                         logger.debug("Creating KubeDownscalerJobsPolicy")
-                        KubeDownscalerJobsPolicy(api, policy).create()
+                        helper.call_with_exponential_backoff(
+                            lambda: KubeDownscalerJobsPolicy(api, policy).create(),
+                            context_msg=f"creating KubeDownscalerJobsPolicy"
+                        )
+                        logger.debug("Kyverno KubeDownscalerJobsPolicy Created")
                     elif operation == "scale_up":
-                        policy.delete()
+                        helper.call_with_exponential_backoff(
+                            lambda: policy.delete(),
+                            context_msg=f"deleting Kyverno Policy"
+                        )
+                        logger.debug("Kyverno Policy Correctly Deleted")
                     elif operation == "kyverno_update":
-                        KubeDownscalerJobsPolicy(api, policy).update()
+                        helper.call_with_exponential_backoff(
+                            lambda: KubeDownscalerJobsPolicy(api, policy).update(),
+                            context_msg=f"updating Kyverno Policy"
+                        )
                         logger.debug("Kyverno Policy Correctly Updated")
                     elif operation == "no_scale":
                         pass
@@ -1183,7 +1275,10 @@ def autoscale_resource(
                         f"**DRY-RUN**: would update {resource.kind} {resource.namespace}/{resource.name}"
                     )
                 else:
-                    resource.update()
+                    helper.call_with_exponential_backoff(
+                        lambda: resource.update(),
+                        context_msg=f"patching {kind.endpoint} {resource.namespace}/{resource.name}"
+                    )
     except Exception as e:
         if (
             isinstance(e, HTTPError)
@@ -1245,6 +1340,7 @@ def autoscale_resources(
     api: HTTPClient,
     kind: NamespacedAPIObject,
     namespace: FrozenSet[str],
+    namespace_to_namespace_obj: dict[str, Any],
     exclude_namespaces: FrozenSet[Pattern],
     exclude_names: FrozenSet[str],
     matching_labels: FrozenSet[Pattern],
@@ -1306,7 +1402,7 @@ def autoscale_resources(
         )
 
         # Override defaults with (optional) annotations from Namespace
-        namespace_obj = Namespace.objects(api).get_by_name(current_namespace)
+        namespace_obj = namespace_to_namespace_obj[current_namespace]
 
         excluded = ignore_resource(namespace_obj, now)
 
@@ -1404,15 +1500,21 @@ def apply_kubedownscalerjobsconstraint_crd(excluded_names, matching_labels, api)
             )
             return
         else:
+            helper.call_with_exponential_backoff(
+                lambda: ConstraintTemplate(api, obj).update(obj),
+                context_msg=f"patching kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD"
+            )
             logger.debug(
                 "kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD updated"
             )
-            ConstraintTemplate(api, obj).update(obj)
     else:
+        helper.call_with_exponential_backoff(
+            lambda: ConstraintTemplate(api, obj).create(),
+        context_msg = f"creating kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD"
+        )
         logger.debug(
             "kubedownscalerjobsconstraint.constraints.gatekeeper.sh CRD created"
         )
-        ConstraintTemplate(api, obj).create()
         time.sleep(0.02)
 
 
@@ -1525,6 +1627,7 @@ def kyverno_healthy(api):
 def autoscale_jobs(
     api,
     namespaces: FrozenSet[str],
+    namespace_to_namespace_obj: dict[str, Any],
     exclude_namespaces: FrozenSet[Pattern],
     upscale_period: str,
     downscale_period: str,
@@ -1588,7 +1691,7 @@ def autoscale_jobs(
             logger.debug(f"Processing {current_namespace} for job scaling..")
 
             # Override defaults with (optional) annotations from Namespace
-            namespace_obj = Namespace.objects(api).get_by_name(current_namespace)
+            namespace_obj = namespace_to_namespace_obj[current_namespace]
 
             excluded = ignore_resource(current_namespace, now)
 
@@ -1688,6 +1791,7 @@ def scale(
     api = helper.get_kube_api(api_server_timeout)
 
     now = datetime.datetime.now(datetime.timezone.utc)
+    namespace_to_namespace_obj = get_namespace_to_namespace_obj(api, namespaces)
     forced_uptime = pods_force_uptime(api, namespaces)
 
     for clazz in RESOURCE_CLASSES:
@@ -1703,6 +1807,7 @@ def scale(
                     api,
                     clazz,
                     namespaces,
+                    namespace_to_namespace_obj,
                     exclude_namespaces,
                     exclude_deployments,
                     matching_labels,
@@ -1726,6 +1831,7 @@ def scale(
                 autoscale_jobs(
                     api,
                     namespaces,
+                    namespace_to_namespace_obj,
                     exclude_namespaces,
                     upscale_period,
                     downscale_period,

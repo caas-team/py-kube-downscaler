@@ -13,13 +13,14 @@ from kube_downscaler.scaler import scale
 from kube_downscaler.scaler import scale_down_jobs
 from kube_downscaler.scaler import scale_up_jobs
 
-
 def test_scale_custom_timeout(monkeypatch):
     api_server_timeout = 15  # Defined by the user
     api = MagicMock()
     api.timeout = 15  # Expected timeout
 
     mock_get_kube_api = MagicMock(return_value=api)
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr("kube_downscaler.scaler.helper.get_kube_api", mock_get_kube_api)
 
     scale(
@@ -55,6 +56,9 @@ def test_scaler_always_up(monkeypatch):
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.call_with_exponential_backoff", MagicMock(return_value=api)
+    )
 
     def get(url, version, **kwargs):
         if url == "pods":
@@ -76,6 +80,13 @@ def test_scaler_always_up(monkeypatch):
             data = {"items": []}
         elif url == "namespaces/ns-1":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"name": "ns-1", "metadata": {}},
+                    {"name": "ns-2", "metadata": {}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -114,6 +125,8 @@ def test_scaler_namespace_included(monkeypatch):
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
 
     def get(url, version, **kwargs):
         if url == "pods":
@@ -143,6 +156,12 @@ def test_scaler_namespace_included(monkeypatch):
             data = {"metadata": {}}
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces?labelSelector=kubernetes.io%2Fmetadata.name+in+%28system-ns%29":
+            data = {
+                "items": [
+                    {"metadata": {"name": "system-ns"}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -203,6 +222,8 @@ def test_scaler_namespace_excluded(monkeypatch):
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
 
     def get(url, version, **kwargs):
         if url == "pods":
@@ -230,6 +251,13 @@ def test_scaler_namespace_excluded(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                    {"metadata": {"name": "system-ns"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -279,6 +307,8 @@ def test_scaler_namespace_excluded(monkeypatch):
 
 def test_scaler_namespace_excluded_regex(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES",0,raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET",None,raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -309,6 +339,13 @@ def test_scaler_namespace_excluded_regex(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                    {"metadata": {"name": "system-ns"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -362,6 +399,8 @@ def test_scaler_namespace_excluded_regex(monkeypatch):
 
 def test_scaler_namespace_excluded_via_annotation(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -394,6 +433,13 @@ def test_scaler_namespace_excluded_via_annotation(monkeypatch):
             data = {"metadata": {"annotations": {"downscaler/exclude": "true"}}}
         elif url == "namespaces/ns-2":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/exclude": "true"}}},
+                    {"metadata": {"name": "ns-2"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -443,6 +489,8 @@ def test_scaler_namespace_excluded_via_annotation(monkeypatch):
 
 def test_scaler_down_to(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -470,6 +518,12 @@ def test_scaler_down_to(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -508,6 +562,8 @@ def test_scaler_down_to(monkeypatch):
 
 def test_skip_deployment_with_local_downtime_replicas_percentage(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -534,6 +590,12 @@ def test_skip_deployment_with_local_downtime_replicas_percentage(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -572,6 +634,8 @@ def test_skip_deployment_with_local_downtime_replicas_percentage(monkeypatch):
 
 def test_skip_deployment_with_global_downtime_replicas_percentage(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -597,6 +661,13 @@ def test_skip_deployment_with_global_downtime_replicas_percentage(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                    {"metadata": {"name": "system-ns"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -635,6 +706,8 @@ def test_skip_deployment_with_global_downtime_replicas_percentage(monkeypatch):
 
 def test_scaler_down_to_upscale(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -666,6 +739,12 @@ def test_scaler_down_to_upscale(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -707,6 +786,8 @@ def test_scaler_down_to_upscale(monkeypatch):
 
 def test_scaler_no_upscale_on_exclude_with_upscale_target_only(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -733,6 +814,12 @@ def test_scaler_no_upscale_on_exclude_with_upscale_target_only(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -769,6 +856,8 @@ def test_scaler_no_upscale_on_exclude_with_upscale_target_only(monkeypatch):
 
 def test_scaler_no_upscale_on_exclude_namespace_with_upscale_target_only(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -794,6 +883,12 @@ def test_scaler_no_upscale_on_exclude_namespace_with_upscale_target_only(monkeyp
             }
         elif url == "namespaces/default":
             data = {"metadata": {"annotations": {EXCLUDE_ANNOTATION: "true"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {EXCLUDE_ANNOTATION: "true"}}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -830,6 +925,8 @@ def test_scaler_no_upscale_on_exclude_namespace_with_upscale_target_only(monkeyp
 
 def test_scaler_no_upscale_on_exclude_without_upscale_target_only(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -856,6 +953,12 @@ def test_scaler_no_upscale_on_exclude_without_upscale_target_only(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -902,6 +1005,8 @@ def test_scaler_no_upscale_on_exclude_namespace_without_upscale_target_only(
     monkeypatch,
 ):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -927,6 +1032,12 @@ def test_scaler_no_upscale_on_exclude_namespace_without_upscale_target_only(
             }
         elif url == "namespaces/default":
             data = {"metadata": {"annotations": {EXCLUDE_ANNOTATION: "true"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {EXCLUDE_ANNOTATION: "true"}}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -971,6 +1082,8 @@ def test_scaler_no_upscale_on_exclude_namespace_without_upscale_target_only(
 
 def test_scaler_always_upscale(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -993,6 +1106,12 @@ def test_scaler_always_upscale(monkeypatch):
             data = {"items": []}
         elif url == "namespaces/ns-1":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "ns-1"}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -1029,6 +1148,8 @@ def test_scaler_always_upscale(monkeypatch):
 
 def test_scaler_namespace_annotation_replicas(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1054,6 +1175,13 @@ def test_scaler_namespace_annotation_replicas(monkeypatch):
             data = {
                 "metadata": {"annotations": {"downscaler/downtime-replicas": SCALE_TO}}
             }
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {"downscaler/downtime-replicas": SCALE_TO}}},
+                ]
+            }
+
             # data = {'metadata': {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
@@ -1093,6 +1221,8 @@ def test_scaler_namespace_annotation_replicas(monkeypatch):
 
 def test_scaler_daemonset_suspend(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1118,6 +1248,12 @@ def test_scaler_daemonset_suspend(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -1170,6 +1306,8 @@ def test_scaler_daemonset_suspend(monkeypatch):
 
 def test_scaler_daemonset_unsuspend(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1210,6 +1348,15 @@ def test_scaler_daemonset_unsuspend(monkeypatch):
                         "downscaler/downtime": "never",
                     }
                 }
+            }
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {
+                        "downscaler/uptime": "always",
+                        "downscaler/downtime": "never",
+                    }}},
+                ]
             }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
@@ -1263,6 +1410,8 @@ def test_scaler_daemonset_unsuspend(monkeypatch):
 
 def test_scaler_cronjob_suspend(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1288,6 +1437,12 @@ def test_scaler_cronjob_suspend(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                ]
+            }
             # data = {'metadata': {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
@@ -1337,6 +1492,8 @@ def test_scaler_cronjob_suspend(monkeypatch):
 
 def test_scaler_cronjob_unsuspend(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1370,6 +1527,16 @@ def test_scaler_cronjob_unsuspend(monkeypatch):
                     }
                 }
             }
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {
+                        "downscaler/uptime": "always",
+                        "downscaler/downtime": "never",
+                    }}},
+                ]
+            }
+
             # data = {'metadata': {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
@@ -1419,6 +1586,8 @@ def test_scaler_cronjob_unsuspend(monkeypatch):
 
 def test_scaler_job_suspend_without_admission_controller(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1444,6 +1613,12 @@ def test_scaler_job_suspend_without_admission_controller(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                ]
+            }
             # data = {'metadata': {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
@@ -1495,6 +1670,8 @@ def test_scaler_job_suspend_without_admission_controller_with_owner_reference(
     monkeypatch,
 ):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1521,6 +1698,12 @@ def test_scaler_job_suspend_without_admission_controller_with_owner_reference(
             }
         elif url == "namespaces/default":
             data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                ]
+            }
             # data = {'metadata': {}}
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
@@ -1558,6 +1741,8 @@ def test_scaler_job_suspend_without_admission_controller_with_owner_reference(
 
 def test_scaler_job_unsuspend_without_admission_controller(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1590,6 +1775,15 @@ def test_scaler_job_unsuspend_without_admission_controller(monkeypatch):
                         "downscaler/downtime": "never",
                     }
                 }
+            }
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {
+                        "downscaler/uptime": "always",
+                        "downscaler/downtime": "never",
+                    }}},
+                ]
             }
             # data = {'metadata': {}}
         else:
@@ -1640,6 +1834,8 @@ def test_scaler_job_unsuspend_without_admission_controller(monkeypatch):
 
 def test_scaler_downscale_period_no_error(monkeypatch, caplog):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1663,6 +1859,13 @@ def test_scaler_downscale_period_no_error(monkeypatch, caplog):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                ]
+            }
+
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -1701,6 +1904,8 @@ def test_scaler_downscale_period_no_error(monkeypatch, caplog):
 
 def test_scaler_deployment_excluded_until(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1750,6 +1955,12 @@ def test_scaler_deployment_excluded_until(monkeypatch):
             }
         elif url == "namespaces/my-ns":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "my-ns"}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -1800,6 +2011,8 @@ def test_scaler_deployment_excluded_until(monkeypatch):
 
 def test_scaler_namespace_excluded_until(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1836,6 +2049,13 @@ def test_scaler_namespace_excluded_until(monkeypatch):
             }
         elif url == "namespaces/ns-2":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/exclude-until": "2032-01-01T02:20"}}},
+                    {"metadata": {"name": "ns-2"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -1884,6 +2104,8 @@ def test_scaler_namespace_excluded_until(monkeypatch):
 
 def test_scaler_name_excluded(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1914,6 +2136,12 @@ def test_scaler_name_excluded(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -1961,6 +2189,8 @@ def test_scaler_name_excluded(monkeypatch):
 
 def test_scaler_namespace_force_uptime_true(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -1983,6 +2213,12 @@ def test_scaler_namespace_force_uptime_true(monkeypatch):
             }
         elif url == "namespaces/ns-1":
             data = {"metadata": {"annotations": {"downscaler/force-uptime": "true"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/force-uptime": "true"}}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2017,6 +2253,8 @@ def test_scaler_namespace_force_uptime_true(monkeypatch):
 
 def test_scaler_namespace_force_uptime_false(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -2039,6 +2277,13 @@ def test_scaler_namespace_force_uptime_false(monkeypatch):
             }
         elif url == "namespaces/ns-1":
             data = {"metadata": {"annotations": {"downscaler/force-uptime": "false"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/force-uptime": "false"}}},
+                ]
+            }
+
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2086,6 +2331,8 @@ def test_scaler_namespace_force_uptime_false(monkeypatch):
 
 def test_scaler_namespace_force_uptime_period(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -2159,6 +2406,20 @@ def test_scaler_namespace_force_uptime_period(monkeypatch):
                     }
                 }
             }
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "ns-1", "annotations": {
+                        "downscaler/force-uptime": "2020-04-04T16:00:00+00:00-2020-04-05T16:00:00+00:00"
+                    }}},
+                    {"metadata": {"name": "ns-2", "annotations": {
+                        "downscaler/force-uptime": "2020-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
+                    }}},
+                    {"metadata": {"name": "ns-3", "annotations": {
+                        "downscaler/force-uptime": "2040-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
+                    }}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2202,6 +2463,8 @@ def test_scaler_namespace_force_uptime_period(monkeypatch):
 
 def test_scaler_namespace_force_downtime_true(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -2224,6 +2487,12 @@ def test_scaler_namespace_force_downtime_true(monkeypatch):
             }
         elif url == "namespaces/ns-1":
             data = {"metadata": {"annotations": {"downscaler/force-downtime": "true"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/force-downtime": "true"}}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2258,6 +2527,8 @@ def test_scaler_namespace_force_downtime_true(monkeypatch):
 
 def test_scaler_namespace_force_downtime_false(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -2280,6 +2551,12 @@ def test_scaler_namespace_force_downtime_false(monkeypatch):
             }
         elif url == "namespaces/ns-1":
             data = {"metadata": {"annotations": {"downscaler/force-downtime": "false"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "ns-1", "annotations": {"downscaler/force-downtime": "false"}}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2314,6 +2591,8 @@ def test_scaler_namespace_force_downtime_false(monkeypatch):
 
 def test_scaler_namespace_force_uptime_and_downtime_true(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -2342,6 +2621,15 @@ def test_scaler_namespace_force_uptime_and_downtime_true(monkeypatch):
                         "downscaler/force-uptime": "true",
                     }
                 }
+            }
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "ns-1", "annotations": {
+                        "downscaler/force-downtime": "true",
+                        "downscaler/force-uptime": "true",
+                    }}},
+                ]
             }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
@@ -2377,6 +2665,8 @@ def test_scaler_namespace_force_uptime_and_downtime_true(monkeypatch):
 
 def test_scaler_namespace_force_downtime_period(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -2440,6 +2730,20 @@ def test_scaler_namespace_force_downtime_period(monkeypatch):
                     }
                 }
             }
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "ns-1", "annotations": {
+                        "downscaler/force-downtime": "2020-04-04T16:00:00+00:00-2020-04-05T16:00:00+00:00"
+                    }}},
+                    {"metadata": {"name": "ns-2", "annotations": {
+                        "downscaler/force-downtime": "2020-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
+                    }}},
+                    {"metadata": {"name": "ns-3", "annotations": {
+                        "downscaler/force-downtime": "2040-04-04T16:00:00+00:00-2040-04-05T16:00:00+00:00"
+                    }}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2491,6 +2795,8 @@ def test_autoscale_jobs_gatekeeper_not_installed(
     autoscale_jobs(
         api=None,
         namespaces=["test-namespace"],
+        namespace_to_namespace_obj={"items": [
+        {"metadata": {"name": "test-namespace",}}]},
         exclude_namespaces=set(),
         upscale_period="never",
         downscale_period="never",
@@ -2523,6 +2829,8 @@ def test_autoscale_jobs_invented_admission_controller(
     autoscale_jobs(
         api=None,
         namespaces=["test-namespace"],
+        namespace_to_namespace_obj={"items": [
+        {"metadata": {"name": "test-namespace", }}]},
         exclude_namespaces=set(),
         upscale_period="never",
         downscale_period="never",
@@ -2542,7 +2850,8 @@ def test_autoscale_jobs_invented_admission_controller(
 
 
 @patch("kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects", autospec=True)
-def test_scale_up_jobs_gatekeeper_policy_not_none(objects_mock):
+@patch("kube_downscaler.scaler.helper.add_event")
+def test_scale_up_jobs_gatekeeper_policy_not_none(objects_mock, event_mock):
     objects_instance_mock = objects_mock.return_value
     objects_instance_mock.get_or_none.return_value = "Not None"
 
@@ -2560,7 +2869,8 @@ def test_scale_up_jobs_gatekeeper_policy_not_none(objects_mock):
 
 
 @patch("kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects", autospec=True)
-def test_scale_up_jobs_kyverno_policy_not_none(objects_mock):
+@patch("kube_downscaler.scaler.helper.add_event")
+def test_scale_up_jobs_kyverno_policy_not_none(objects_mock, event_mock):
     filter_instance_mock = objects_mock.return_value.filter.return_value
     filter_instance_mock.get_or_none.return_value = "Not None"
 
@@ -2577,8 +2887,9 @@ def test_scale_up_jobs_kyverno_policy_not_none(objects_mock):
     assert operation == "scale_up"
 
 
+@patch("kube_downscaler.scaler.helper.add_event")
 @patch("kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects", autospec=True)
-def test_scale_up_jobs_gatekeeper_policy_none(objects_mock):
+def test_scale_up_jobs_gatekeeper_policy_none(objects_mock, event_mock):
     objects_instance_mock = objects_mock.return_value
     objects_instance_mock.get_or_none.return_value = None
 
@@ -2595,8 +2906,9 @@ def test_scale_up_jobs_gatekeeper_policy_none(objects_mock):
     assert operation == "no_scale"
 
 
+@patch("kube_downscaler.scaler.helper.add_event")
 @patch("kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects", autospec=True)
-def test_scale_up_jobs_kyverno_policy_none(objects_mock):
+def test_scale_up_jobs_kyverno_policy_none(objects_mock, event_mock):
     filter_instance_mock = objects_mock.return_value.filter.return_value
     filter_instance_mock.get_or_none.return_value = None
 
@@ -2613,8 +2925,9 @@ def test_scale_up_jobs_kyverno_policy_none(objects_mock):
     assert operation == "no_scale"
 
 
+@patch("kube_downscaler.scaler.helper.add_event")
 @patch("kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects", autospec=True)
-def test_scale_down_jobs_gatekeeper_policy_not_none(objects_mock):
+def test_scale_down_jobs_gatekeeper_policy_not_none(objects_mock, event_mock):
     objects_instance_mock = objects_mock.return_value
     objects_instance_mock.get_or_none.return_value = "Not None"
 
@@ -2633,8 +2946,9 @@ def test_scale_down_jobs_gatekeeper_policy_not_none(objects_mock):
     assert operation == "no_scale"
 
 
+@patch("kube_downscaler.scaler.helper.add_event")
 @patch("kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects", autospec=True)
-def test_scale_down_jobs_kyverno_policy_not_none(objects_mock):
+def test_scale_down_jobs_kyverno_policy_not_none(objects_mock, event_mock):
     mock_obj = MagicMock()
     type(mock_obj).type = PropertyMock(return_value="with-matching-labels")
     filter_instance_mock = objects_mock.return_value.filter.return_value
@@ -2655,8 +2969,9 @@ def test_scale_down_jobs_kyverno_policy_not_none(objects_mock):
     assert operation == "no_scale"
 
 
+@patch("kube_downscaler.scaler.helper.add_event")
 @patch("kube_downscaler.scaler.KubeDownscalerJobsConstraint.objects", autospec=True)
-def test_scale_down_jobs_gatekeeper_policy_none(objects_mock):
+def test_scale_down_jobs_gatekeeper_policy_none(objects_mock, event_mock):
     objects_instance_mock = objects_mock.return_value
     objects_instance_mock.get_or_none.return_value = None
 
@@ -2675,8 +2990,9 @@ def test_scale_down_jobs_gatekeeper_policy_none(objects_mock):
     assert operation == "scale_down"
 
 
+@patch("kube_downscaler.scaler.helper.add_event")
 @patch("kube_downscaler.scaler.KubeDownscalerJobsPolicy.objects", autospec=True)
-def test_scale_down_jobs_kyverno_policy_none(objects_mock):
+def test_scale_down_jobs_kyverno_policy_none(objects_mock, event_mock):
     filter_instance_mock = objects_mock.return_value.filter.return_value
     filter_instance_mock.get_or_none.return_value = None
 
@@ -2697,6 +3013,8 @@ def test_scale_down_jobs_kyverno_policy_none(objects_mock):
 
 def test_scaler_pdb_suspend_percentage(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -2722,6 +3040,12 @@ def test_scaler_pdb_suspend_percentage(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2758,6 +3082,8 @@ def test_scaler_pdb_suspend_percentage(monkeypatch):
 
 def test_scaler_pdb_suspend_max_unavailable_percentage(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -2783,6 +3109,12 @@ def test_scaler_pdb_suspend_max_unavailable_percentage(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2831,6 +3163,8 @@ def test_scaler_pdb_suspend_max_unavailable_percentage(monkeypatch):
 
 def test_scaler_pdb_unsuspend_max_unavailable_percentage(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -2863,6 +3197,15 @@ def test_scaler_pdb_unsuspend_max_unavailable_percentage(monkeypatch):
                         "downscaler/downtime": "never",
                     }
                 }
+            }
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {
+                        "downscaler/uptime": "always",
+                        "downscaler/downtime": "never",
+                    }}},
+                ]
             }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
@@ -2912,6 +3255,8 @@ def test_scaler_pdb_unsuspend_max_unavailable_percentage(monkeypatch):
 
 def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -2937,6 +3282,12 @@ def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -2985,6 +3336,8 @@ def test_scaler_pdb_suspend_max_unavailable(monkeypatch):
 
 def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3017,6 +3370,15 @@ def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
                         "downscaler/downtime": "never",
                     }
                 }
+            }
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {
+                        "downscaler/uptime": "always",
+                        "downscaler/downtime": "never",
+                    }}},
+                ]
             }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
@@ -3066,6 +3428,8 @@ def test_scaler_pdb_unsuspend_max_unavailable(monkeypatch):
 
 def test_scaler_pdb_suspend_min_available(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3091,6 +3455,12 @@ def test_scaler_pdb_suspend_min_available(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {"annotations": {"downscaler/uptime": "never"}}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {"downscaler/uptime": "never"}}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3139,6 +3509,8 @@ def test_scaler_pdb_suspend_min_available(monkeypatch):
 
 def test_scaler_pdb_unsuspend_min_available(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3171,6 +3543,15 @@ def test_scaler_pdb_unsuspend_min_available(monkeypatch):
                         "downscaler/downtime": "never",
                     }
                 }
+            }
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default", "annotations": {
+                        "downscaler/uptime": "always",
+                        "downscaler/downtime": "never",
+                    }}},
+                ]
             }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
@@ -3220,6 +3601,8 @@ def test_scaler_pdb_unsuspend_min_available(monkeypatch):
 
 def test_scaler_downscale_keda_already_with_pause_annotation(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3247,6 +3630,13 @@ def test_scaler_downscale_keda_already_with_pause_annotation(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                ]
+            }
+
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3298,6 +3688,8 @@ def test_scaler_downscale_keda_already_with_pause_annotation(monkeypatch):
 
 def test_scaler_upscale_keda_already_with_pause_annotation(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3327,6 +3719,13 @@ def test_scaler_upscale_keda_already_with_pause_annotation(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                    {"metadata": {"name": "system-ns"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3378,6 +3777,8 @@ def test_scaler_upscale_keda_already_with_pause_annotation(monkeypatch):
 
 def test_scaler_downscale_keda_without_pause_annotation(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3403,6 +3804,12 @@ def test_scaler_downscale_keda_without_pause_annotation(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3453,6 +3860,8 @@ def test_scaler_downscale_keda_without_pause_annotation(monkeypatch):
 
 def test_scaler_upscale_keda_without_pause_annotation(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3481,6 +3890,13 @@ def test_scaler_upscale_keda_without_pause_annotation(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                    {"metadata": {"name": "system-ns"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3531,6 +3947,8 @@ def test_scaler_upscale_keda_without_pause_annotation(monkeypatch):
 
 def test_scaler_downscale_keda_with_downscale_replicas_annotation(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3556,6 +3974,13 @@ def test_scaler_downscale_keda_with_downscale_replicas_annotation(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                    {"metadata": {"name": "system-ns"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3607,6 +4032,8 @@ def test_scaler_downscale_keda_with_downscale_replicas_annotation(monkeypatch):
 
 def test_scaler_upscale_keda_with_downscale_replicas_annotation(monkeypatch):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3636,6 +4063,13 @@ def test_scaler_upscale_keda_with_downscale_replicas_annotation(monkeypatch):
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                    {"metadata": {"name": "system-ns"}}
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3689,6 +4123,8 @@ def test_scaler_downscale_keda_already_with_pause_annotation_and_downtime_replic
     monkeypatch,
 ):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3717,6 +4153,12 @@ def test_scaler_downscale_keda_already_with_pause_annotation_and_downtime_replic
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
@@ -3771,6 +4213,8 @@ def test_scaler_upscale_keda_already_with_pause_annotation_and_downtime_replicas
     monkeypatch,
 ):
     api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
     monkeypatch.setattr(
         "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
     )
@@ -3801,6 +4245,12 @@ def test_scaler_upscale_keda_already_with_pause_annotation_and_downtime_replicas
             }
         elif url == "namespaces/default":
             data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                ]
+            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 
