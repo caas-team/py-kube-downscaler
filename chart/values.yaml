@@ -49,6 +49,17 @@ securityContext:
   capabilities:
     drop:
       - ALL
+# Optional health probes for the controller container.
+# Note: this controller doesn't serve HTTP traffic by default, so exec probes are usually the best option.
+# Example:
+# livenessProbe:
+#   exec:
+#     command: ["/bin/sh", "-c", "ps aux | grep -v grep | grep -q kube-downscaler"]
+#   initialDelaySeconds: 30
+#   periodSeconds: 10
+startupProbe: {}
+livenessProbe: {}
+readinessProbe: {}
 
 resources:
   limits:
