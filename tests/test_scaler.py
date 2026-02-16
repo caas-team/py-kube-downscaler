@@ -131,6 +131,18 @@ def test_scaler_namespace_included(monkeypatch):
     monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
 
     def get(url, version, **kwargs):
+        if url.startswith("namespaces/"):
+            # Taking what is after "namespaces/". We need to ensure there is a name; like this: "namespaces/<name>"
+            remainder = url[len("namespaces/") :]
+            # Fail if there is nothing after the slash, constrained mode cannot do cluster-wide queries
+            assert remainder, (
+                f"Namespace API call must have a name after 'namespaces/': {url}"
+            )
+            # Fail if nothing after the slash, constrained mode cannot do cluster-wide queries (query-parameters case)
+            assert "?" not in remainder, (
+                f"Namespace API call must not contain query parameters: {url}"
+            )
+
         if url == "pods":
             data = {"items": []}
         elif url == "deployments":
@@ -158,15 +170,6 @@ def test_scaler_namespace_included(monkeypatch):
             data = {"metadata": {}}
         elif url == "namespaces/default":
             data = {"metadata": {}}
-        elif (
-            url
-            == "namespaces?labelSelector=kubernetes.io%2Fmetadata.name+in+%28system-ns%29"
-        ):
-            data = {
-                "items": [
-                    {"metadata": {"name": "system-ns"}},
-                ]
-            }
         else:
             raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
 

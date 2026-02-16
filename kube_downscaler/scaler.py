@@ -294,28 +294,26 @@ def create_excluded_namespaces_regex(namespaces: FrozenSet[str]):
 def get_namespace_to_namespace_obj(api, namespaces):
     namespace_to_namespace_objects = {}
     if len(namespaces) >= 1:
-        try:
-            namespace_objects = helper.call_with_exponential_backoff(
-                lambda: Namespace.objects(api).filter(
-                    selector={"kubernetes.io/metadata.name__in": namespaces}
-                ),
-                context_msg=f"fetching namespaces {namespaces}",
-            )
-            for obj in namespace_objects:
-                namespace_to_namespace_objects[obj.name] = obj
-        except requests.HTTPError as e:
-            if e.response.status_code == 403:
-                logger.error(
-                    "KubeDownscaler is not authorized to query namespaces (403). Please check your RBAC settings if you are using constrained mode. "
-                    "Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
-                    "The RoleBinding should be linked to the KubeDownscaler Service Account."
+        for namespace in namespaces:
+            try:
+                namespace_object = helper.call_with_exponential_backoff(
+                    lambda: Namespace.objects(api).get(name=namespace),
+                    context_msg=f"fetching namespace {namespace}",
                 )
-            if e.response.status_code == 429:
-                logger.warning(
-                    "KubeDownscaler is being rate-limited by the Kubernetes API while querying namespaces (429 Too Many Requests). Retrying at next cycle "
-                )
-            else:
-                raise e
+                namespace_to_namespace_objects[namespace] = namespace_object
+            except requests.HTTPError as e:
+                if e.response.status_code == 403:
+                    logger.error(
+                        "KubeDownscaler is not authorized to query namespaces (403). Please check your RBAC settings if you are using constrained mode. "
+                        "Ensure that a Role with proper access to the necessary resources and a RoleBinding have been deployed to this Namespace."
+                        "The RoleBinding should be linked to the KubeDownscaler Service Account."
+                    )
+                if e.response.status_code == 429:
+                    logger.warning(
+                        "KubeDownscaler is being rate-limited by the Kubernetes API while querying namespaces (429 Too Many Requests). Retrying at next cycle "
+                    )
+                else:
+                    raise e
     else:
         try:
             namespace_objects = helper.call_with_exponential_backoff(
