@@ -7,6 +7,7 @@ from pykube.objects import APIObject
 from pykube.objects import NamespacedAPIObject
 
 from kube_downscaler.resources.autoscalingrunnerset import AutoscalingRunnerSet
+from kube_downscaler.resources.kafkaconnect import KafkaConnect
 from kube_downscaler.resources.constraint import KubeDownscalerJobsConstraint
 from kube_downscaler.resources.constrainttemplate import ConstraintTemplate
 from kube_downscaler.resources.keda import ScaledObject
@@ -93,3 +94,13 @@ def test_autoscalingrunnersets():
     assert r == 3
     d.replicas = 10
     assert scalable_mock["spec"]["minRunners"] == 10
+
+
+def test_kafkaconnect():
+    api_mock = MagicMock(spec=NamespacedAPIObject, name="APIMock")
+    scalable_mock = {"spec": {"replicas": 2}}
+    api_mock.obj = MagicMock(name="APIObjMock")
+    d = KafkaConnect(api_mock, scalable_mock)
+    assert d.replicas == 2
+    d.replicas = 0
+    assert scalable_mock["spec"]["replicas"] == 0
