@@ -8,7 +8,7 @@
 This is a fork of the no longer maintained [hjacobs/kube-downscaler](https://codeberg.org/hjacobs/kube-downscaler).
 
 Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
-`HorizontalPodAutoscalers`, `DaemonSets`, `CronJobs`, `Jobs`, `PodDisruptionBudgets`, `Argo Rollouts` and `Keda ScaledObjects` too !) during non-work hours.
+`HorizontalPodAutoscalers`, `DaemonSets`, `CronJobs`, `Jobs`, `PodDisruptionBudgets`, `Argo Rollouts`, `Keda ScaledObjects` and `Strimzi KafkaConnects` too !) during non-work hours.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -40,6 +40,7 @@ Scale down / "pause" Kubernetes workload (`Deployments`, `StatefulSets`,
     - [Scaling PodDisruptionBudgets](#scaling-poddisruptionbudgets)
     - [Scaling ScaledObjects](#scaling-scaledobjects)
     - [Scaling AutoscalingRunnerSet](#scaling-autoscalingrunnerset)
+    - [Scaling KafkaConnect](#scaling-kafkaconnect)
     - [Matching Labels Argument](#matching-labels-argument)
     - [Namespace Defaults](#namespace-defaults)
   - [Migrate From Codeberg](#migrate-from-codeberg)
@@ -374,7 +375,7 @@ its value. This argument takes a comma separated list of namespaces
 `--include-resources`
 
 : Downscale resources of this kind as comma separated list. Available resources are:
-`[deployments, statefulsets, stacks, horizontalpodautoscalers, cronjobs, daemonsets, poddisruptionbudgets, rollouts, scaledobjects, jobs]`
+`[deployments, statefulsets, stacks, horizontalpodautoscalers, cronjobs, daemonsets, poddisruptionbudgets, rollouts, scaledobjects, jobs, kafkaconnects]`
 (default: deployments)
 
 `--grace-period`
@@ -696,6 +697,26 @@ If enabled, the AutoscalingRunnerSet downscaling algorithm works like this:
 
 1. Downtime Hours: Kube Downscaler will bring `minRunners` to 0
 2. Uptime Hours: Kube Downscaler will bring back `minRunners` field to its original value
+
+### Scaling KafkaConnect
+
+The feature to scale KafkaConnect can be useful for reducing resource consumption of [Strimzi](https://strimzi.io/) Kafka Connect workers during non-work hours.
+
+If enabled, the KafkaConnect downscaling algorithm works like this:
+
+1. Downtime Hours: Kube Downscaler will bring `spec.replicas` to 0 (or the value set via `downscaler/downtime-replicas`)
+2. Uptime Hours: Kube Downscaler will bring back `spec.replicas` to its original value
+
+To enable KafkaConnect scaling, add `kafkaconnects` to the `--include-resources` argument:
+
+```
+--include-resources=deployments,kafkaconnects
+```
+
+> [!NOTE]
+> The Strimzi operator must be installed in the cluster with the `KafkaConnect` CRD registered.
+> The `kafka.strimzi.io/v1beta2` API version is used, which is served by all active Strimzi releases
+> (including those running the stable v1 API introduced in Strimzi 0.49.0).
 
 ### Matching Labels Argument
 
