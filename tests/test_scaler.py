@@ -4553,3 +4553,90 @@ def test_scaler_upscale_hpa_original_replicas_gt_max_replicas(
         "spec": {"maxReplicas": 3, "minReplicas": 3},
     }
     assert json.loads(api.patch.call_args[1]["data"]) == patch_data
+
+def test_scaler_upscale_hpa_original_replicas_lte_max_replicas(
+    monkeypatch,
+):
+    api = MagicMock()
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 0, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.TOKEN_BUCKET", None, raising=False)
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.add_event", MagicMock(return_value=None)
+    )
+
+    def get(url, version, **kwargs):
+        if url == "pods":
+            data = {"items": []}
+        elif url == "horizontalpodautoscalers":
+            data = {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "hpa-1",
+                            "namespace": "default",
+                            "creationTimestamp": "2023-08-21T10:00:00Z",
+                            "annotations": {
+                                "downscaler/original-replicas": "1",
+                            }
+                        },
+                        "spec": {"maxReplicas": 3, "minReplicas": 0},
+                    },
+                ]
+            }
+        elif url == "namespaces/default":
+            data = {"metadata": {}}
+        elif url == "namespaces":
+            data = {
+                "items": [
+                    {"metadata": {"name": "default"}},
+                ]
+            }
+        else:
+            raise Exception(f"unexpected call: {url}, {version}, {kwargs}")
+
+        response = MagicMock()
+        response.json.return_value = data
+        return response
+
+    api.get = get
+
+    include_resources = frozenset(["horizontalpodautoscalers"])
+    scale(
+        constrained_downscaler=False,
+        namespaces=[],
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        upscale_target_only=False,
+        include_resources=include_resources,
+        exclude_namespaces=[],
+        exclude_deployments=[],
+        admission_controller="",
+        dry_run=False,
+        grace_period=300,
+        api_server_timeout=10,
+        max_retries_on_conflict=0,
+        downtime_replicas=0,
+        enable_events=True,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert api.patch.call_count == 1
+    assert api.patch.call_args[1]["url"] == "/horizontalpodautoscalers/hpa-1"
+
+    patch_data = {
+        "metadata": {
+            "name": "hpa-1",
+            "namespace": "default",
+            "creationTimestamp": "2023-08-21T10:00:00Z",
+            "annotations": {
+                "downscaler/original-replicas": None,
+            },
+        },
+        "spec": {"maxReplicas": 3, "minReplicas": 1},
+    }
+    assert json.loads(api.patch.call_args[1]["data"]) == patch_data
