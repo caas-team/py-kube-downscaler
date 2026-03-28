@@ -1252,6 +1252,23 @@ def autoscale_resource(
                     update_needed = False
             elif (
                 not ignore
+                and is_uptime
+                and original_replicas
+                and (original_replicas > 0 or original_replicas == -1)
+                and replicas == original_replicas
+                and replicas != downtime_replicas
+            ):
+                # Resource is already at its original replica count (e.g., restored
+                # externally while the annotation was still present). Clear the stale
+                # annotation so the downscaler does not get confused on the next cycle.
+                logger.info(
+                    f"{resource.kind} {resource.namespace}/{resource.name} already at original replicas "
+                    f"({original_replicas}), clearing stale {ORIGINAL_REPLICAS_ANNOTATION} annotation"
+                )
+                resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] = None
+                update_needed = True
+            elif (
+                not ignore
                 and not is_uptime
                 and (replicas > 0 and replicas > downtime_replicas or replicas == -1)
             ):
