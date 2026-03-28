@@ -784,7 +784,11 @@ def scale_up(
                 f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {starting_replicas} to {target} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
             )
     elif resource.kind == "HorizontalPodAutoscaler":
-        resource.obj["spec"]["minReplicas"] = original_replicas
+        if original_replicas <= resource.obj["spec"]["maxReplicas"]:
+            resource.obj["spec"]["minReplicas"] = original_replicas
+        else:
+            resource.obj["spec"]["minReplicas"] = resource.obj["spec"]["maxReplicas"]
+            logger.warning( f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})")
         logger.info(
             f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
         )
