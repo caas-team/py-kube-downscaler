@@ -786,12 +786,16 @@ def scale_up(
     elif resource.kind == "HorizontalPodAutoscaler":
         if original_replicas <= resource.obj["spec"]["maxReplicas"]:
             resource.obj["spec"]["minReplicas"] = original_replicas
+            logger.info(
+                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
+            )
         else:
             resource.obj["spec"]["minReplicas"] = resource.obj["spec"]["maxReplicas"]
-            logger.warning( f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})")
-        logger.info(
-            f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
-        )
+            logger.warning( f"Original minReplicas value {original_replicas} is greater than current maxReplicas value {resource.obj['spec']['maxReplicas']} for {resource.kind} {resource.namespace}/{resource.name}. "
+                            f"will set minReplicas to maxReplicas value {resource.obj['spec']['maxReplicas']} instead of original minReplicas value {original_replicas} (uptime: {uptime}, downtime: {downtime})"
+            logger.info(
+                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {resource.obj["spec"]["maxReplicas"]} minReplicas (uptime: {uptime}, downtime: {downtime})"
+            )
     elif resource.kind == "Rollout":
         resource.obj["spec"]["replicas"] = original_replicas
         logger.info(
