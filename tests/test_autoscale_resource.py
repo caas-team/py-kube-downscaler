@@ -1202,7 +1202,7 @@ def test_upscale_hpa_with_autoscaling(monkeypatch):
                     ORIGINAL_REPLICAS_ANNOTATION: str(4),
                 },
             },
-            "spec": {"minReplicas": 1},
+            "spec": {"minReplicas": 1, "maxReplicas": 4},
         },
     )
     now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
@@ -1799,3 +1799,210 @@ def test_downscale_resource_concurrently_modified_without_retries_allowed(monkey
 
     # Assert the kube_downscaler.scaler.get_resource method was not called at all (meaning no retry was performed)
     assert mock_get_resource.call_count == 0
+
+
+def test_hpa_stale_annotation_cleared_when_already_at_original_replicas(monkeypatch):
+    """
+    When an HPA is in uptime, minReplicas already equals the value stored in
+    downscaler/original-replicas, and maxReplicas >= minReplicas, the annotation
+    should be removed (stale) even though the normal scale_up path was never
+    triggered (e.g. the HPA was restored externally).
+    """
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    hpa = HorizontalPodAutoscaler(
+        None,
+        {
+            "metadata": {
+                "name": "my-hpa",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    DOWNTIME_REPLICAS_ANNOTATION: "1",
+                    ORIGINAL_REPLICAS_ANNOTATION: "5",
+                },
+            },
+            "spec": {
+                "minReplicas": 5,   # already restored externally
+                "maxReplicas": 10,  # maxReplicas >= minReplicas
+            },
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        hpa,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=HorizontalPodAutoscaler,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    # minReplicas must remain unchanged
+    assert hpa.obj["spec"]["minReplicas"] == 5
+    # stale annotation must be cleared
+    assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+
+def test_hpa_stale_annotation_cleared_when_min_equals_max_and_original(monkeypatch):
+    """
+    Edge case: minReplicas == maxReplicas == original_replicas.
+    The annotation should still be cleared.
+    """
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    hpa = HorizontalPodAutoscaler(
+        None,
+        {
+            "metadata": {
+                "name": "my-hpa",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    DOWNTIME_REPLICAS_ANNOTATION: "1",
+                    ORIGINAL_REPLICAS_ANNOTATION: "3",
+                },
+            },
+            "spec": {
+                "minReplicas": 3,
+                "maxReplicas": 3,
+            },
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        hpa,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=HorizontalPodAutoscaler,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert hpa.obj["spec"]["minReplicas"] == 3
+    assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+
+def test_deployment_stale_annotation_cleared_when_already_at_original_replicas(monkeypatch):
+    """
+    When a Deployment is in uptime and its replica count already matches the
+    stored original_replicas value (externally restored), the stale annotation
+    should be cleared.
+    """
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    deploy = Deployment(
+        None,
+        {
+            "metadata": {
+                "name": "my-deploy",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    ORIGINAL_REPLICAS_ANNOTATION: "4",
+                },
+            },
+            "spec": {"replicas": 4},  # already restored externally
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        deploy,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    assert deploy.replicas == 4
+    assert deploy.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+
+def test_hpa_annotation_not_cleared_during_downtime(monkeypatch):
+    """
+    During downtime the stale-annotation cleanup must NOT fire, even if
+    minReplicas happens to equal original_replicas before the scale-down.
+    """
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    hpa = HorizontalPodAutoscaler(
+        None,
+        {
+            "metadata": {
+                "name": "my-hpa",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    DOWNTIME_REPLICAS_ANNOTATION: "1",
+                    ORIGINAL_REPLICAS_ANNOTATION: "5",
+                },
+            },
+            "spec": {
+                "minReplicas": 5,
+                "maxReplicas": 10,
+            },
+        },
+    )
+    now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        hpa,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",  # downtime!
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=HorizontalPodAutoscaler,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+
+    # During downtime: minReplicas should be scaled down, annotation must remain
+    assert hpa.obj["spec"]["minReplicas"] == 1
+    assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == "5"
+

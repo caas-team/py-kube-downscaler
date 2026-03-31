@@ -784,10 +784,19 @@ def scale_up(
                 f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {starting_replicas} to {target} maxUnavailable (uptime: {uptime}, downtime: {downtime})"
             )
     elif resource.kind == "HorizontalPodAutoscaler":
-        resource.obj["spec"]["minReplicas"] = original_replicas
-        logger.info(
-            f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
-        )
+        if original_replicas <= resource.obj["spec"]["maxReplicas"]:
+            resource.obj["spec"]["minReplicas"] = original_replicas
+            logger.info(
+                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
+            )
+        else:
+            max_replicas = resource.obj["spec"]["maxReplicas"]
+            resource.obj["spec"]["minReplicas"] = resource.obj["spec"]["maxReplicas"]
+            logger.warning( f"Original minReplicas value {original_replicas} is greater than current maxReplicas value {resource.obj['spec']['maxReplicas']} for {resource.kind} {resource.namespace}/{resource.name}. "
+                            f"will set minReplicas to maxReplicas value {max_replicas} instead of original minReplicas value {original_replicas} (uptime: {uptime}, downtime: {downtime})")
+            logger.info(
+                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {max_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
+            )
     elif resource.kind == "Rollout":
         resource.obj["spec"]["replicas"] = original_replicas
         logger.info(
@@ -1241,6 +1250,23 @@ def autoscale_resource(
                     update_needed = True
                 except ValueError:
                     update_needed = False
+            elif (
+                not ignore
+                and is_uptime
+                and original_replicas
+                and (original_replicas > 0 or original_replicas == -1)
+                and replicas == original_replicas
+                and replicas != downtime_replicas
+            ):
+                # Resource is already at its original replica count (e.g., restored
+                # externally while the annotation was still present). Clear the stale
+                # annotation so the downscaler does not get confused on the next cycle.
+                logger.info(
+                    f"{resource.kind} {resource.namespace}/{resource.name} already at original replicas "
+                    f"({original_replicas}), clearing stale {ORIGINAL_REPLICAS_ANNOTATION} annotation"
+                )
+                resource.annotations[ORIGINAL_REPLICAS_ANNOTATION] = None
+                update_needed = True
             elif (
                 not ignore
                 and not is_uptime
