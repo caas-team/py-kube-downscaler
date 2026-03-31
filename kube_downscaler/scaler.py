@@ -790,12 +790,12 @@ def scale_up(
                 f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {original_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
             )
         else:
-            maxReplicas = resource.obj["spec"]["maxReplicas"]
+            max_replicas = resource.obj["spec"]["maxReplicas"]
             resource.obj["spec"]["minReplicas"] = resource.obj["spec"]["maxReplicas"]
             logger.warning( f"Original minReplicas value {original_replicas} is greater than current maxReplicas value {resource.obj['spec']['maxReplicas']} for {resource.kind} {resource.namespace}/{resource.name}. "
-                            f"will set minReplicas to maxReplicas value {maxReplicas} instead of original minReplicas value {original_replicas} (uptime: {uptime}, downtime: {downtime})")
+                            f"will set minReplicas to maxReplicas value {max_replicas} instead of original minReplicas value {original_replicas} (uptime: {uptime}, downtime: {downtime})")
             logger.info(
-                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {maxReplicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
+                f"Scaling up {resource.kind} {resource.namespace}/{resource.name} from {replicas} to {max_replicas} minReplicas (uptime: {uptime}, downtime: {downtime})"
             )
     elif resource.kind == "Rollout":
         resource.obj["spec"]["replicas"] = original_replicas
