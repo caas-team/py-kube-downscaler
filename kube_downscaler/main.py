@@ -23,14 +23,14 @@ def main(args=None):
     parser = cmd.get_parser()
     args = parser.parse_args(args)
 
-    if args.burst < args.qps:
-        logger.error(
-            "Failed to start, burst value must be greater than or equal to qps value"
-        )
+    helper.setup_logging(args.debug, args.json_logs)
+
+    try:
+        helper.initialize_token_bucket(args.qps, args.burst)
+    except ValueError as e:
+        logger.error("Invalid token bucket config: %s", e)
         return None
 
-    helper.setup_logging(args.debug, args.json_logs)
-    helper.initialize_token_bucket(args.qps, args.burst)
     helper.initialize_max_retries(args.max_retries_on_throttling)
 
     config_str = ", ".join(f"{k}={v}" for k, v in sorted(vars(args).items()))
