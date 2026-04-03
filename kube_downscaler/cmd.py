@@ -14,6 +14,7 @@ VALID_RESOURCES = frozenset(
         "daemonsets",
         "poddisruptionbudgets",
         "autoscalingrunnersets",
+        "kafkaconnects",
     ]
 )
 
