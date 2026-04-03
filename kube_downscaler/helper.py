@@ -256,7 +256,13 @@ def initialize_token_bucket(qps, burst):
     global TOKEN_BUCKET
     if qps == 0 and burst == 0:
         TOKEN_BUCKET = None
+        return
+    if qps <= 0 or burst <= 0:
+        raise ValueError("qps and burst must be both zero (disabled) or both positive integers")
+    if burst < qps:
+        raise ValueError("Failed to start, burst value must be greater than or equal to qps value")
     TOKEN_BUCKET = TokenBucket(qps=qps, burst=burst)
+
 
 
 def initialize_max_retries(max_retries):

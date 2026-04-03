@@ -1,8 +1,10 @@
 from unittest.mock import patch
 
+import pytest
 import requests
 from requests.models import Response
 
+from kube_downscaler import helper
 from kube_downscaler.helper import call_with_exponential_backoff
 from kube_downscaler.tokenbucket import TokenBucket
 
@@ -86,3 +88,63 @@ def test_burst_limit():
     # tokens should not exceed burst
     tb.acquire(1)
     assert tb.tokens <= tb.burst
+
+def test_acquire_with_zero_qps_or_burst_does_not_block(monkeypatch):
+    # combinations where qps==0 or burst==0 should not block/hang
+    combos = [(0, 0), (0, 5), (5, 0)]
+
+    for qps, burst in combos:
+        tb = TokenBucket(qps=qps, burst=burst)
+        # ensure tokens are zero so a naive implementation that tried to wait
+        # would need to sleep — we ensure no sleep is performed
+        tb.tokens = 0
+
+        # patch time.sleep to fail the test if called (would indicate blocking)
+        def _sleep_fail(_):
+            pytest.fail("time.sleep was called for zero qps/burst combination")
+
+        monkeypatch.setattr("kube_downscaler.tokenbucket.time.sleep", _sleep_fail)
+
+        # should return immediately and not hang
+        tb.acquire(1)
+
+def test_call_with_exponential_backoff_with_token_bucket_none(monkeypatch):
+    # ensure that when TOKEN_BUCKET is None, call_with_exponential_backoff does not try to call acquire
+
+    # make sure TOKEN_BUCKET is None
+    monkeypatch.setattr(helper, "TOKEN_BUCKET", None, raising=False)
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 3, raising=False)
+
+    # if TokenBucket.acquire were called somewhere unexpectedly, fail the test
+    def _fail_acquire(self, tokens=1):
+        pytest.fail("TokenBucket.acquire should not be called when TOKEN_BUCKET is None")
+
+    monkeypatch.setattr(TokenBucket, "acquire", _fail_acquire, raising=False)
+
+    # simple function to be called
+    def simple():
+        return "ok"
+
+    # should return normally and not invoke any acquire
+    result = helper.call_with_exponential_backoff(simple, use_token_bucket=True)
+    assert result == "ok"
+
+
+def test_call_with_exponential_backoff_calls_acquire_when_present(monkeypatch):
+    # contrast case: when a TokenBucket instance is assigned to helper.TOKEN_BUCKET,
+    # its acquire must be called when use_token_bucket=True
+    monkeypatch.setattr("kube_downscaler.helper.MAX_RETRIES", 3, raising=False)
+    called = {"count": 0}
+
+    class DummyTB:
+        def acquire(self, tokens=1):
+            called["count"] += 1
+
+    monkeypatch.setattr(helper, "TOKEN_BUCKET", DummyTB(), raising=False)
+
+    def simple():
+        return "ok"
+
+    result = helper.call_with_exponential_backoff(simple, use_token_bucket=True)
+    assert result == "ok"
+    assert called["count"] == 1
