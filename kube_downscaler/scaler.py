@@ -29,6 +29,7 @@ from pykube.objects import PodDisruptionBudget
 from kube_downscaler import helper
 from kube_downscaler.helper import matches_time_spec
 from kube_downscaler.resources.autoscalingrunnerset import AutoscalingRunnerSet
+from kube_downscaler.resources.kafkaconnect import KafkaConnect
 from kube_downscaler.resources.constraint import KubeDownscalerJobsConstraint
 from kube_downscaler.resources.constrainttemplate import ConstraintTemplate
 from kube_downscaler.resources.keda import ScaledObject
@@ -65,6 +66,7 @@ RESOURCE_CLASSES = [
     PodDisruptionBudget,
     Job,
     AutoscalingRunnerSet,
+    KafkaConnect,
 ]
 
 TIMESTAMP_FORMATS = [
