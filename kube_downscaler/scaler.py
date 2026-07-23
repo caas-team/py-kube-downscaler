@@ -98,7 +98,7 @@ def define_scope(exclude, original_replicas, upscale_target_only):
     if upscale_target_only:
         exclude_condition = exclude
     else:
-        exclude_condition = exclude and not original_replicas
+        exclude_condition = exclude and original_replicas is None
 
     return exclude_condition
 
@@ -1048,6 +1048,11 @@ def autoscale_jobs_for_namespace(
                 )
 
             update_needed = False
+            has_scalable_original_replicas = original_replicas is not None and (
+                original_replicas == -1
+                or original_replicas > 0
+                or (resource.kind == "PodDisruptionBudget" and original_replicas == 0)
+            )
 
             if not ignore and is_uptime:
                 policy, operation = scale_up_jobs(
@@ -1172,6 +1177,7 @@ def autoscale_resource(
             is_downtime_replicas_percentage = (
                 is_downtime_replicas_from_annotation_percentage
             )
+        has_original_replicas = original_replicas is not None
 
         exclude_condition = define_scope(
             exclude, original_replicas, upscale_target_only
@@ -1191,11 +1197,11 @@ def autoscale_resource(
             downscale_period = resource.annotations.get(
                 DOWNSCALE_PERIOD_ANNOTATION, downscale_period
             )
-            if forced_uptime or (exclude and original_replicas):
+            if forced_uptime or (exclude and has_original_replicas):
                 uptime = "forced"
                 downtime = "ignored"
                 is_uptime = True
-            elif forced_downtime and not (exclude and original_replicas):
+            elif forced_downtime and not (exclude and has_original_replicas):
                 uptime = "ignored"
                 downtime = "forced"
                 is_uptime = False
@@ -1227,13 +1233,17 @@ def autoscale_resource(
                 resource, original_replicas, uptime
             )
             update_needed = False
+            has_scalable_original_replicas = original_replicas is not None and (
+                original_replicas == -1
+                or original_replicas > 0
+                or (resource.kind == "PodDisruptionBudget" and original_replicas == 0)
+            )
 
             if (
                 not ignore
                 and is_uptime
                 and replicas == downtime_replicas
-                and original_replicas
-                and (original_replicas > 0 or original_replicas == -1)
+                and has_scalable_original_replicas
             ):
                 try:
                     scale_up(
@@ -1253,8 +1263,7 @@ def autoscale_resource(
             elif (
                 not ignore
                 and is_uptime
-                and original_replicas
-                and (original_replicas > 0 or original_replicas == -1)
+                and has_scalable_original_replicas
                 and replicas == original_replicas
                 and replicas != downtime_replicas
             ):
@@ -1270,7 +1279,18 @@ def autoscale_resource(
             elif (
                 not ignore
                 and not is_uptime
-                and (replicas > 0 and replicas > downtime_replicas or replicas == -1)
+                and (
+                        replicas == -1
+                        or (
+                                resource.kind == "PodDisruptionBudget"
+                                and replicas != downtime_replicas
+                        )
+                        or (
+                                resource.kind != "PodDisruptionBudget"
+                                and replicas > 0
+                                and replicas > downtime_replicas
+                        )
+                )
             ):
                 if within_grace_period(
                     resource, grace_period, now, deployment_time_annotation
