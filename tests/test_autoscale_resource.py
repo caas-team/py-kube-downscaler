@@ -1020,6 +1020,50 @@ def test_downscale_replicas_not_zero(resource, monkeypatch):
     resource.update.assert_called_once()
 
 
+def test_downscale_deployment_zero_to_one_is_skipped(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    deploy = Deployment(
+        None,
+        {
+            "metadata": {
+                "name": "my-deploy",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {EXCLUDE_ANNOTATION: "false"},
+            },
+            "spec": {"replicas": 0},
+        },
+    )
+    now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        deploy,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
+        now=now,
+        downtime_replicas=1,
+        matching_labels=frozenset([re.compile("")]),
+    )
+    assert deploy.replicas == 0
+    assert (
+        ORIGINAL_REPLICAS_ANNOTATION
+        not in deploy.obj.get("metadata", {}).get("annotations", {})
+    )
+
+
 def test_downscale_stack_with_autoscaling(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -1183,6 +1227,127 @@ def test_downscale_hpa_wrong_annotation_value_with_autoscaling(monkeypatch):
 
     # if the DOWNTIME_REPLICAS_ANNOTATION has a percentage value on non pdb objects, they will be skipped
     assert hpa.obj["spec"]["minReplicas"] == 4
+
+
+def test_downscale_deployment_percentage_downtime_replicas_is_skipped(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    deploy = Deployment(
+        None,
+        {
+            "metadata": {
+                "name": "my-deploy",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {DOWNTIME_REPLICAS_ANNOTATION: "25%"},
+            },
+            "spec": {"replicas": 4},
+        },
+    )
+    now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        deploy,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=Deployment,
+        now=now,
+        matching_labels=frozenset([re.compile("")]),
+    )
+    assert deploy.replicas == 4
+    assert ORIGINAL_REPLICAS_ANNOTATION not in deploy.obj["metadata"]["annotations"]
+
+
+def test_downscale_pdb_percentage_downtime_replicas_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {DOWNTIME_REPLICAS_ANNOTATION: "20%"},
+            },
+            "spec": {"maxUnavailable": 4},
+        },
+    )
+    now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == "20%"
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == "4"
+
+
+def test_upscale_pdb_from_percentage_downtime_replicas_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    DOWNTIME_REPLICAS_ANNOTATION: "20%",
+                    ORIGINAL_REPLICAS_ANNOTATION: "4",
+                },
+            },
+            "spec": {"maxUnavailable": "20%"},
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == 4
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
 
 
 def test_upscale_hpa_with_autoscaling(monkeypatch):
@@ -1349,6 +1514,45 @@ def test_downscale_pdb_maxunavailable_with_autoscaling(monkeypatch):
     assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(4)
 
 
+def test_downscale_pdb_maxunavailable_zero_to_one_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {DOWNTIME_REPLICAS_ANNOTATION: str(1)},
+            },
+            "spec": {"maxUnavailable": 0},
+        },
+    )
+    now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == 1
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(0)
+
+
 def test_upscale_pdb_maxunavailable_with_autoscaling(monkeypatch):
     api = MagicMock()
     monkeypatch.setattr(
@@ -1389,6 +1593,254 @@ def test_upscale_pdb_maxunavailable_with_autoscaling(monkeypatch):
     )
     assert pdb.obj["spec"]["maxUnavailable"] == 4
     assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+
+def test_upscale_pdb_maxunavailable_one_to_zero_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    DOWNTIME_REPLICAS_ANNOTATION: str(1),
+                    ORIGINAL_REPLICAS_ANNOTATION: str(0),
+                },
+            },
+            "spec": {"maxUnavailable": 1},
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == 0
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+
+def test_downscale_pdb_maxunavailable_percentage_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {DOWNTIME_REPLICAS_ANNOTATION: str(1)},
+            },
+            "spec": {"maxUnavailable": "75%"},
+        },
+    )
+    now = datetime.strptime("2018-10-23T21:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="never",
+        default_downtime="always",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == 1
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == "75%"
+
+
+def test_upscale_pdb_maxunavailable_to_percentage_with_autoscaling(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    DOWNTIME_REPLICAS_ANNOTATION: str(1),
+                    ORIGINAL_REPLICAS_ANNOTATION: "75%",
+                },
+            },
+            "spec": {"maxUnavailable": 1},
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == "75%"
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+
+def test_upscale_pdb_maxunavailable_with_exclude_and_original_zero(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    EXCLUDE_ANNOTATION: "true",
+                    DOWNTIME_REPLICAS_ANNOTATION: str(1),
+                    ORIGINAL_REPLICAS_ANNOTATION: str(0),
+                },
+            },
+            "spec": {"maxUnavailable": 1},
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == 0
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] is None
+
+
+def test_upscale_target_only_skips_excluded_pdb_with_original_zero(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {
+                    EXCLUDE_ANNOTATION: "true",
+                    DOWNTIME_REPLICAS_ANNOTATION: str(1),
+                    ORIGINAL_REPLICAS_ANNOTATION: str(0),
+                },
+            },
+            "spec": {"maxUnavailable": 1},
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:15:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_target_only=True,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=False,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == 1
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(0)
+
+
+def test_forced_downtime_downscale_pdb_maxunavailable_zero_to_one(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(
+        "kube_downscaler.scaler.helper.get_kube_api", MagicMock(return_value=api)
+    )
+    pdb = PodDisruptionBudget(
+        None,
+        {
+            "metadata": {
+                "name": "my-pdb",
+                "namespace": "my-ns",
+                "creationTimestamp": "2018-10-23T21:55:00Z",
+                "annotations": {DOWNTIME_REPLICAS_ANNOTATION: str(1)},
+            },
+            "spec": {"maxUnavailable": 0},
+        },
+    )
+    now = datetime.strptime("2018-10-23T22:56:00Z", "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
+    autoscale_resource(
+        pdb,
+        upscale_target_only=False,
+        upscale_period="never",
+        downscale_period="never",
+        default_uptime="always",
+        default_downtime="never",
+        forced_uptime=False,
+        forced_downtime=True,
+        dry_run=True,
+        max_retries_on_conflict=0,
+        api=api,
+        kind=PodDisruptionBudget,
+        now=now,
+    )
+    assert pdb.obj["spec"]["maxUnavailable"] == 1
+    assert pdb.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == str(0)
 
 
 def test_downscale_daemonset_with_autoscaling(monkeypatch):
@@ -2005,4 +2457,3 @@ def test_hpa_annotation_not_cleared_during_downtime(monkeypatch):
     # During downtime: minReplicas should be scaled down, annotation must remain
     assert hpa.obj["spec"]["minReplicas"] == 1
     assert hpa.obj["metadata"]["annotations"][ORIGINAL_REPLICAS_ANNOTATION] == "5"
-
