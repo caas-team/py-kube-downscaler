@@ -69,20 +69,30 @@ conditions are met:
 
 - **current time** is not part of the \"uptime\" schedule or is part of the \"downtime\" schedule.
 
-  If true, the schedules are evaluated in the following order:
-  - `downscaler/downscale-period` or `downscaler/downtime`
-    annotation on the workload definition
-  - `downscaler/upscale-period` or `downscaler/uptime`
-    annotation on the workload definition
-  - `downscaler/downscale-period` or `downscaler/downtime`
-    annotation on the workload\'s namespace
-  - `downscaler/upscale-period` or `downscaler/uptime`
-    annotation on the workload\'s namespace
-  - `--upscale-period` or `--default-uptime` CLI argument
-  - `--downscale-period` or `--default-downtime` CLI argument
-  - `UPSCALE_PERIOD` or `DEFAULT_UPTIME` environment variable
-  - `DOWNSCALE_PERIOD` or `DEFAULT_DOWNTIME` environment
-    variable
+  The schedules are resolved in two steps:
+  1. **Period mode or time mode.** If `downscaler/upscale-period` or
+     `downscaler/downscale-period` is set at _any_ level (workload
+     annotation, namespace annotation, CLI argument or environment
+     variable), the [period logic](#alternative-logic-based-on-periods)
+     is used and **all** `uptime`/`downtime` values are ignored,
+     including the ones set on the workload itself. Otherwise, the
+     `uptime`/`downtime` values are used.
+  2. **Level.** Within the selected mode, each value
+     (`upscale-period`, `downscale-period`, `uptime`, `downtime`) is
+     taken from the most specific level that defines it:
+     - annotation on the workload definition
+     - annotation on the workload\'s namespace
+     - `--upscale-period`, `--downscale-period`, `--default-uptime`
+       or `--default-downtime` CLI argument
+     - `UPSCALE_PERIOD`, `DOWNSCALE_PERIOD`, `DEFAULT_UPTIME` or
+       `DEFAULT_DOWNTIME` environment variable
+
+  For example, if a namespace has a `downscaler/downscale-period`
+  annotation and one of its workloads has a `downscaler/uptime`
+  annotation, the workload\'s uptime is ignored: the workload is scaled
+  down during the namespace\'s downscale period and is never scaled up
+  again, unless an `upscale-period` is also defined on the workload,
+  the namespace, or globally.
 
 - The workload\'s **namespace** is not part of the exclusion list:
   - If you provide an exclusion list, it will be used in place
@@ -789,6 +799,12 @@ The following annotations are supported on the Namespace level:
   namespace until the given timestamp
 - `downscaler/downtime-replicas`: overwrite the default target
   replicas to scale down to (default: zero)
+
+> [!IMPORTANT]
+> Setting `downscaler/upscale-period` or `downscaler/downscale-period`
+> on a namespace switches all its workloads to the period logic: their
+> `downscaler/uptime` and `downscaler/downtime` annotations are then
+> ignored. See the [Algorithm](#algorithm) section.
 
 ## Verifying Cosign Signature
 
