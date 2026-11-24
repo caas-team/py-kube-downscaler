@@ -275,7 +275,7 @@ DEFAULT_UPTIME="Mon-Fri 07:30-20:30 Europe/Berlin"
 To only downscale during the weekend and Friday after 20:00:
 
 ```bash
-DEFAULT_DOWNTIME="Sat-Sun 00:00-24:00 CET,Fri-Fri 20:00-24:00 CET'
+DEFAULT_DOWNTIME="Sat-Sun 00:00-24:00 CET,Fri-Fri 20:00-24:00 CET"
 ```
 
 Each time specification can be in one of two formats:
